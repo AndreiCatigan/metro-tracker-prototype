@@ -1,0 +1,224 @@
+@import "tailwindcss";
+
+@theme {
+  --color-surface: #f7f9fb;
+  --color-surface-dim: #d8dadc;
+  --color-surface-bright: #f7f9fb;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container: #eceef0;
+  --color-surface-container-high: #e6e8ea;
+  --color-surface-container-highest: #e0e3e5;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #5b4137;
+  --color-inverse-surface: #2d3133;
+  --color-inverse-on-surface: #eff1f3;
+  --color-outline: #8f7065;
+  --color-outline-variant: #e4beb2;
+  --color-surface-tint: #a93800;
+
+  --color-primary: #a53700;
+  --color-primary-electric: #f95700;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #ce4700;
+  --color-on-primary-container: #fffbff;
+  --color-inverse-primary: #ffb59b;
+  --color-primary-fixed: #ffdbcf;
+  --color-primary-fixed-dim: #ffb59b;
+  --color-on-primary-fixed: #380d00;
+  --color-on-primary-fixed-variant: #812900;
+
+  --color-secondary: #5b5e68;
+  --color-secondary-charcoal: #181c24;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #dcdfeb;
+  --color-on-secondary-container: #5f626c;
+  --color-secondary-fixed: #dfe2ed;
+  --color-secondary-fixed-dim: #c3c6d1;
+  --color-on-secondary-fixed: #181c24;
+  --color-on-secondary-fixed-variant: #434750;
+
+  --color-tertiary: #69594b;
+  --color-tertiary-peach: #ffe8d6;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #837163;
+  --color-on-tertiary-container: #fffbff;
+  --color-tertiary-fixed: #f5decd;
+  --color-tertiary-fixed-dim: #d8c3b2;
+  --color-on-tertiary-fixed: #25190f;
+  --color-on-tertiary-fixed-variant: #534437;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --color-background: #f7f9fb;
+  --color-on-background: #191c1e;
+  --color-surface-variant: #e0e3e5;
+
+  --color-transit-orange: #f95700;
+  --color-transit-charcoal: #181c24;
+  --color-transit-peach: #ffe8d6;
+  --color-transit-success: #10b981;
+  --color-transit-muted: #64748b;
+  --color-transit-border: #e2e8f0;
+
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+
+  --radius-sm: 0.5rem;
+  --radius-DEFAULT: 1rem;
+  --radius-md: 1.5rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-3xl: 1.75rem;
+
+  --spacing-gutter: 1rem;
+  --spacing-margin: 1.25rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2rem;
+
+  --shadow-elevation1: 0 4px 20px -2px rgba(24, 28, 36, 0.05);
+  --shadow-elevation2: 0 10px 25px -4px rgba(24, 28, 36, 0.10);
+  --shadow-elevation3: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  /* Typography — fontSize (Tailwind v4 text-* utilities) */
+  --text-headline-xl: 32px;
+  --text-headline-xl--line-height: 40px;
+  --text-headline-lg: 24px;
+  --text-headline-lg--line-height: 32px;
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 24px;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 16px;
+  --text-label-lg: 13px;
+  --text-label-lg--line-height: 16px;
+  --text-label-md: 11px;
+  --text-label-md--line-height: 14px;
+  --text-label-sm: 10px;
+  --text-label-sm--line-height: 12px;
+
+  /* Typography — fontFamily (all map to Plus Jakarta Sans for Stitch class compat) */
+  --font-headline-xl: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-lg: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-md: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-sm: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body-lg: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body-md: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body-sm: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-label-lg: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-label-md: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-label-sm: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+:root {
+  --background: #f7f9fb;
+  --foreground: #191c1e;
+}
+
+body {
+  background-color: var(--color-background, #f7f9fb);
+  color: var(--color-on-surface, #191c1e);
+  font-family: var(--font-sans, "Plus Jakarta Sans", system-ui, -apple-system, sans-serif);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Kinetic Transit Typography Utilities */
+.headline-xl {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 40px;
+}
+
+.headline-lg {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 32px;
+}
+
+.headline-md {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.headline-sm {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.body-lg {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.body-md {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.body-sm {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.label-lg {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.label-md {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.label-sm {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Safe-area insets for mobile full-screen mode */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobile viewport and custom scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
