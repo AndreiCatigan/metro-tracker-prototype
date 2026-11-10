@@ -1,25 +1,279 @@
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAppContext } from "@/lib/AppContext";
+
 export default function ConductorScanPage() {
+  const router = useRouter();
+  const { activeTicket, updateSeatStatus } = useAppContext();
+
+  const [torchOn, setTorchOn] = useState(false);
+  const [boarded, setBoarded] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const handleConfirmBoarding = () => {
+    setBoarded(true);
+    // Mark seat as on-board in AppContext
+    updateSeatStatus(activeTicket.seatNumber, "occupied");
+    showToast(`Passenger Juana dela Cruz (Seat ${activeTicket.seatNumber}) Boarded!`);
+    setTimeout(() => {
+      router.push("/conductor/matrix");
+    }, 1000);
+  };
+
+  const handleMarkNoShow = () => {
+    showToast(`Seat ${activeTicket.seatNumber} marked as No-Show. Releasing to walk-in queue.`);
+    updateSeatStatus(activeTicket.seatNumber, "available");
+    setTimeout(() => {
+      router.push("/conductor/matrix");
+    }, 1200);
+  };
+
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-100 pb-20">
-      <header className="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-10 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-indigo-400">Scan Passenger Ticket</h1>
-          <p className="text-xs text-slate-400">Validate QR codes for reserved seats</p>
+    <div className="min-h-screen bg-[#0A0E17] text-white flex flex-col font-sans select-none relative overflow-x-hidden">
+      {/* ── Toast Notification ── */}
+      {toastMessage && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-emerald-400">check_circle</span>
+          <span>{toastMessage}</span>
         </div>
-        <a href="/conductor" className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-700">
-          Back
-        </a>
-      </header>
-      <div className="p-4 max-w-md mx-auto space-y-4">
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center space-y-4">
-          <div className="w-48 h-48 mx-auto border-2 border-dashed border-indigo-400 rounded-2xl flex flex-col items-center justify-center bg-slate-900/50">
-            <span className="text-3xl mb-1">📷</span>
-            <p className="text-xs text-slate-400">Camera Viewfinder Placeholder</p>
+      )}
+
+      {/* ── Camera Viewfinder Area (Top Section) ── */}
+      <div className="relative h-[280px] w-full flex flex-col justify-between p-4 bg-radial from-slate-800 via-slate-900 to-black overflow-hidden">
+        {/* Subtle camera view background representation */}
+        <div
+          className="absolute inset-0 opacity-25 pointer-events-none bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at center, rgba(249,87,0,0.15) 0%, rgba(0,0,0,0.85) 100%)",
+          }}
+        />
+
+        {/* Top Viewfinder Controls */}
+        <div className="relative z-10 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push("/conductor/matrix")}
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/30 transition active:scale-95 cursor-pointer"
+            aria-label="Back to Matrix"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => showToast("Enter PNR dialog: ER902624726 matched.")}
+              className="bg-white/20 backdrop-blur-md text-white px-3.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 hover:bg-white/30 transition cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[14px]">dialpad</span>
+              <span>ENTER PNR MANUALLY</span>
+            </button>
+            <p className="text-[10px] text-white/70 font-medium mt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F95700] inline-block mr-1" />
+              Bus DMS-048 • Baybay Terminal
+            </p>
           </div>
-          <p className="text-xs text-slate-300">Point at passenger&apos;s digital ticket QR code</p>
+
+          <button
+            type="button"
+            onClick={() => {
+              setTorchOn(!torchOn);
+              showToast(torchOn ? "Camera torch disabled." : "Camera torch enabled.");
+            }}
+            className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition active:scale-95 cursor-pointer ${
+              torchOn
+                ? "bg-[#FFCC00] text-black shadow-lg"
+                : "bg-white/20 text-white hover:bg-white/30"
+            }`}
+            aria-label="Toggle Torch"
+          >
+            <span className="material-symbols-outlined text-[19px]">
+              {torchOn ? "flashlight_on" : "flashlight_off"}
+            </span>
+          </button>
+        </div>
+
+        {/* Scanner Reticle HUD */}
+        <div className="relative z-10 flex flex-col items-center justify-center my-auto">
+          <div className="relative w-44 h-44 rounded-2xl flex items-center justify-center">
+            {/* 4 Glowing Orange Corners */}
+            <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-[#F95700] rounded-tl-lg" />
+            <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-[#F95700] rounded-tr-lg" />
+            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-[#F95700] rounded-bl-lg" />
+            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-[#F95700] rounded-br-lg" />
+
+            {/* Scanning Laser Beam */}
+            <div className="absolute w-full h-[2px] bg-gradient-to-r from-transparent via-[#F95700] to-transparent animate-pulse" />
+
+            <div className="text-center space-y-1">
+              <span className="material-symbols-outlined text-white/80 text-[26px]">
+                filter_center_focus
+              </span>
+              <p className="text-[10px] font-black uppercase tracking-wider text-white/90">
+                ALIGN PASSENGER PASS
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </main>
+
+      {/* ── Ticket Verified Bottom Sheet Card ── */}
+      <div className="relative z-20 flex-1 bg-white text-[#191C1E] rounded-t-3xl p-5 shadow-2xl -mt-6 space-y-4">
+        {/* Verification Check Badge */}
+        <div className="text-center pt-1">
+          <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-2 shadow-md">
+            <span className="material-symbols-outlined text-[26px]">check</span>
+          </div>
+          <h2 className="text-[20px] font-black tracking-tight text-[#191C1E]">
+            Ticket Verified
+          </h2>
+          <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-0.5 rounded-full text-[11px] font-black tracking-wide mt-1">
+            <span className="material-symbols-outlined text-[13px]">verified</span>
+            <span>PNR #{activeTicket.pnr} • VALIDATED</span>
+          </div>
+        </div>
+
+        {/* Passenger Profile Card */}
+        <div className="bg-[#F7F9FB] rounded-2xl p-3.5 border border-[#ECEEF0] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-[#181C24] text-white flex items-center justify-center font-bold text-sm shadow-xs">
+              <span className="material-symbols-outlined text-[22px]">person</span>
+            </div>
+            <div>
+              <h3 className="text-[15px] font-black text-[#191C1E] leading-tight">
+                Juana dela Cruz
+              </h3>
+              <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1 mt-0.5">
+                <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                <span>Regular Commuter</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className="bg-[#101A2C] text-white px-3 py-1 rounded-xl font-black text-[14px] shadow-xs inline-block">
+              Seat {activeTicket.seatNumber}
+            </span>
+            <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
+              STANDARD AISLE
+            </p>
+          </div>
+        </div>
+
+        {/* 3 Metrics Badges */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-[#F7F9FB] rounded-2xl p-2.5 border border-[#ECEEF0]">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              FARE PAID
+            </p>
+            <p className="text-[16px] font-black text-[#A53700] my-0.5">
+              ₱{activeTicket.totalFare.toFixed(2)}
+            </p>
+            <p className="text-[9px] font-bold text-emerald-700 flex items-center justify-center gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>{activeTicket.paymentMethod} Confirmed</span>
+            </p>
+          </div>
+
+          <div className="bg-[#F7F9FB] rounded-2xl p-2.5 border border-[#ECEEF0]">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              BAGGAGE
+            </p>
+            <p className="text-[15px] font-black text-[#191C1E] my-0.5">
+              1 Carry
+            </p>
+            <p className="text-[9px] text-slate-500 font-medium">Under Seat Allowed</p>
+          </div>
+
+          <div className="bg-[#F7F9FB] rounded-2xl p-2.5 border border-[#ECEEF0]">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              BOARDING BAY
+            </p>
+            <p className="text-[15px] font-black text-[#191C1E] my-0.5">
+              Bay 03
+            </p>
+            <p className="text-[9px] text-slate-500 font-medium">Priority Lane</p>
+          </div>
+        </div>
+
+        {/* Route Corridor Card */}
+        <div className="bg-[#F7F9FB] rounded-2xl p-3 border border-[#ECEEF0] flex items-center justify-between text-xs">
+          <div>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              BOARDING AT
+            </p>
+            <p className="text-[13px] font-black text-[#191C1E] mt-0.5">
+              Baybay Terminal
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center px-2">
+            <span className="text-[9px] font-bold text-slate-400">48 km Direct</span>
+            <div className="flex items-center gap-1 text-[#A53700]">
+              <span className="w-6 h-[1.5px] bg-[#A53700]" />
+              <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              BOUND FOR
+            </p>
+            <p className="text-[13px] font-black text-[#191C1E] mt-0.5 flex items-center gap-1 justify-end">
+              <span>Ormoc Port</span>
+              <span className="material-symbols-outlined text-[14px] text-slate-500">directions_boat</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="space-y-2 pt-1">
+          <button
+            type="button"
+            disabled={boarded}
+            onClick={handleConfirmBoarding}
+            className="w-full py-4 rounded-full bg-[#A53700] hover:bg-[#812900] active:scale-[0.98] text-white font-black text-[15px] shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+          >
+            <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+            <span>{boarded ? "Boarding Verified!" : "Confirm Boarding"}</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleMarkNoShow}
+              className="flex-1 py-3 px-3 rounded-2xl bg-[#F2F4F6] hover:bg-[#E6E8EA] text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px] text-rose-600">person_off</span>
+              <span>Mark as No-Show</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => showToast("Scanner refreshed. Point at next passenger pass.")}
+              className="w-12 h-11 rounded-2xl bg-[#F2F4F6] hover:bg-[#E6E8EA] text-slate-700 flex items-center justify-center transition cursor-pointer"
+              aria-label="Refresh Scan"
+              title="Scan Next Ticket"
+            >
+              <span className="material-symbols-outlined text-[18px]">autorenew</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Note */}
+        <p className="text-[10px] text-slate-400 text-center font-medium pt-1 flex items-center justify-center gap-1">
+          <span className="material-symbols-outlined text-[13px] text-slate-400">shield</span>
+          <span>Fare inspected by Conductor ID #8492</span>
+        </p>
+      </div>
+    </div>
   );
 }
-
