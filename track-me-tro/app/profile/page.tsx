@@ -2,10 +2,12 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import BottomNavigation from "@/components/BottomNavigation";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { passengerName } = useAppContext();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -139,6 +141,28 @@ export default function ProfilePage() {
               </div>
               <span className="text-[14px] font-bold text-[#191C1E]">Customer Service</span>
             </div>
+          </button>
+        </div>
+
+        {/* ── Log Out Button ── */}
+        <div className="bg-white rounded-3xl p-2 shadow-xs border border-[#ECEEF0]">
+          <button
+            type="button"
+            onClick={() => {
+              showToast("Logging out of track MEtro...");
+              setTimeout(() => {
+                router.push("/");
+              }, 700);
+            }}
+            className="w-full p-3.5 flex items-center justify-between hover:bg-rose-50/60 rounded-2xl transition cursor-pointer text-left text-rose-600 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition">
+                <span className="material-symbols-outlined text-[19px]">logout</span>
+              </div>
+              <span className="text-[14px] font-bold text-rose-600">Log Out</span>
+            </div>
+            <span className="material-symbols-outlined text-[18px] text-rose-400">arrow_forward</span>
           </button>
         </div>
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Logo from "@/components/Logo";
 
 /** Auto-format a PH mobile number as "912 345 6789" */
@@ -264,16 +265,12 @@ export default function LoginPage() {
           {/* ── "No account? Sign up" Link ── */}
           <p className="text-center text-[13px] text-slate-600 font-medium pt-1">
             No account?{" "}
-            <a
-              href="#signup"
-              onClick={(e) => {
-                e.preventDefault();
-                showToast("Sign up page is coming soon!");
-              }}
+            <Link
+              href="/signup"
               className="font-extrabold text-[#F95700] hover:underline cursor-pointer"
             >
               Sign up
-            </a>
+            </Link>
           </p>
         </form>
 
