@@ -15,12 +15,21 @@ interface SeatData {
 
 export default function ConductorMatrixPage() {
   const router = useRouter();
-  const { busDetails, activeTicket } = useAppContext();
+  const { busDetails, activeTicket, bookings, assignSeatToBooking } = useAppContext();
 
-  // Seat state representation matching Image 4
+  // Seat state representation
   const [selectedSeatId, setSelectedSeatId] = useState<string>("15");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Cabin layout matching Image 4 with live sync to activeTicket
+  // Check for any pending bookings from passengers
+  const pendingBooking = bookings.find((b) => b.status === "pending_seat");
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // Cabin layout with live sync to activeTicket and any confirmed bookings
   const seatsState = useMemo<SeatData[]>(() => {
     const base: SeatData[] = [
       // Row 1
@@ -66,14 +75,27 @@ export default function ConductorMatrixPage() {
       { id: "28", type: "available", label: "VACANT", col: "D", row: "R7", isWindow: true },
     ];
 
+    // Overlay active ticket seat
+    let updated = base;
     if (activeTicket?.seatNumber) {
       const padded = activeTicket.seatNumber.padStart(2, "0");
-      return base.map((s) =>
+      updated = updated.map((s) =>
         s.id === padded ? { ...s, type: "app_reserved" as const, label: "#APP" } : s
       );
     }
-    return base;
-  }, [activeTicket]);
+
+    // Overlay confirmed bookings
+    bookings.forEach((b) => {
+      if (b.status === "confirmed" && b.assignedSeat) {
+        const padded = b.assignedSeat.padStart(2, "0");
+        updated = updated.map((s) =>
+          s.id === padded ? { ...s, type: "app_reserved" as const, label: `#APP${b.assignedSeat}` } : s
+        );
+      }
+    });
+
+    return updated;
+  }, [activeTicket, bookings]);
 
   // Rear 5 bench seats
   const rearBench: SeatData[] = [
@@ -98,8 +120,26 @@ export default function ConductorMatrixPage() {
     router.push(`/conductor/pos?seat=${selectedSeatId}`);
   };
 
+  const handleAssignToPassenger = () => {
+    if (!pendingBooking || !selectedSeat) return;
+    if (selectedSeat.type !== "available") {
+      showToast(`Seat ${selectedSeat.id} is not available. Please choose a vacant seat.`);
+      return;
+    }
+    assignSeatToBooking(pendingBooking.id, selectedSeat.id);
+    showToast(`Seat ${selectedSeat.id} assigned to ${pendingBooking.passengerName}! Ticket sent.`);
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-36">
+      {/* ── Toast Notification ── */}
+      {toastMessage && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
+          <span className="material-symbols-outlined text-[16px] text-emerald-400">check_circle</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── Top Dark Navy Telemetry Header ── */}
       <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg space-y-3.5">
         <div className="flex items-center justify-between">
@@ -166,6 +206,40 @@ export default function ConductorMatrixPage() {
       </header>
 
       <main className="max-w-[420px] w-full mx-auto px-4 -mt-2 space-y-3.5">
+        {/* ── Pending App Reservation Banner (Conductor Assigns Seat) ── */}
+        {pendingBooking && (
+          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#F95700] animate-ping" />
+                <span className="text-[12px] font-black text-[#A53700] uppercase tracking-wider">
+                  Pending Seat Request
+                </span>
+              </div>
+              <span className="text-[11px] font-bold bg-[#A53700] text-white px-2 py-0.5 rounded-full capitalize">
+                {pendingBooking.passengerType}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <div>
+                <p className="font-extrabold text-[#191C1E]">{pendingBooking.passengerName}</p>
+                <p className="text-[11px] text-slate-600">
+                  {pendingBooking.busNumber} • {pendingBooking.direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-bold text-emerald-700">Paid ₱{pendingBooking.totalFare.toFixed(2)}</p>
+                <p className="text-[10px] text-slate-500">via {pendingBooking.paymentMethod}</p>
+              </div>
+            </div>
+
+            <p className="text-[10px] font-bold text-[#A53700] bg-white/70 rounded-lg p-1.5 text-center">
+              👉 Tap a VACANT seat below to assign to {pendingBooking.passengerName.split(" ")[0]}
+            </p>
+          </div>
+        )}
+
         {/* ── Big Scan Passenger CTA Banner ── */}
         <button
           type="button"
@@ -462,21 +536,34 @@ export default function ConductorMatrixPage() {
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-1">
-              <div className="bg-[#F2F4F6] rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600">
-                <p className="text-[9px] text-slate-400 uppercase">FARE CLASS</p>
-                <p className="text-[#191C1E] font-black text-[11px]">
-                  Regular (₱95) <span className="text-emerald-600 font-medium">↗ 20% Disc</span>
-                </p>
-              </div>
+              {pendingBooking && selectedSeat.type === "available" ? (
+                <button
+                  type="button"
+                  onClick={handleAssignToPassenger}
+                  className="w-full py-3 px-4 rounded-2xl bg-[#A53700] hover:bg-[#812900] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[17px]">event_seat</span>
+                  <span>Assign Seat {selectedSeat.id} to {pendingBooking.passengerName.split(" ")[0]}</span>
+                </button>
+              ) : (
+                <>
+                  <div className="bg-[#F2F4F6] rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600">
+                    <p className="text-[9px] text-slate-400 uppercase">FARE CLASS</p>
+                    <p className="text-[#191C1E] font-black text-[11px]">
+                      Regular (₱95) <span className="text-emerald-600 font-medium">↗ 20% Disc</span>
+                    </p>
+                  </div>
 
-              <button
-                type="button"
-                onClick={handleSellWalkIn}
-                className="flex-1 py-3 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[17px]">receipt_long</span>
-                <span>Sell Walk-In Ticket</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleSellWalkIn}
+                    className="flex-1 py-3 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[17px]">receipt_long</span>
+                    <span>Sell Walk-In Ticket</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

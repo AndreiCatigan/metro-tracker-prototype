@@ -3,12 +3,19 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAppContext } from "@/lib/AppContext";
+import { useAppContext, SimulatedTime } from "@/lib/AppContext";
+import { CORRIDOR_STOPS, TRAVEL_TIMES_FROM_SOGOD } from "@/lib/mockData";
 import BottomNavigation from "@/components/BottomNavigation";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { passengerName } = useAppContext();
+  const {
+    passengerName,
+    userLocation,
+    setUserLocation,
+    simulatedTime,
+    setSimulatedTime,
+  } = useAppContext();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -16,20 +23,34 @@ export default function ProfilePage() {
     setTimeout(() => setToastMessage(null), 2500);
   };
 
+  const handleLocationChange = (stop: string) => {
+    setUserLocation(stop);
+    const mins = TRAVEL_TIMES_FROM_SOGOD[stop] ?? 0;
+    const timeStr = mins === 0 ? "At Origin" : `+${Math.floor(mins / 60)}h ${mins % 60}m from Sogod`;
+    showToast(`Location set to ${stop} (${timeStr}). Bus ETAs updated!`);
+  };
+
+  const handleTimeChange = (time: SimulatedTime) => {
+    setSimulatedTime(time);
+    showToast(`Simulated time set to ${time}. Bus schedule updated!`);
+  };
+
+  const currentMins = TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115;
+
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
       {/* ── Toast notification ── */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] text-[#F95700]">info</span>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-[#F95700]">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-8 space-y-5">
+      <main className="max-w-[420px] w-full mx-auto px-4 pt-8 space-y-4">
         {/* ── User Avatar & Identity ── */}
         <div className="text-center space-y-2">
-          {/* Circular Line Avatar Matching Image 8 */}
+          {/* Circular Line Avatar */}
           <div className="w-24 h-24 rounded-full border border-slate-300 mx-auto flex items-center justify-center p-2 bg-white shadow-2xs">
             <svg
               viewBox="0 0 100 100"
@@ -40,7 +61,6 @@ export default function ProfilePage() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              {/* Minimal Line Illustration of Head / Hair */}
               <path d="M50 18 C38 18 32 30 32 45 C32 58 40 68 50 68 C60 68 68 58 68 45 C68 30 62 18 50 18 Z" />
               <path d="M42 24 C44 32 46 44 46 54" />
               <path d="M58 24 C56 32 54 44 54 54" />
@@ -166,27 +186,90 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* ── Pitch Demo Shortcut: Conductor Mode ── */}
-        <div className="bg-gradient-to-r from-[#181C24] to-[#2D3133] rounded-3xl p-4 text-white shadow-md">
+        {/* ── CONSOLIDATED DISCREET DEMO SIMULATION CONTROLS (Tucked at Bottom) ── */}
+        <section className="bg-slate-100/90 rounded-3xl p-4 border border-slate-200/80 space-y-3.5 mt-2">
           <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#F95700] bg-[#F95700]/10 px-2 py-0.5 rounded-full">
-                Pitch Demo Switcher
-              </span>
-              <h3 className="font-extrabold text-[15px] mt-1">Conductor App Mode</h3>
-              <p className="text-[11px] text-slate-300">
-                Inspect real-time passenger manifests &amp; QR scan validations.
-              </p>
+            <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px] text-slate-400">tune</span>
+              <span>Demo Simulation Controls</span>
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold">Pitch Controls</span>
+          </div>
+
+          {/* 1. Conductor App Mode Switcher (Merged inside Demo Controls) */}
+          <div className="bg-white rounded-2xl p-3 border border-slate-200 flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#101A2C] text-white flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px]">badge</span>
+              </div>
+              <div>
+                <p className="text-[13px] font-black text-[#191C1E]">Conductor App Mode</p>
+                <p className="text-[10px] text-slate-400 font-medium">Manifests &amp; POS ticketing</p>
+              </div>
             </div>
+
             <Link
               href="/conductor"
-              className="px-3.5 py-2 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-xs shadow-sm transition flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-[11px] shadow-2xs transition flex items-center gap-1"
             >
-              <span>Open</span>
-              <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+              <span>Switch</span>
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
             </Link>
           </div>
-        </div>
+
+          {/* 2. Simulated Clock: 9 AM, 2 PM, 4 PM */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-slate-600">Set Simulated Time:</span>
+              <span className="font-black text-[#A53700]">{simulatedTime}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 bg-white p-1 rounded-2xl border border-slate-200">
+              {(["9:00 AM", "2:00 PM", "4:00 PM"] as SimulatedTime[]).map((timeOption) => {
+                const isActive = simulatedTime === timeOption;
+                return (
+                  <button
+                    key={timeOption}
+                    type="button"
+                    onClick={() => handleTimeChange(timeOption)}
+                    className={`py-2 px-1 rounded-xl text-[12px] font-black transition cursor-pointer text-center ${
+                      isActive
+                        ? "bg-[#181C24] text-white shadow-xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {timeOption}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Simulated Location (Corridor Stop) */}
+          <div className="space-y-1.5 pt-0.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-slate-600">Set Commuter Location (GPS):</span>
+              <span className="text-[10px] font-bold text-slate-400">
+                {currentMins === 0 ? "Origin" : `+${Math.floor(currentMins / 60)}h ${currentMins % 60}m`}
+              </span>
+            </div>
+
+            <select
+              value={userLocation}
+              onChange={(e) => handleLocationChange(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[12px] font-bold text-slate-800 outline-none cursor-pointer"
+            >
+              {CORRIDOR_STOPS.map((stop) => {
+                const mins = TRAVEL_TIMES_FROM_SOGOD[stop] ?? 0;
+                const timeLabel = mins === 0 ? "0m • Origin" : `+${Math.floor(mins / 60)}h ${mins % 60}m`;
+                return (
+                  <option key={stop} value={stop}>
+                    {stop} ({timeLabel})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </section>
       </main>
 
       {/* ── Floating Navigation Dock ── */}

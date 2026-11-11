@@ -248,7 +248,7 @@ export default function MapPage() {
           {/* Full-width Orange Primary CTA */}
           <button
             type="button"
-            onClick={() => router.push("/seats")}
+            onClick={() => router.push("/booking?trip=sogod-ormoc-trip-1&direction=sogod-ormoc")}
             className="w-full py-3.5 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-[15px] shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">confirmation_number</span>

@@ -9,7 +9,7 @@ import Logo from "@/components/Logo";
 
 export default function TicketPage() {
   const router = useRouter();
-  const { activeTicket, busDetails, passengerName } = useAppContext();
+  const { activeTicket, passengerName } = useAppContext();
   const [copied, setCopied] = useState(false);
 
   const handleShare = () => {
@@ -19,6 +19,10 @@ export default function TicketPage() {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const passengerTypeLabel = activeTicket.passengerType
+    ? activeTicket.passengerType.charAt(0).toUpperCase() + activeTicket.passengerType.slice(1)
+    : "Regular";
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
@@ -94,7 +98,7 @@ export default function TicketPage() {
             Your Ticket
           </h1>
           <p className="text-[12px] font-extrabold text-[#A53700] uppercase tracking-wider mt-0.5">
-            BOOKING CONFIRMED
+            BOOKING CONFIRMED • SEAT ASSIGNED
           </p>
         </div>
 
@@ -111,7 +115,7 @@ export default function TicketPage() {
           {/* QR Code Container */}
           <div className="p-4 flex flex-col items-center">
             <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-2xs flex items-center justify-center relative">
-              {/* High-fidelity SVG QR Code representation */}
+              {/* High-fidelity SVG QR Code */}
               <svg
                 viewBox="0 0 160 160"
                 className="w-48 h-48 select-none"
@@ -180,7 +184,7 @@ export default function TicketPage() {
 
             <p className="text-[11px] font-semibold text-slate-500 mt-3 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[15px] text-slate-400">qr_code_scanner</span>
-              <span>Show this code at the station barrier</span>
+              <span>Show this code to conductor upon boarding</span>
             </p>
           </div>
 
@@ -196,11 +200,11 @@ export default function TicketPage() {
             <div className="grid grid-cols-3 items-center text-center">
               {/* Origin */}
               <div className="text-left">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  SOGOD, SO
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                  {activeTicket.origin ? activeTicket.origin.split(",")[0] : "SOGOD"}
                 </p>
-                <p className="text-[20px] font-black text-[#191C1E] tracking-tight leading-none my-1">
-                  08:00
+                <p className="text-[18px] font-black text-[#191C1E] tracking-tight leading-none my-1">
+                  {activeTicket.departureTime || "08:00"}
                 </p>
                 <p className="text-[11px] text-slate-400 font-medium">
                   {activeTicket.date}
@@ -210,10 +214,10 @@ export default function TicketPage() {
               {/* Transit Details */}
               <div className="flex flex-col items-center">
                 <span className="text-[12px] font-extrabold text-[#A53700]">
-                  {busDetails.id}
+                  {activeTicket.busId || "DMS-048"}
                 </span>
                 <span className="text-[10px] text-slate-400 font-medium my-0.5">
-                  2 h 23 min
+                  {activeTicket.duration || "2 h 45 min"}
                 </span>
                 <div className="flex items-center gap-1 text-[#A53700]">
                   <span className="w-4 h-[1.5px] bg-[#A53700]" />
@@ -223,11 +227,11 @@ export default function TicketPage() {
 
               {/* Destination */}
               <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  ORMOC CITY, LEYTE
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                  {activeTicket.destination ? activeTicket.destination.split(",")[0] : "ORMOC"}
                 </p>
-                <p className="text-[20px] font-black text-[#191C1E] tracking-tight leading-none my-1">
-                  10:23
+                <p className="text-[18px] font-black text-[#191C1E] tracking-tight leading-none my-1">
+                  {activeTicket.arrivalTime || "10:23"}
                 </p>
                 <p className="text-[11px] text-slate-400 font-medium">
                   {activeTicket.date}
@@ -239,10 +243,10 @@ export default function TicketPage() {
             <div className="grid grid-cols-3 items-center pt-4 mt-4 border-t border-[#ECEEF0]">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                  PASSENGER
+                  PASSENGER ({passengerTypeLabel})
                 </p>
                 <p className="text-[13px] font-bold text-[#191C1E] truncate">
-                  {passengerName}
+                  {activeTicket.passengerName || passengerName}
                 </p>
               </div>
 
@@ -257,7 +261,7 @@ export default function TicketPage() {
 
               <div className="text-right">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                  PAID
+                  PAID ({activeTicket.paymentMethod})
                 </p>
                 <p className="text-[15px] font-black text-[#A53700]">
                   ₱{activeTicket.totalFare.toFixed(2)}
