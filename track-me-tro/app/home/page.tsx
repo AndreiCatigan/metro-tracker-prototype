@@ -2,141 +2,182 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
+import ScheduleList from "@/components/ScheduleList";
+import { useAppContext } from "@/lib/AppContext";
 
 export default function HomePage() {
   const router = useRouter();
+  const { passengerName } = useAppContext();
+
+  // Extract first name for personalized greeting
+  const firstName = passengerName ? passengerName.split(" ")[0] : "Juana";
 
   // State for swapping origin and destination
-  const [origin, setOrigin] = useState("Sogod");
-  const [destination, setDestination] = useState("Ormoc");
+  const [origin, setOrigin] = useState("Sogod, Southern Leyte");
+  const [destination, setDestination] = useState("Ormoc City, Leyte");
+
+  // Calendar dates state
+  const [selectedDate, setSelectedDate] = useState("03");
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const daysOfWeek = [
+    { day: "S", date: "01" },
+    { day: "M", date: "02" },
+    { day: "T", date: "03" },
+    { day: "W", date: "04" },
+    { day: "T", date: "05" },
+    { day: "F", date: "06" },
+    { day: "S", date: "07" },
+  ];
 
   const handleSwap = () => {
     setOrigin(destination);
     setDestination(origin);
   };
 
-  const handleSelectFrequentRoute = (from: string, to: string) => {
-    setOrigin(from);
-    setDestination(to);
-  };
-
   return (
-    <div className="min-h-screen bg-surface text-on-surface flex flex-col">
-      {/* ── Fixed Header with Backdrop Blur ── */}
-      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-surface-container-high/60">
-        <div className="max-w-[480px] mx-auto px-margin py-3 flex items-center justify-between">
-          {/* Left: Primary circle with transit icon and Home text */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
-                directions_bus
-              </span>
+    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 select-none">
+      {/* ── Notification Modal / Drawer ── */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 border border-[#ECEEF0] animate-fade-in">
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-[#F95700]">notifications</span>
+                <h3 className="font-black text-[16px] text-[#191C1E]">Notifications</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNotifications(false)}
+                className="w-7 h-7 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
             </div>
-            <span className="font-headline-sm text-headline-sm font-bold text-on-surface">
-              Home
-            </span>
-          </div>
 
-          {/* Right: Notification Bell & Profile Avatar */}
-          <div className="flex items-center gap-2">
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 bg-[#FFE8D6]/60 rounded-2xl border border-[#F5DECD] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-[#A53700]">Boarding Alert</span>
+                  <span className="text-[10px] text-slate-400">Just Now</span>
+                </div>
+                <p className="text-slate-700 font-medium">
+                  Bus DMS-048 is currently boarding at Sogod Terminal (Bay 2). Scheduled departure: 5:00 AM.
+                </p>
+              </div>
+
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-[#191C1E]">Route Advisory</span>
+                  <span className="text-[10px] text-slate-400">1h ago</span>
+                </div>
+                <p className="text-slate-600 font-medium">
+                  Mahaplag to Baybay City highway is clear. All regional trips on schedule.
+                </p>
+              </div>
+            </div>
+
             <button
               type="button"
-              className="w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition relative cursor-pointer"
-              aria-label="Notifications"
+              onClick={() => setShowNotifications(false)}
+              className="w-full py-3 bg-[#181C24] text-white rounded-2xl font-black text-xs hover:bg-black transition cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary-container" />
+              Close
             </button>
-
-            <Link
-              href="/conductor"
-              className="w-9 h-9 rounded-full bg-primary-fixed text-on-primary-fixed font-bold text-xs flex items-center justify-center shadow-xs border border-primary-fixed-dim hover:scale-105 transition"
-              title="Juana • Switch to Conductor"
-            >
-              J
-            </Link>
           </div>
         </div>
-      </header>
+      )}
+
+      {/* ── Warm Peach Hero Section (Exact Aesthetic from Attached Image) ── */}
+      <section className="relative w-full bg-[#FFDFC9] pt-8 pb-16 px-6 overflow-hidden">
+        {/* Background Stylized Curvy Ribbon / Bus Track Graphic */}
+        <div className="absolute right-0 top-0 bottom-0 w-44 pointer-events-none opacity-45 overflow-hidden">
+          <svg
+            className="w-full h-full text-[#F89C6B]"
+            viewBox="0 0 160 260"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M130 -20 C130 50, 40 50, 40 100 C40 150, 130 150, 130 200 C130 250, 50 250, 50 300"
+              stroke="currentColor"
+              strokeWidth="28"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
+        <div className="max-w-[440px] mx-auto relative z-10">
+          {/* Header Row: Logo & Notification Bell */}
+          <div className="flex items-center justify-between">
+            <Logo className="h-11 w-auto" />
+
+            <button
+              type="button"
+              onClick={() => setShowNotifications(true)}
+              className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-xs flex items-center justify-center text-slate-800 shadow-2xs hover:bg-white/60 transition active:scale-95 cursor-pointer relative"
+              aria-label="Open Notifications"
+            >
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#F95700] ring-2 ring-white" />
+            </button>
+          </div>
+
+          {/* Hero Headline */}
+          <div className="mt-6 space-y-1">
+            <h1 className="text-[34px] font-black tracking-tight text-[#191C1E] leading-[1.12]">
+              Where to,<br />
+              {firstName}?
+            </h1>
+            <p className="text-[11px] font-black text-[#A53700] uppercase tracking-wider pt-0.5">
+              Eastern Visayas • Live Transit Network
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* ── Main Content Container ── */}
-      <main className="flex-1 w-full max-w-[480px] mx-auto px-margin py-space-md space-y-space-lg pb-32">
-        {/* ── Hero Section (Warm Peach Background) ── */}
-        <section className="relative rounded-3xl bg-gradient-to-b from-tertiary-fixed/35 via-tertiary-fixed/15 to-surface p-space-lg border border-outline-variant/30 overflow-hidden shadow-xs">
-          {/* Decorative Route Trail Graphic */}
-          <div className="absolute -right-6 -bottom-6 w-36 h-36 opacity-15 pointer-events-none text-primary">
-            <svg
-              className="w-full h-full stroke-current"
-              fill="none"
-              strokeLinecap="round"
-              strokeWidth="10"
-              viewBox="0 0 100 100"
-            >
-              <path d="M10 20 C 50 20, 50 80, 90 80 S 130 20, 170 20" />
-            </svg>
-          </div>
-
-          {/* Stylized Logo Badge */}
-          <div className="flex items-center gap-space-sm mb-2">
-            <Logo className="h-9 w-auto" />
-            <span className="font-label-sm text-[10px] text-on-surface-variant bg-surface-container-lowest px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs font-bold">
-              Eastern Visayas
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1 className="font-headline-xl text-headline-xl text-on-surface font-extrabold tracking-tight leading-tight">
-            Where to, Juana?
-          </h1>
-          <p className="font-body-md text-body-md text-secondary mt-1 leading-relaxed">
-            Live GPS bus arrivals and guaranteed seat reservations across Leyte.
-          </p>
-        </section>
-
-        {/* ── Route Input Card (Level 1 Elevation, rounded-3xl, pure white) ── */}
-        <section className="bg-surface-container-lowest rounded-3xl p-space-lg border border-[#E2E8F0] shadow-elevation1 space-y-space-md">
-          {/* Origin & Destination with Vertical Swap button */}
-          <div className="flex items-center gap-space-sm relative">
-            {/* Visual Transit Trail Node & Line */}
-            <div className="flex flex-col items-center justify-between self-stretch py-3.5 pl-1 shrink-0">
-              {/* Departure Node (Open Circle) */}
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-primary bg-surface-container-lowest shadow-2xs" />
-              {/* Connector Line */}
-              <div className="w-0.5 flex-1 bg-[#E2E8F0] my-1" />
-              {/* Destination Node (Solid Orange Circle) */}
-              <div className="w-3.5 h-3.5 rounded-full bg-primary shadow-2xs" />
+      <main className="max-w-[440px] w-full mx-auto px-4 -mt-8 relative z-20 space-y-6">
+        {/* ── Elevated Route Input Card (Exact Aesthetic from Attached Image) ── */}
+        <section className="bg-white rounded-[32px] p-6 shadow-[0_12px_36px_rgba(0,0,0,0.06)] border border-[#ECEEF0] space-y-4">
+          <div className="flex items-center gap-3">
+            {/* Left Route Connector Graphics: Circle, Line, Orange Filled Dot */}
+            <div className="flex flex-col items-center justify-between h-24 py-1 flex-shrink-0">
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-700 bg-white" />
+              <div className="w-[1.5px] h-12 bg-slate-200" />
+              <span className="w-3.5 h-3.5 rounded-full bg-[#F95700] ring-2 ring-[#FFE8D6]" />
             </div>
 
-            {/* Inputs Column */}
-            <div className="flex-1 space-y-2">
-              {/* Origin */}
-              <div className="bg-surface-container-low p-2.5 rounded-2xl border border-transparent focus-within:border-primary/40 focus-within:bg-surface-container transition">
-                <label className="block font-label-sm text-[10px] uppercase tracking-wider text-secondary font-bold">
-                  Origin
+            {/* Inputs: Origin & Destination */}
+            <div className="flex-1 space-y-3">
+              {/* Origin Field */}
+              <div className="border-b border-[#ECEEF0] pb-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  ORIGIN
                 </label>
                 <input
                   type="text"
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
-                  className="w-full bg-transparent font-headline-sm text-headline-sm text-on-surface font-bold outline-none placeholder:text-secondary-fixed-dim"
-                  placeholder="Enter starting terminal"
+                  className="w-full bg-transparent font-extrabold text-[15px] text-[#191C1E] outline-none tracking-tight pt-0.5"
+                  placeholder="Sogod, Southern Leyte"
                 />
               </div>
 
-              {/* Destination */}
-              <div className="bg-surface-container-low p-2.5 rounded-2xl border border-transparent focus-within:border-primary/40 focus-within:bg-surface-container transition">
-                <label className="block font-label-sm text-[10px] uppercase tracking-wider text-secondary font-bold">
-                  Destination
+              {/* Destination Field */}
+              <div className="border-b border-[#ECEEF0] pb-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  DESTINATION
                 </label>
                 <input
                   type="text"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
-                  className="w-full bg-transparent font-headline-sm text-headline-sm text-on-surface font-bold outline-none placeholder:text-secondary-fixed-dim"
-                  placeholder="Enter destination terminal"
+                  className="w-full bg-transparent font-extrabold text-[15px] text-[#191C1E] outline-none tracking-tight pt-0.5"
+                  placeholder="Ormoc City, Leyte"
                 />
               </div>
             </div>
@@ -145,155 +186,116 @@ export default function HomePage() {
             <button
               type="button"
               onClick={handleSwap}
-              className="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high transition shadow-sm flex items-center justify-center text-primary cursor-pointer active:scale-95 shrink-0 border border-outline-variant/30"
-              title="Swap Origin &amp; Destination"
+              className="w-11 h-11 rounded-full bg-[#E0E8F0] hover:bg-[#D0DCE8] text-slate-700 flex items-center justify-center transition active:scale-95 cursor-pointer shadow-2xs flex-shrink-0"
               aria-label="Swap Origin and Destination"
+              title="Swap Route Direction"
             >
               <span className="material-symbols-outlined text-[20px]">swap_vert</span>
             </button>
           </div>
 
-          {/* Chips Row: Departing Now & 1 Passenger */}
-          <div className="flex items-center gap-space-xs pt-1">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-surface-container-high text-on-surface font-label-md text-label-md font-bold hover:bg-surface-container transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px] text-primary">schedule</span>
-              <span>Departing Now</span>
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-surface-container-high text-on-surface font-label-md text-label-md font-bold hover:bg-surface-container transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px] text-primary">person</span>
-              <span>1 Passenger</span>
-            </button>
-          </div>
-
-          {/* Action CTA: Track Live Buses */}
+          {/* Primary Action Button: Track Live Buses */}
           <button
             type="button"
             onClick={() => router.push("/map")}
-            className="w-full py-4 rounded-full bg-primary-container hover:bg-primary text-on-primary font-headline-sm text-headline-sm font-bold tracking-wide shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2 cursor-pointer mt-space-xs"
+            className="w-full py-4 px-6 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[16px] tracking-tight shadow-[0_8px_24px_rgba(249,87,0,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
           >
             <span>Track Live Buses</span>
-            <span className="material-symbols-outlined text-[20px]">radar</span>
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </section>
 
-        {/* ── Status Card: Active Buses with Pulsing Live Badge ── */}
-        <section className="bg-surface-container-lowest rounded-2xl p-space-md border border-[#E2E8F0] shadow-elevation1 flex items-center justify-between">
-          <div className="flex items-center gap-space-sm">
-            <div className="w-10 h-10 rounded-2xl bg-primary-fixed/60 text-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[22px]">directions_bus</span>
-            </div>
-            <div>
-              <p className="font-headline-sm text-headline-sm font-bold text-on-surface">
-                3 Buses Active
-              </p>
-              <p className="font-body-sm text-body-sm text-secondary">
-                Along {origin} ➔ {destination} corridor
-              </p>
-            </div>
-          </div>
-
-          {/* Pulsing Live Badge */}
-          <div className="flex items-center gap-1.5 bg-primary-container text-on-primary px-3 py-1 rounded-full font-label-sm text-label-sm font-bold uppercase tracking-wider shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span>Live</span>
-          </div>
-        </section>
-
-        {/* ── Frequent Routes ── */}
-        <section className="space-y-space-sm">
+        {/* ── Book A Ticket Section & Date Selector (Matching Attached Image) ── */}
+        <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="font-label-lg text-label-lg uppercase tracking-wider text-secondary font-bold">
-              Frequent Routes
+            <h2 className="text-[18px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5">
+              <span>Book A Ticket</span>
+              <span className="text-amber-500 text-[16px]">👑</span>
             </h2>
-            <span className="font-label-sm text-label-sm text-primary font-bold">
-              Popular in Leyte
+            <span className="text-[11px] font-bold text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full">
+              Express Booking
             </span>
           </div>
 
-          <div className="space-y-space-sm">
-            {/* Route Card 1: Baybay ➔ Ormoc */}
-            <div
-              onClick={() => handleSelectFrequentRoute("Baybay", "Ormoc")}
-              className="p-space-md bg-surface-container-lowest hover:bg-surface-container-low rounded-2xl border border-[#E2E8F0] shadow-elevation1 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-headline-sm text-headline-sm font-bold text-on-surface group-hover:text-primary transition-colors">
-                    Baybay ➔ Ormoc
-                  </span>
-                  <span className="font-label-sm text-[10px] bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded-full font-bold">
-                    Express
-                  </span>
-                </div>
-                <p className="font-body-sm text-body-sm text-secondary flex items-center gap-2">
-                  <span>⏱ 1 hr 15 min</span>
-                  <span>•</span>
-                  <span>₱75 Fare + ₱15 Fee</span>
-                </p>
-              </div>
+          {/* Mini-Calendar Card */}
+          <div className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="font-extrabold text-[15px] text-[#191C1E]">
+                November 2026
+              </span>
 
-              <div className="w-9 h-9 rounded-full bg-surface-container group-hover:bg-primary-container group-hover:text-on-primary text-secondary flex items-center justify-center transition-all shadow-2xs">
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-full bg-[#E0E8F0] text-slate-600 hover:bg-[#D0DCE8] flex items-center justify-center transition cursor-pointer"
+                  aria-label="Previous week"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                </button>
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-full bg-[#E0E8F0] text-slate-600 hover:bg-[#D0DCE8] flex items-center justify-center transition cursor-pointer"
+                  aria-label="Next week"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
               </div>
             </div>
 
-            {/* Route Card 2: VSU Main Campus ➔ Baybay Terminal */}
-            <div
-              onClick={() => handleSelectFrequentRoute("VSU Main Campus", "Baybay Terminal")}
-              className="p-space-md bg-surface-container-lowest hover:bg-surface-container-low rounded-2xl border border-[#E2E8F0] shadow-elevation1 transition-all cursor-pointer flex items-center justify-between group"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-headline-sm text-headline-sm font-bold text-on-surface group-hover:text-primary transition-colors">
-                    VSU Main Campus ➔ Baybay Terminal
-                  </span>
-                  <span className="font-label-sm text-[10px] bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded-full font-bold">
-                    Student Shuttle
-                  </span>
-                </div>
-                <p className="font-body-sm text-body-sm text-secondary flex items-center gap-2">
-                  <span>⏱ 25 min</span>
-                  <span>•</span>
-                  <span>₱30 Fare + ₱10 Fee</span>
-                </p>
-              </div>
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {daysOfWeek.map((item) => {
+                const isSelected = selectedDate === item.date;
 
-              <div className="w-9 h-9 rounded-full bg-surface-container group-hover:bg-primary-container group-hover:text-on-primary text-secondary flex items-center justify-center transition-all shadow-2xs">
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-              </div>
+                return (
+                  <button
+                    key={item.date}
+                    type="button"
+                    onClick={() => setSelectedDate(item.date)}
+                    className={`py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer ${
+                      isSelected
+                        ? "bg-[#FFDBCA] text-[#191C1E] shadow-2xs font-black ring-2 ring-[#F95700]/30"
+                        : "text-slate-600 hover:bg-slate-50 font-bold"
+                    }`}
+                  >
+                    <span className="text-[11px] text-slate-400 font-semibold mb-0.5">
+                      {item.day}
+                    </span>
+                    <span className="text-[14px] leading-tight">{item.date}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        {/* ── Ad Space Card (Pitch Monetization Model) ── */}
-        <section className="bg-gradient-to-r from-surface-container-low to-surface-container rounded-2xl p-space-md border border-dashed border-outline-variant/60 flex items-center gap-space-md shadow-2xs">
-          <div className="w-12 h-12 rounded-xl bg-primary-container/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-            <span className="material-symbols-outlined text-[26px]">storefront</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-on-surface-variant bg-surface-container-highest px-1.5 py-0.5 rounded">
-                Sponsored Partner
-              </span>
-              <span className="font-label-sm text-[11px] font-bold text-on-surface">
-                Leyte Kape &amp; Pasalubong
-              </span>
+        {/* ── Metro Bus Schedule Section (Continuous 30-min intervals) ── */}
+        <section className="space-y-3 pt-1">
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <h2 className="text-[18px] font-black tracking-tight text-[#191C1E]">
+                Metro Bus Schedule
+              </h2>
+              <p className="text-[11px] text-slate-400 font-semibold">
+                Continuous 30–45 min passenger boarding cycle
+              </p>
             </div>
-            <p className="font-body-sm text-body-sm text-secondary mt-0.5 leading-snug">
-              Show your track MEtro digital ticket at Ormoc Terminal for 15% off fresh brewed coffee!
-            </p>
+
+            <button
+              type="button"
+              onClick={() => router.push("/schedule")}
+              className="text-[12px] font-extrabold text-[#F95700] hover:underline cursor-pointer"
+            >
+              View Full ➔
+            </button>
           </div>
+
+          {/* Full Schedule List Component with Tabs & Details */}
+          <ScheduleList initialDirection="sogod-ormoc" />
         </section>
       </main>
 
-      {/* ── Floating Pill Bottom Navigation ── */}
+      {/* ── Bottom Navigation Dock ── */}
       <BottomNavigation />
     </div>
   );

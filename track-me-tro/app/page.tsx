@@ -83,13 +83,9 @@ export default function LoginPage() {
         </div>
 
         <div className="max-w-[420px] mx-auto relative z-10">
-          {/* Header Row: Logo & Notification Bell */}
-          <div className="flex items-center justify-between">
+          {/* Header Row: Logo */}
+          <div className="flex items-center">
             <Logo className="h-11 w-auto" />
-
-            <div className="w-9 h-9 rounded-full bg-white/40 backdrop-blur-xs flex items-center justify-center text-slate-800 shadow-2xs">
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-            </div>
           </div>
 
           {/* Hero Headline */}
