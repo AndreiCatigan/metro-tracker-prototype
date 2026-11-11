@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import Logo from "@/components/Logo";
 
 export default function ConductorAuthPage() {
   const router = useRouter();
@@ -42,9 +43,7 @@ export default function ConductorAuthPage() {
       {/* ── Top Header ── */}
       <header className="pt-6 pb-4 px-4 text-center">
         <div className="inline-flex items-center gap-2">
-          <span className="text-[20px] font-black tracking-tight text-[#191C1E]">
-            track <span className="text-[#F95700]">ME</span> tro
-          </span>
+          <Logo className="h-10 w-auto" />
           <span className="inline-flex items-center gap-1 bg-[#181C24] text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-[#F95700] animate-pulse" />
             <span>CREW</span>

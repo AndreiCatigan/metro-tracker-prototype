@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BottomNavigation from "@/components/BottomNavigation";
+import Logo from "@/components/Logo";
 
 export default function HomePage() {
   const router = useRouter();
@@ -79,15 +80,9 @@ export default function HomePage() {
           </div>
 
           {/* Stylized Logo Badge */}
-          <div className="flex items-center gap-space-xs mb-2">
-            <div className="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-2xs">
-              <span className="material-symbols-outlined text-[14px]">directions_bus</span>
-            </div>
-            <div className="flex items-baseline tracking-tight">
-              <span className="font-headline-sm text-headline-sm text-on-surface font-extrabold">track</span>
-              <span className="font-headline-sm text-headline-sm text-primary font-extrabold ml-0.5">MEtro</span>
-            </div>
-            <span className="ml-2 font-label-sm text-[10px] text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs font-bold">
+          <div className="flex items-center gap-space-sm mb-2">
+            <Logo className="h-9 w-auto" />
+            <span className="font-label-sm text-[10px] text-on-surface-variant bg-surface-container-lowest px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs font-bold">
               Eastern Visayas
             </span>
           </div>

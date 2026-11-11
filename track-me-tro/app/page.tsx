@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 
 /** Auto-format a PH mobile number as "912 345 6789" */
 function formatPhoneNumber(raw: string): string {
@@ -83,11 +84,7 @@ export default function LoginPage() {
         <div className="max-w-[420px] mx-auto relative z-10">
           {/* Header Row: Logo & Notification Bell */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <span className="text-[22px] font-black tracking-tight text-[#191C1E]">
-                track <span className="text-[#F95700]">ME</span>tro
-              </span>
-            </div>
+            <Logo className="h-11 w-auto" />
 
             <div className="w-9 h-9 rounded-full bg-white/40 backdrop-blur-xs flex items-center justify-center text-slate-800 shadow-2xs">
               <span className="material-symbols-outlined text-[20px]">notifications</span>

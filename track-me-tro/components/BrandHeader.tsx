@@ -1,4 +1,5 @@
 import React from "react";
+import Logo from "@/components/Logo";
 
 interface BrandHeaderProps {
   /** Override the network label text */
@@ -30,22 +31,7 @@ export default function BrandHeader({
 
       {/* Stylized Logo */}
       <div className="flex items-center gap-space-xs mt-space-sm mb-space-xs">
-        <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
-          <span
-            className="material-symbols-outlined text-[18px]"
-            aria-hidden="true"
-          >
-            directions_bus
-          </span>
-        </div>
-        <div className="flex items-baseline tracking-tight">
-          <span className="font-headline-lg text-headline-lg text-on-surface">
-            track
-          </span>
-          <span className="font-headline-lg text-headline-lg text-primary ml-0.5">
-            MEtro
-          </span>
-        </div>
+        <Logo className="h-10 w-auto" />
       </div>
 
       {/* Live Network Pill Badge */}

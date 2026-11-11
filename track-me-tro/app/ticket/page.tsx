@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import BottomNavigation from "@/components/BottomNavigation";
+import Logo from "@/components/Logo";
 
 export default function TicketPage() {
   const router = useRouter();
@@ -24,10 +25,8 @@ export default function TicketPage() {
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/home" className="flex items-center gap-1">
-            <span className="font-extrabold text-[15px] tracking-tight text-[#191C1E]">
-              track <span className="text-[#F95700]">ME</span>tro
-            </span>
+          <Link href="/home" className="flex items-center">
+            <Logo className="h-7 w-auto" />
           </Link>
           <span className="text-slate-300">•</span>
           <Link
