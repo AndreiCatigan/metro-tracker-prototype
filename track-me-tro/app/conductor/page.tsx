@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAppContext } from "@/lib/AppContext";
+import { useAppContext, PassengerHail } from "@/lib/AppContext";
 import Logo from "@/components/Logo";
+import SwipeableHailCard from "@/components/SwipeableHailCard";
 
 export default function ConductorHomePage() {
   const router = useRouter();
@@ -20,7 +21,8 @@ export default function ConductorHomePage() {
     passengerHails,
     hailBus,
     acknowledgeHail,
-    boardHail,
+    pickupHail,
+    removeHail,
     currentBusStop,
     advanceToNextStop,
     selectedDirection,
@@ -68,6 +70,16 @@ export default function ConductorHomePage() {
     setShowRegisterModal(false);
   };
 
+  const handlePickupHail = (hail: PassengerHail) => {
+    pickupHail(hail.id);
+    showToast(`✓ Picked up ${hail.passengerName} in ${hail.location}! (Ping cleared)`);
+  };
+
+  const handleRemoveHail = (hail: PassengerHail) => {
+    removeHail(hail.id);
+    showToast(`Removed ping: No passenger at ${hail.location}.`);
+  };
+
   // Find all passengers who paid online and are waiting for conductor to assign their seat
   const pendingSeatBookings = bookings.filter((b) => b.status === "pending_seat");
   const confirmedSeatBookings = bookings.filter((b) => b.status === "confirmed");
@@ -108,17 +120,17 @@ export default function ConductorHomePage() {
         </div>
       )}
 
-      {/* ── Top Conductor Header ── */}
-      <header className="sticky top-0 z-30 bg-[#101A2C] text-white px-4 py-3.5 shadow-md">
+      {/* ── Top Conductor Header (Light Orange matching Passenger Dashboard) ── */}
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 py-3.5 shadow-xs border-b border-[#F5DECD]">
         <div className="max-w-[440px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Logo className="h-8 w-auto brightness-200" />
+            <Logo className="h-8 w-auto" />
             <div className="flex flex-col">
-              <span className="text-[12px] font-black tracking-tight text-white flex items-center gap-1.5">
+              <span className="text-[12px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5">
                 <span>CONDUCTOR DASHBOARD</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
               </span>
-              <span className="text-[10px] text-slate-300 font-semibold truncate max-w-[200px]">
+              <span className="text-[10px] text-slate-700 font-semibold truncate max-w-[200px]">
                 Bus {busDetails.id} • {conductorName}
               </span>
             </div>
@@ -131,15 +143,15 @@ export default function ConductorHomePage() {
               onClick={() => {
                 setShowNotificationDropdown(!showNotificationDropdown);
               }}
-              className={`relative w-10 h-10 rounded-full transition flex items-center justify-center text-white cursor-pointer ${
-                showNotificationDropdown ? "bg-white/30 ring-2 ring-[#F95700]" : "bg-white/10 hover:bg-white/20 active:scale-95"
+              className={`relative w-10 h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs ${
+                showNotificationDropdown ? "bg-white/90 ring-2 ring-[#F95700]" : "bg-white/50 backdrop-blur-xs hover:bg-white/70 active:scale-95"
               }`}
               title="Notifications: Reservation Requests & Location Pings"
               aria-label="Toggle Notifications Dropdown"
             >
               <span className="material-symbols-outlined text-[22px]">notifications</span>
               {totalNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-[#F95700] text-white text-[10px] font-black rounded-full px-1 flex items-center justify-center shadow-md animate-bounce">
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-[#F95700] text-white text-[10px] font-black rounded-full px-1 flex items-center justify-center shadow-md animate-bounce ring-2 ring-[#FFDFC9]">
                   {totalNotificationsCount}
                 </span>
               )}
@@ -149,7 +161,9 @@ export default function ConductorHomePage() {
             <button
               type="button"
               onClick={handleOpenRegister}
-              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white cursor-pointer group"
+              className={`w-10 h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs group ${
+                showRegisterModal ? "bg-white/90 ring-2 ring-[#F95700]" : "bg-white/50 backdrop-blur-xs hover:bg-white/70 active:scale-95"
+              }`}
               title="Register Conductor Name, Bus Number & Direction"
               aria-label="Conductor & Bus Registration"
             >
@@ -290,7 +304,16 @@ export default function ConductorHomePage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400 px-1 pt-1">
                           <span>Passenger Location Pings ({activeHails.length})</span>
-                          <span className="text-[#101A2C]">Waiting Ahead</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNotificationDropdown(false);
+                              router.push("/conductor/map");
+                            }}
+                            className="text-[#F95700] hover:underline flex items-center gap-0.5 cursor-pointer lowercase first-letter:uppercase"
+                          >
+                            <span>view on map ➔</span>
+                          </button>
                         </div>
                         {activeHails.map((hail) => (
                           <div
@@ -322,29 +345,46 @@ export default function ConductorHomePage() {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2 pt-0.5">
-                              {hail.status !== "acknowledged" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    acknowledgeHail(hail.id);
-                                    showToast(`Acknowledged ${hail.passengerName}'s ping at ${hail.location}.`);
-                                  }}
-                                  className="flex-1 py-1.5 px-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 text-[10px] font-black transition active:scale-95 cursor-pointer"
-                                >
-                                  Acknowledge
-                                </button>
-                              )}
+                            <div className="flex items-center gap-1.5 pt-1">
                               <button
                                 type="button"
                                 onClick={() => {
-                                  boardHail(hail.id);
-                                  showToast(`✓ ${hail.passengerName} boarded! (+1 to Headcount)`);
+                                  setShowNotificationDropdown(false);
+                                  router.push(`/conductor/map?hailId=${hail.id}`);
                                 }}
-                                className="flex-1 py-1.5 px-2 rounded-xl bg-[#101A2C] hover:bg-[#182640] text-white text-[10px] font-black transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+                                className="py-1.5 px-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-black transition active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
+                                title="View on Map"
                               >
-                                <span className="material-symbols-outlined text-[13px]">how_to_reg</span>
-                                <span>Board (+1)</span>
+                                <span className="material-symbols-outlined text-[12px] text-[#F95700]">map</span>
+                                <span>Map</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  pickupHail(hail.id);
+                                  showToast(`✓ Picked up ${hail.passengerName} in ${hail.location}! Ping cleared.`);
+                                }}
+                                className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-[10px] font-black transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 group"
+                                title="Signify you successfully picked up passenger in this pinged area"
+                              >
+                                <span className="w-3.5 h-3.5 rounded-full border-1.5 border-emerald-600 flex items-center justify-center bg-white shrink-0">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                </span>
+                                <span>Picked Up</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  removeHail(hail.id);
+                                  showToast(`Removed ping: No passenger at ${hail.location}.`);
+                                }}
+                                className="py-1.5 px-2 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-[10px] font-black transition active:scale-95 cursor-pointer flex items-center gap-0.5 shrink-0"
+                                title="No passenger in pinged area (Remove)"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">person_off</span>
+                                <span>Remove</span>
                               </button>
                             </div>
                           </div>
@@ -418,18 +458,30 @@ export default function ConductorHomePage() {
           </div>
 
           <div className="flex flex-col gap-1 items-end">
-            <button
-              type="button"
-              onClick={() => {
-                advanceToNextStop();
-                showToast(`Bus location updated: Approaching ${currentBusStop}`);
-              }}
-              className="px-2.5 py-1 rounded-lg bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[10px] font-black flex items-center gap-1 cursor-pointer"
-              title="Advance Bus Stop"
-            >
-              <span className="material-symbols-outlined text-[12px]">fast_forward</span>
-              <span>Next Stop</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor/map")}
+                className="px-2.5 py-1 rounded-lg bg-orange-50 text-[#F95700] hover:bg-orange-100 border border-orange-200 active:scale-95 transition text-[10px] font-black flex items-center gap-1 cursor-pointer"
+                title="View Passenger Pings Map"
+              >
+                <span className="material-symbols-outlined text-[13px]">map</span>
+                <span>Hail Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  advanceToNextStop();
+                  showToast(`Bus location updated: Approaching ${currentBusStop}`);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[10px] font-black flex items-center gap-1 cursor-pointer"
+                title="Advance Bus Stop"
+              >
+                <span className="material-symbols-outlined text-[12px]">fast_forward</span>
+                <span>Next Stop</span>
+              </button>
+            </div>
 
             <button
               type="button"
@@ -606,14 +658,26 @@ export default function ConductorHomePage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSimulateNewReservation}
-              className="text-[10px] font-bold text-[#A53700] hover:bg-[#FFE8D6] px-2 py-1 rounded-lg transition cursor-pointer"
-              title="Add a test online booking"
-            >
-              + Simulate
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor/matrix")}
+                className="text-[10px] font-bold text-[#F95700] hover:bg-[#FFE8D6] px-2 py-1 rounded-lg transition cursor-pointer flex items-center gap-1"
+                title="View Seat Map"
+              >
+                <span className="material-symbols-outlined text-[13px]">airline_seat_recline_normal</span>
+                <span>Seat Map</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSimulateNewReservation}
+                className="text-[10px] font-bold text-[#A53700] hover:bg-[#FFE8D6] px-2 py-1 rounded-lg transition cursor-pointer"
+                title="Add a test online booking"
+              >
+                + Simulate
+              </button>
+            </div>
           </div>
 
           {/* Pending Bookings List */}
@@ -714,116 +778,60 @@ export default function ConductorHomePage() {
         </section>
 
         {/* ── ADVANCE PASSENGER HAILS ("Notify Bus" pings) ── */}
-        {passengerHails && passengerHails.length > 0 && (
-          <section className="bg-white rounded-3xl p-4.5 shadow-2xs border border-[#ECEEF0] space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[20px]">cell_tower</span>
-                </div>
-                <div>
-                  <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
-                    Advance Passenger Hails ({passengerHails.length})
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Commuters pinging from highway waiting stops
-                  </p>
-                </div>
+        <section className="bg-white rounded-3xl p-4.5 shadow-2xs border border-[#ECEEF0] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center">
+                <span className="material-symbols-outlined text-[20px]">cell_tower</span>
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-ping" />
+              <div>
+                <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
+                  Advance Passenger Hails ({passengerHails?.length || 0})
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Commuters pinging from highway waiting stops
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2 pt-1">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor/map")}
+                className="py-1.5 px-3 rounded-xl bg-[#F95700] hover:bg-[#E04E00] active:scale-95 text-white font-black text-[11px] shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                title="View passengers on Leyte highway map"
+              >
+                <span className="material-symbols-outlined text-[15px]">map</span>
+                <span>View Map</span>
+              </button>
+              {passengerHails && passengerHails.length > 0 && (
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-ping" />
+              )}
+            </div>
+          </div>
+
+          {passengerHails && passengerHails.length > 0 ? (
+            <div className="space-y-2.5 pt-1">
               {passengerHails.map((hail) => (
-                <div
+                <SwipeableHailCard
                   key={hail.id}
-                  className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-2 text-left"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-[13px] text-[#191C1E]">
-                          {hail.passengerName}
-                        </span>
-                        <span
-                          className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
-                            hail.tier === "premium"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-slate-200 text-slate-700"
-                          }`}
-                        >
-                          {hail.tier === "premium" ? "👑 MEtro+" : "Free Tier"}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-700 font-bold mt-0.5 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
-                        <span>Waiting at: <strong>{hail.location}</strong></span>
-                      </p>
-                      <p className="text-[10px] text-slate-500 font-medium">
-                        Pinged at {hail.timestamp} {hail.etaAtHail ? `• ${hail.etaAtHail}` : ""}
-                      </p>
-                    </div>
-
-                    <span
-                      className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                        hail.status === "boarded"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : hail.status === "acknowledged"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-orange-100 text-orange-800 animate-pulse"
-                      }`}
-                    >
-                      {hail.status === "boarded" ? "Boarded" : hail.status === "acknowledged" ? "Crew Notified" : "Waiting"}
-                    </span>
-                  </div>
-
-                  {hail.status !== "boarded" && (
-                    <div className="flex items-center gap-2 pt-1">
-                      {hail.status !== "acknowledged" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            acknowledgeHail(hail.id);
-                            showToast(`Acknowledged ${hail.passengerName}'s roadside hail.`);
-                          }}
-                          className="flex-1 py-1.5 px-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold transition active:scale-95 cursor-pointer"
-                        >
-                          Acknowledge
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          boardHail(hail.id);
-                          showToast(`✓ ${hail.passengerName} boarded! (+1 to On-Board Headcount)`);
-                        }}
-                        className="flex-1 py-1.5 px-2 rounded-xl bg-[#101A2C] hover:bg-[#182640] text-white text-[11px] font-black transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
-                      >
-                        <span className="material-symbols-outlined text-[14px]">how_to_reg</span>
-                        <span>Board Passenger (+1)</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  hail={hail}
+                  onPickup={handlePickupHail}
+                  onRemove={handleRemoveHail}
+                  onViewMap={(h) => router.push(`/conductor/map?hailId=${h.id}`)}
+                />
               ))}
             </div>
-          </section>
-        )}
-
-        {/* ── Secondary Link: View Full Seat Matrix ── */}
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={() => router.push("/conductor/matrix")}
-            className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-[#191C1E] font-bold text-[13px] shadow-2xs transition flex items-center justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-[20px] text-slate-500">grid_view</span>
-              <span>View Full Cabin Seat Map (45 Seats)</span>
+          ) : (
+            <div className="bg-[#F8F9FA] rounded-2xl p-4 text-center space-y-1.5 border border-dashed border-[#ECEEF0]">
+              <span className="material-symbols-outlined text-[24px] text-slate-400">cell_tower</span>
+              <p className="text-[12px] font-bold text-slate-600">No Active Passenger Pings</p>
+              <p className="text-[10px] text-slate-400">
+                Roadside commuters waiting along the route who notify the bus will appear here.
+              </p>
             </div>
-            <span className="material-symbols-outlined text-[18px] text-slate-400">arrow_forward_ios</span>
-          </button>
-        </div>
+          )}
+        </section>
 
         {/* ── Conductor Shift Info & App Switcher ── */}
         <div className="text-center pt-2 space-y-2">

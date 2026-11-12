@@ -45,58 +45,72 @@ function ConductorMatrixContent() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Cabin layout with live sync to activeTicket, confirmed bookings, and POS walk-in sales
+  // Base vacant templates for cabin and rear bench
+  const baseCabinSeats = useMemo<ConductorSeatData[]>(() => {
+    return BASE_CABIN_SEATS.map((s) => ({
+      ...s,
+      type: "available" as const,
+      label: s.isWindow ? "WIN" : "VAC",
+    }));
+  }, []);
+
+  const baseRearSeats = useMemo<ConductorSeatData[]>(() => {
+    return BASE_REAR_BENCH_SEATS.map((s) => ({
+      ...s,
+      type: "available" as const,
+      label: "VAC",
+    }));
+  }, []);
+
+  // Cabin layout: ONLY tracks seats that the conductor has marked as reserved!
   const seatsState = useMemo<ConductorSeatData[]>(() => {
-    let updated = [...BASE_CABIN_SEATS];
+    let updated = [...baseCabinSeats];
 
-    // Overlay active ticket seat
-    if (activeTicket?.seatNumber) {
-      const padded = activeTicket.seatNumber.padStart(2, "0");
-      updated = updated.map((s) =>
-        s.id === padded
-          ? {
-              ...s,
-              type: activeTicket.isBoarded ? ("on_board" as const) : ("app_reserved" as const),
-              label: activeTicket.isBoarded ? "JUANA" : "#APP",
-            }
-          : s
-      );
-    }
-
-    // Overlay confirmed app bookings
+    // Track confirmed bookings marked reserved by the conductor
     bookings.forEach((b) => {
       if (b.status === "confirmed" && b.assignedSeat) {
         const padded = b.assignedSeat.padStart(2, "0");
+        const passengerFirst = b.passengerName ? b.passengerName.split(" ")[0].toUpperCase() : "RES";
         updated = updated.map((s) =>
-          s.id === padded ? { ...s, type: "app_reserved" as const, label: `#APP${b.assignedSeat}` } : s
+          s.id === padded
+            ? { ...s, type: "app_reserved" as const, label: passengerFirst }
+            : s
         );
       }
     });
 
-    // Overlay POS Walk-in sales
-    walkInSales.forEach((sale) => {
-      const padded = sale.seatId.padStart(2, "0");
-      updated = updated.map((s) =>
-        s.id === padded ? { ...s, type: "on_board" as const, label: "POS" } : s
-      );
+    return updated;
+  }, [baseCabinSeats, bookings]);
+
+  // Rear 5 bench seats: ONLY tracks seats that the conductor has marked as reserved!
+  const rearBench = useMemo<ConductorSeatData[]>(() => {
+    let updated = [...baseRearSeats];
+
+    bookings.forEach((b) => {
+      if (b.status === "confirmed" && b.assignedSeat) {
+        const padded = b.assignedSeat.padStart(2, "0");
+        const passengerFirst = b.passengerName ? b.passengerName.split(" ")[0].toUpperCase() : "RES";
+        updated = updated.map((s) =>
+          s.id === padded
+            ? { ...s, type: "app_reserved" as const, label: passengerFirst }
+            : s
+        );
+      }
     });
 
     return updated;
-  }, [activeTicket, bookings, walkInSales]);
+  }, [baseRearSeats, bookings]);
 
-  // Rear 5 bench seats
-  const rearBench = BASE_REAR_BENCH_SEATS;
-
-  // Real-time capacity computation
-  const occupiedCount = useMemo(() => {
+  // Real-time capacity computation: count ONLY marked reserved seats
+  const reservedCount = useMemo(() => {
     return (
-      seatsState.filter((s) => s.type === "on_board" || s.type === "app_reserved").length +
-      rearBench.filter((s) => s.type === "on_board" || s.type === "app_reserved").length
+      seatsState.filter((s) => s.type === "app_reserved").length +
+      rearBench.filter((s) => s.type === "app_reserved").length
     );
   }, [seatsState, rearBench]);
 
-  const availableCount = Math.max(0, 45 - occupiedCount);
-  const occupancyPercent = Math.round((occupiedCount / 45) * 100);
+  const availableCount = Math.max(0, 45 - reservedCount);
+  const reservedPercent = Math.round((reservedCount / 45) * 100);
 
   const rows = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"];
 
@@ -201,9 +215,9 @@ function ConductorMatrixContent() {
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-baseline gap-1">
-              <span className="text-[16px] font-black text-white">{occupiedCount}</span>
-              <span className="text-slate-400 font-semibold text-[11px]">/ 45 Seats Filled</span>
-              <span className="text-[#FF8C00] font-black text-[11px] ml-1">({occupancyPercent}%)</span>
+              <span className="text-[16px] font-black text-white">{reservedCount}</span>
+              <span className="text-slate-400 font-semibold text-[11px]">/ 45 Marked Reserved</span>
+              <span className="text-[#FF8C00] font-black text-[11px] ml-1">({reservedPercent}%)</span>
             </div>
             <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -212,10 +226,10 @@ function ConductorMatrixContent() {
           </div>
 
           <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
-            {/* On-board segment */}
+            {/* Reserved segment */}
             <div
               className="h-full bg-gradient-to-r from-[#1D6AE5] to-[#F95700] transition-all duration-300"
-              style={{ width: `${Math.min(100, occupancyPercent)}%` }}
+              style={{ width: `${Math.min(100, reservedPercent)}%` }}
             />
             {/* Vacant segment */}
             <div className="h-full bg-slate-700 flex-1" />
@@ -235,9 +249,20 @@ function ConductorMatrixContent() {
                   <span>Advance Passenger Hails ({passengerHails.length})</span>
                 </span>
               </div>
-              <span className="text-[10px] font-black bg-[#F95700] text-white px-2 py-0.5 rounded-full uppercase shadow-2xs">
-                Upcoming Stop
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => router.push("/conductor/map")}
+                  className="text-[10px] font-black bg-[#F95700] hover:bg-[#E04E00] text-white px-2 py-0.5 rounded-full uppercase shadow-2xs flex items-center gap-0.5 cursor-pointer transition active:scale-95"
+                  title="Open Passenger Hail Map"
+                >
+                  <span className="material-symbols-outlined text-[12px]">map</span>
+                  <span>Map</span>
+                </button>
+                <span className="text-[10px] font-black bg-[#A53700] text-white px-2 py-0.5 rounded-full uppercase shadow-2xs">
+                  Upcoming
+                </span>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -336,7 +361,7 @@ function ConductorMatrixContent() {
             <div className="min-w-0">
               <p className="font-black text-[11px] text-[#191C1E] truncate">Passenger Manifest</p>
               <p className="text-[9px] text-[#A53700] font-bold truncate">
-                {occupiedCount} On Board • View All
+                {reservedCount} Reserved • View All
               </p>
             </div>
           </button>
@@ -417,23 +442,22 @@ function ConductorMatrixContent() {
         </button>
 
         {/* ── Legend Row ── */}
-        <div className="flex items-center justify-around py-1.5 px-3 bg-white rounded-2xl shadow-2xs border border-[#ECEEF0] text-[11px] font-bold">
+        <div className="flex items-center justify-around py-2 px-3 bg-white rounded-2xl shadow-2xs border border-[#ECEEF0] text-[11px] font-bold">
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 bg-emerald-50" />
             <span className="text-slate-600">Available</span>
-            <span className="text-slate-400 font-medium">13</span>
+            <span className="text-emerald-700 font-black">({availableCount})</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded-full bg-[#F95700]" />
-            <span className="text-slate-600">App</span>
-            <span className="text-[#F95700] font-black">18</span>
+            <span className="text-slate-600">Marked Reserved</span>
+            <span className="text-[#F95700] font-black">({reservedCount})</span>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#1F2937]" />
-            <span className="text-slate-600">On-Board</span>
-            <span className="text-slate-900 font-black">14</span>
+            <span className="w-3.5 h-3.5 rounded-full bg-[#1D6AE5]" />
+            <span className="text-slate-600">Selected</span>
           </div>
         </div>
 
@@ -663,8 +687,12 @@ function ConductorMatrixContent() {
                     <span className="text-[15px] font-black text-[#191C1E]">
                       Seat {selectedSeat.id}
                     </span>
-                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded-full text-[10px] font-black uppercase">
-                      {selectedSeat.type === "available" ? "AVAILABLE" : selectedSeat.type === "app_reserved" ? "APP RESERVED" : "ON BOARD"}
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-black uppercase ${
+                      selectedSeat.type === "app_reserved"
+                        ? "bg-orange-100 text-[#F95700] border border-orange-300"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    }`}>
+                      {selectedSeat.type === "app_reserved" ? "MARKED RESERVED" : "AVAILABLE"}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium">
@@ -737,7 +765,7 @@ function ConductorMatrixContent() {
                     Bus {busDetails.id} Passenger Manifest
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    {occupiedCount} Passengers On Board • {availableCount} Vacant
+                    {reservedCount} Marked Reserved • {availableCount} Available
                   </p>
                 </div>
               </div>

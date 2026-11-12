@@ -116,6 +116,8 @@ interface AppContextType {
   cancelHail: (busId: string) => void;
   acknowledgeHail: (hailId: string) => void;
   boardHail: (hailId: string) => void;
+  pickupHail: (hailId: string) => void;
+  removeHail: (hailId: string) => void;
   getActiveHailForBus: (busId: string) => PassengerHail | undefined;
   // Conductor Operations & Two-Way Sync
   passengersOnBoard: number;
@@ -172,6 +174,29 @@ const DEFAULT_INITIAL_BOOKINGS: BookingRequest[] = [
   },
 ];
 
+const DEFAULT_INITIAL_HAILS: PassengerHail[] = [
+  {
+    id: "HAIL-001",
+    busId: "DMS-048",
+    passengerName: "Patricia Gomez",
+    location: "VSU Main Campus",
+    timestamp: "8:42 AM",
+    status: "hailed",
+    tier: "premium",
+    etaAtHail: "Approaching in 12 min",
+  },
+  {
+    id: "HAIL-002",
+    busId: "DMS-048",
+    passengerName: "Joshua Reyes",
+    location: "Inopacan",
+    timestamp: "8:35 AM",
+    status: "acknowledged",
+    tier: "free",
+    etaAtHail: "Approaching in 24 min",
+  },
+];
+
 const INITIAL_PASSENGERS_ON_BOARD = 24;
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -197,7 +222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
   const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
   const [bookings, setBookings] = useState<BookingRequest[]>(DEFAULT_INITIAL_BOOKINGS);
-  const [passengerHails, setPassengerHails] = useState<PassengerHail[]>([]);
+  const [passengerHails, setPassengerHails] = useState<PassengerHail[]>(DEFAULT_INITIAL_HAILS);
   const [walkInSales, setWalkInSales] = useState<WalkInSale[]>([]);
   const [currentBusStop, setCurrentBusStop] = useState<string>("Baybay City Terminal");
   const [passengersOnBoard, setPassengersOnBoard] = useState<number>(INITIAL_PASSENGERS_ON_BOARD);
@@ -211,7 +236,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (savedTicket) setActiveTicket(JSON.parse(savedTicket));
 
       const savedHails = localStorage.getItem("trackmetro_hails");
-      if (savedHails) setPassengerHails(JSON.parse(savedHails));
+      if (savedHails) {
+        const parsed = JSON.parse(savedHails);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setPassengerHails(parsed);
+        } else {
+          setPassengerHails(DEFAULT_INITIAL_HAILS);
+        }
+      } else {
+        setPassengerHails(DEFAULT_INITIAL_HAILS);
+      }
 
       const savedSales = localStorage.getItem("trackmetro_walkin_sales");
       if (savedSales) setWalkInSales(JSON.parse(savedSales));
@@ -531,6 +565,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPassengersOnBoard((prev) => Math.min(45, prev + 1));
   }, []);
 
+  // Pick up passenger in pinged area: removes hail, does NOT increment headcount
+  const pickupHail = useCallback((hailId: string) => {
+    setPassengerHails((prev) => prev.filter((h) => h.id !== hailId));
+  }, []);
+
+  // No passenger in pinged area: removes hail, does NOT increment headcount
+  const removeHail = useCallback((hailId: string) => {
+    setPassengerHails((prev) => prev.filter((h) => h.id !== hailId));
+  }, []);
+
   const getActiveHailForBus = useCallback((busId: string): PassengerHail | undefined => {
     return passengerHails.find((h) => h.busId === busId && h.status !== "boarded");
   }, [passengerHails]);
@@ -699,6 +743,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cancelHail,
         acknowledgeHail,
         boardHail,
+        pickupHail,
+        removeHail,
         getActiveHailForBus,
         passengersOnBoard,
         setPassengersOnBoard,

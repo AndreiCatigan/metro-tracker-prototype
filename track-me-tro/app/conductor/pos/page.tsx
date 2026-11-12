@@ -325,10 +325,10 @@ function PosContent() {
               </button>
               <button
                 type="button"
-                onClick={() => router.push("/conductor/matrix")}
+                onClick={() => setShowReceipt(false)}
                 className="w-full py-2 bg-slate-100 text-slate-700 rounded-xl font-sans font-bold text-xs hover:bg-slate-200 transition cursor-pointer"
               >
-                View Seat Matrix
+                Issue Another Ticket
               </button>
             </div>
           </div>
