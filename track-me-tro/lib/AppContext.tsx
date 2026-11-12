@@ -62,6 +62,13 @@ interface AppContextType {
   seats: Seat[];
   updateSeatStatus: (seatId: string, newStatus: SeatStatus) => void;
   busDetails: BusDetails;
+  conductorName: string;
+  setConductorName: (name: string) => void;
+  registerConductorShift: (params: {
+    name: string;
+    busNumber: string;
+    direction: "sogod-to-ormoc" | "ormoc-to-sogod";
+  }) => void;
   selectedSeatNumber: string;
   setSelectedSeatNumber: (seat: string) => void;
   passengerName: string;
@@ -111,6 +118,11 @@ interface AppContextType {
   boardHail: (hailId: string) => void;
   getActiveHailForBus: (busId: string) => PassengerHail | undefined;
   // Conductor Operations & Two-Way Sync
+  passengersOnBoard: number;
+  setPassengersOnBoard: React.Dispatch<React.SetStateAction<number>>;
+  incrementPassengersOnBoard: (amount?: number) => void;
+  decrementPassengersOnBoard: (amount?: number) => void;
+  requestSeatReservation: (name?: string, direction?: "sogod-ormoc" | "ormoc-sogod") => BookingRequest;
   walkInSales: WalkInSale[];
   recordWalkInSale: (sale: Omit<WalkInSale, "id" | "timestamp">) => WalkInSale;
   validateTicketBoarding: (pnr: string) => boolean;
@@ -139,6 +151,29 @@ const DEFAULT_TICKET: TicketDetails = {
   passengerType: "regular",
 };
 
+const DEFAULT_INITIAL_BOOKINGS: BookingRequest[] = [
+  {
+    id: "BK-882104",
+    tripId: "trip-sogod-1",
+    busNumber: "DMS-048",
+    departureTime: "08:00 AM",
+    direction: "sogod-ormoc",
+    passengerType: "regular",
+    paymentMethod: "GCash",
+    status: "pending_seat",
+    assignedSeat: null,
+    passengerName: "Juana de la Cruz",
+    baseFare: 275,
+    discount: 0,
+    convenienceFee: 15,
+    totalFare: 290,
+    createdAt: new Date().toISOString(),
+    pnr: "ER902624726",
+  },
+];
+
+const INITIAL_PASSENGERS_ON_BOARD = 24;
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 function generatePNR(): string {
@@ -161,10 +196,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [origin, setOriginState] = useState<string>("Sogod, Southern Leyte");
   const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
   const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
-  const [bookings, setBookings] = useState<BookingRequest[]>([]);
+  const [bookings, setBookings] = useState<BookingRequest[]>(DEFAULT_INITIAL_BOOKINGS);
   const [passengerHails, setPassengerHails] = useState<PassengerHail[]>([]);
   const [walkInSales, setWalkInSales] = useState<WalkInSale[]>([]);
   const [currentBusStop, setCurrentBusStop] = useState<string>("Baybay City Terminal");
+  const [passengersOnBoard, setPassengersOnBoard] = useState<number>(INITIAL_PASSENGERS_ON_BOARD);
+  const [conductorName, setConductorName] = useState<string>("Kuya Rolly B.");
+  const [busDetailsState, setBusDetailsState] = useState<BusDetails>(busDetails);
 
   // Hydrate from localStorage for multi-tab and reload sync between Conductor and Passenger apps
   useEffect(() => {
@@ -180,12 +218,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const savedStop = localStorage.getItem("trackmetro_current_stop");
       if (savedStop) setCurrentBusStop(savedStop);
+
+      const savedCount = localStorage.getItem("trackmetro_passengers_on_board");
+      if (savedCount !== null) {
+        const parsed = parseInt(savedCount, 10);
+        if (!isNaN(parsed)) setPassengersOnBoard(parsed);
+      }
+
+      const savedConductor = localStorage.getItem("trackmetro_conductor_name");
+      if (savedConductor) setConductorName(savedConductor);
+
+      const savedBusDetails = localStorage.getItem("trackmetro_bus_details");
+      if (savedBusDetails) {
+        try {
+          setBusDetailsState(JSON.parse(savedBusDetails));
+        } catch (e) {}
+      }
+
+      const savedBookings = localStorage.getItem("trackmetro_bookings");
+      if (savedBookings) {
+        try {
+          const parsed = JSON.parse(savedBookings);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setBookings(parsed);
+          }
+        } catch (e) {}
+      }
     } catch (e) {
       // ignore
     }
   }, []);
 
-  // Listen for storage events from other tabs (e.g. Passenger hailing in tab 1, Conductor seeing in tab 2)
+  // Listen for storage events from other tabs (e.g. Passenger hailing/booking in tab 1, Conductor seeing in tab 2)
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       try {
@@ -197,6 +261,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setWalkInSales(JSON.parse(e.newValue));
         } else if (e.key === "trackmetro_current_stop" && e.newValue) {
           setCurrentBusStop(e.newValue);
+        } else if (e.key === "trackmetro_passengers_on_board" && e.newValue) {
+          const parsed = parseInt(e.newValue, 10);
+          if (!isNaN(parsed)) setPassengersOnBoard(parsed);
+        } else if (e.key === "trackmetro_conductor_name" && e.newValue) {
+          setConductorName(e.newValue);
+        } else if (e.key === "trackmetro_bus_details" && e.newValue) {
+          try {
+            setBusDetailsState(JSON.parse(e.newValue));
+          } catch (e) {}
+        } else if (e.key === "trackmetro_bookings" && e.newValue) {
+          try {
+            setBookings(JSON.parse(e.newValue));
+          } catch (e) {}
         }
       } catch (err) {
         // ignore
@@ -231,6 +308,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {}
   }, [currentBusStop]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_passengers_on_board", passengersOnBoard.toString());
+    } catch (e) {}
+  }, [passengersOnBoard]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_conductor_name", conductorName);
+    } catch (e) {}
+  }, [conductorName]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_bus_details", JSON.stringify(busDetailsState));
+    } catch (e) {}
+  }, [busDetailsState]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_bookings", JSON.stringify(bookings));
+    } catch (e) {}
+  }, [bookings]);
+
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
     if (dir === "sogod-to-ormoc") {
@@ -241,6 +342,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setDestinationState("Sogod, Southern Leyte");
     }
   }, []);
+
+  const registerConductorShift = useCallback((params: {
+    name: string;
+    busNumber: string;
+    direction: "sogod-to-ormoc" | "ormoc-to-sogod";
+  }) => {
+    if (params.name.trim()) {
+      setConductorName(params.name.trim());
+    }
+    if (params.busNumber.trim()) {
+      const cleanBusNum = params.busNumber.trim().toUpperCase();
+      setBusDetailsState((prev) => ({
+        ...prev,
+        id: cleanBusNum,
+        routeTitle: params.direction === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod",
+      }));
+      setActiveTicket((prev) => ({
+        ...prev,
+        busId: cleanBusNum,
+      }));
+    }
+    setSelectedDirection(params.direction);
+  }, [setSelectedDirection]);
 
   const setOrigin = useCallback((newOrigin: string) => {
     setOriginState(newOrigin);
@@ -404,13 +528,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPassengerHails((prev) =>
       prev.map((h) => (h.id === hailId ? { ...h, status: "boarded" as const } : h))
     );
+    setPassengersOnBoard((prev) => Math.min(45, prev + 1));
   }, []);
 
   const getActiveHailForBus = useCallback((busId: string): PassengerHail | undefined => {
     return passengerHails.find((h) => h.busId === busId && h.status !== "boarded");
   }, [passengerHails]);
 
-  // Record a POS Walk-in cash ticket sale & automatically sync seat occupancy
+  // Headcount controls for conductor
+  const incrementPassengersOnBoard = useCallback((amount: number = 1) => {
+    setPassengersOnBoard((prev) => Math.min(45, prev + amount));
+  }, []);
+
+  const decrementPassengersOnBoard = useCallback((amount: number = 1) => {
+    setPassengersOnBoard((prev) => Math.max(0, prev - amount));
+  }, []);
+
+  // Simulate an incoming online seat reservation request
+  const requestSeatReservation = useCallback((name: string = "Mark Villamor", direction: "sogod-ormoc" | "ormoc-sogod" = "sogod-ormoc"): BookingRequest => {
+    const newBooking: BookingRequest = {
+      id: `BK-${Date.now()}`,
+      tripId: "trip-sogod-1",
+      busNumber: "DMS-048",
+      departureTime: "08:00 AM",
+      direction,
+      passengerType: "regular",
+      paymentMethod: "GCash",
+      status: "pending_seat",
+      assignedSeat: null,
+      passengerName: name,
+      baseFare: 275,
+      discount: 0,
+      convenienceFee: 15,
+      totalFare: 290,
+      createdAt: new Date().toISOString(),
+      pnr: generatePNR(),
+    };
+    setBookings((prev) => [newBooking, ...prev]);
+    return newBooking;
+  }, []);
+
+  // Record a POS Walk-in cash ticket sale & automatically sync seat occupancy and headcount
   const recordWalkInSale = useCallback(
     (sale: Omit<WalkInSale, "id" | "timestamp">): WalkInSale => {
       const newSale: WalkInSale = {
@@ -421,12 +579,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setWalkInSales((prev) => [newSale, ...prev]);
       // Mark seat as occupied
       updateSeatStatus(sale.seatId, "occupied");
+      // Increment passenger headcount by 1
+      setPassengersOnBoard((prev) => Math.min(45, prev + 1));
       return newSale;
     },
     []
   );
 
-  // Validate passenger E-ticket during conductor QR scan
+  // Validate passenger E-ticket during conductor QR scan & automatically increment headcount
   const validateTicketBoarding = useCallback((pnr: string): boolean => {
     let matched = false;
     const cleanInput = pnr.replace(/\D/g, "");
@@ -454,6 +614,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return b;
       })
     );
+
+    if (matched) {
+      // Increment passenger on board counter for the successfully scanned passenger!
+      setPassengersOnBoard((prev) => Math.min(45, prev + 1));
+    }
 
     return matched;
   }, []);
@@ -493,7 +658,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         seats,
         updateSeatStatus,
-        busDetails,
+        busDetails: busDetailsState,
+        conductorName,
+        setConductorName,
+        registerConductorShift,
         selectedSeatNumber,
         setSelectedSeatNumber,
         passengerName,
@@ -532,6 +700,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         acknowledgeHail,
         boardHail,
         getActiveHailForBus,
+        passengersOnBoard,
+        setPassengersOnBoard,
+        incrementPassengersOnBoard,
+        decrementPassengersOnBoard,
+        requestSeatReservation,
         walkInSales,
         recordWalkInSale,
         validateTicketBoarding,

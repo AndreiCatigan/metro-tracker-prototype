@@ -53,9 +53,9 @@ function PosContent() {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => router.push("/conductor/matrix")}
+          onClick={() => router.push("/conductor")}
           className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back to Matrix"
+          aria-label="Back to Conductor Dashboard"
         >
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         </button>
@@ -304,18 +304,33 @@ function PosContent() {
               </div>
             </div>
 
-            <div className="pt-2 text-center text-[10px] text-slate-400">
+            <div className="bg-emerald-50 text-emerald-800 p-2.5 rounded-xl text-center font-sans font-bold text-[11px] border border-emerald-200 flex items-center justify-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px] text-emerald-600">person_add</span>
+              <span>+1 Passenger Added to On-Board Headcount</span>
+            </div>
+
+            <div className="pt-1 text-center text-[10px] text-slate-400">
               <p>*** VALID BOARDING PASS ***</p>
               <p className="text-[9px]">Thank you for commuting with us!</p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/conductor/matrix")}
-              className="w-full py-3 bg-[#A53700] text-white rounded-xl font-sans font-black text-xs hover:bg-[#812900] transition cursor-pointer"
-            >
-              Done &bull; Back to Seat Matrix ➔
-            </button>
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor")}
+                className="w-full py-3 bg-[#A53700] text-white rounded-xl font-sans font-black text-xs hover:bg-[#812900] transition cursor-pointer flex items-center justify-center gap-1"
+              >
+                <span>Done • Back to Dashboard</span>
+                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/conductor/matrix")}
+                className="w-full py-2 bg-slate-100 text-slate-700 rounded-xl font-sans font-bold text-xs hover:bg-slate-200 transition cursor-pointer"
+              >
+                View Seat Matrix
+              </button>
+            </div>
           </div>
         </div>
       )}

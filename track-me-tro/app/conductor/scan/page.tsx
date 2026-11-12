@@ -20,9 +20,9 @@ export default function ConductorScanPage() {
   const handleConfirmBoarding = () => {
     setBoarded(true);
     validateTicketBoarding(activeTicket.pnr);
-    showToast(`✓ Passenger ${activeTicket.passengerName} (Seat ${activeTicket.seatNumber}) Boarded!`);
+    showToast(`✓ Passenger ${activeTicket.passengerName} (Seat ${activeTicket.seatNumber}) Boarded! (+1 to Headcount)`);
     setTimeout(() => {
-      router.push("/conductor/matrix");
+      router.push("/conductor");
     }, 1200);
   };
 
@@ -30,7 +30,7 @@ export default function ConductorScanPage() {
     markNoShow(activeTicket.seatNumber);
     showToast(`Seat ${activeTicket.seatNumber} marked as No-Show. Releasing to walk-in queue.`);
     setTimeout(() => {
-      router.push("/conductor/matrix");
+      router.push("/conductor");
     }, 1200);
   };
 
@@ -59,9 +59,9 @@ export default function ConductorScanPage() {
         <div className="relative z-10 flex items-center justify-between">
           <button
             type="button"
-            onClick={() => router.push("/conductor/matrix")}
+            onClick={() => router.push("/conductor")}
             className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/30 transition active:scale-95 cursor-pointer"
-            aria-label="Back to Matrix"
+            aria-label="Back to Conductor Dashboard"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </button>
