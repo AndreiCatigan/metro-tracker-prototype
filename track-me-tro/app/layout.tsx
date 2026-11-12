@@ -4,8 +4,16 @@ import "./globals.css";
 import { AppProvider } from "@/lib/AppContext";
 
 export const metadata: Metadata = {
-  title: "track ME tro - Leyte Bus Transit",
+  title: "Track MeTro",
   description: "Dual-app transit ecosystem for buses in Leyte",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

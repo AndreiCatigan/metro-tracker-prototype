@@ -62,8 +62,8 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* ── Warm Peach Hero Section Matching Reference Image ── */}
-      <section className="relative w-full bg-[#FFDFC9] pt-8 pb-16 px-6 overflow-hidden">
+      {/* ── Warm Peach Hero Section ── */}
+      <section className="relative w-full bg-[#FFDFC9] pt-10 pb-14 px-6 overflow-hidden">
         {/* Background Stylized Curvy Ribbon / Bus Track Graphic */}
         <div className="absolute right-0 top-0 bottom-0 w-44 pointer-events-none opacity-45 overflow-hidden">
           <svg
@@ -82,21 +82,14 @@ export default function LoginPage() {
           </svg>
         </div>
 
-        <div className="max-w-[420px] mx-auto relative z-10">
-          {/* Header Row: Logo */}
-          <div className="flex items-center">
-            <Logo className="h-11 w-auto" />
+        <div className="max-w-[420px] mx-auto relative z-10 flex flex-col items-center justify-center text-center">
+          {/* Centered Logo in the middle on top of the input fields section */}
+          <div className="flex items-center justify-center">
+            <Logo className="h-16 w-auto" />
           </div>
-
-          {/* Hero Headline */}
-          <div className="mt-6 space-y-1">
-            <h1 className="text-[34px] font-black tracking-tight text-[#191C1E] leading-[1.12]">
-              Where to,<br />Juana?
-            </h1>
-            <p className="text-[11px] font-black text-[#A53700] uppercase tracking-wider pt-0.5">
-              Eastern Visayas • Live Transit Network
-            </p>
-          </div>
+          <p className="text-[11px] font-black text-[#A53700] uppercase tracking-wider pt-2">
+            Eastern Visayas • Live Transit Network
+          </p>
         </div>
       </section>
 
@@ -109,7 +102,7 @@ export default function LoginPage() {
           {/* Card Sub-heading */}
           <div className="flex items-center justify-between pb-1">
             <h2 className="text-[16px] font-black text-[#191C1E] tracking-tight">
-              Passenger Login
+              Login
             </h2>
             <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
               Quick Login
@@ -294,10 +287,10 @@ export default function LoginPage() {
 
           <div className="flex flex-col items-center">
             <span className="material-symbols-outlined text-[#F95700] text-[22px]">
-              contactless
+              touch_app
             </span>
-            <span className="text-[12px] font-bold text-[#191C1E] mt-0.5">Cashless</span>
-            <span className="text-[10px] text-slate-400 font-semibold">Instant Tap</span>
+            <span className="text-[12px] font-bold text-[#191C1E] mt-0.5">Easy to Use</span>
+            <span className="text-[10px] text-slate-400 font-semibold">Fast &amp; Simple</span>
           </div>
         </div>
 
