@@ -15,6 +15,7 @@ import {
 } from "./mockData";
 
 export type SimulatedTime = "9:00 AM" | "2:00 PM" | "4:00 PM";
+export type BusDispatchStatus = "in_queue" | "boarding" | "depart";
 
 export interface PassengerHail {
   id: string;
@@ -64,10 +65,13 @@ interface AppContextType {
   busDetails: BusDetails;
   conductorName: string;
   setConductorName: (name: string) => void;
+  busStatus: BusDispatchStatus;
+  setBusStatus: (status: BusDispatchStatus) => void;
   registerConductorShift: (params: {
     name: string;
     busNumber: string;
     direction: "sogod-to-ormoc" | "ormoc-to-sogod";
+    isAircon: boolean;
   }) => void;
   selectedSeatNumber: string;
   setSelectedSeatNumber: (seat: string) => void;
@@ -229,6 +233,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [passengersOnBoard, setPassengersOnBoard] = useState<number>(INITIAL_PASSENGERS_ON_BOARD);
   const [conductorName, setConductorName] = useState<string>("Kuya Rolly B.");
   const [busDetailsState, setBusDetailsState] = useState<BusDetails>(busDetails);
+  const [busStatus, setBusStatusState] = useState<BusDispatchStatus>("in_queue");
 
   // Hydrate from localStorage for multi-tab and reload sync between Conductor and Passenger apps
   useEffect(() => {
@@ -270,6 +275,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch (e) {}
       }
 
+      const savedBusStatus = localStorage.getItem("trackmetro_bus_status");
+      if (savedBusStatus === "in_queue" || savedBusStatus === "boarding" || savedBusStatus === "depart") {
+        setBusStatusState(savedBusStatus as BusDispatchStatus);
+      }
+
       const savedBookings = localStorage.getItem("trackmetro_bookings");
       if (savedBookings) {
         try {
@@ -305,6 +315,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             setBusDetailsState(JSON.parse(e.newValue));
           } catch (e) {}
+        } else if (e.key === "trackmetro_bus_status" && e.newValue) {
+          if (e.newValue === "in_queue" || e.newValue === "boarding" || e.newValue === "depart") {
+            setBusStatusState(e.newValue as BusDispatchStatus);
+          }
         } else if (e.key === "trackmetro_bookings" && e.newValue) {
           try {
             setBookings(JSON.parse(e.newValue));
@@ -363,9 +377,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      localStorage.setItem("trackmetro_bus_status", busStatus);
+    } catch (e) {}
+  }, [busStatus]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem("trackmetro_bookings", JSON.stringify(bookings));
     } catch (e) {}
   }, [bookings]);
+
+  const setBusStatus = useCallback((status: BusDispatchStatus) => {
+    setBusStatusState(status);
+  }, []);
 
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
@@ -382,23 +406,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     name: string;
     busNumber: string;
     direction: "sogod-to-ormoc" | "ormoc-to-sogod";
+    isAircon: boolean;
   }) => {
     if (params.name.trim()) {
       setConductorName(params.name.trim());
     }
-    if (params.busNumber.trim()) {
-      const cleanBusNum = params.busNumber.trim().toUpperCase();
-      setBusDetailsState((prev) => ({
-        ...prev,
-        id: cleanBusNum,
-        routeTitle: params.direction === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod",
-      }));
-      setActiveTicket((prev) => ({
-        ...prev,
-        busId: cleanBusNum,
-      }));
-    }
+    const cleanBusNum = params.busNumber.trim().toUpperCase() || "DMS-048";
+    setBusDetailsState((prev) => ({
+      ...prev,
+      id: cleanBusNum,
+      routeTitle: params.direction === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod",
+      isAircon: params.isAircon,
+    }));
+    setActiveTicket((prev) => ({
+      ...prev,
+      busId: cleanBusNum,
+    }));
     setSelectedDirection(params.direction);
+    // Automatically set the bus status to in queue after registering
+    setBusStatusState("in_queue");
   }, [setSelectedDirection]);
 
   const setOrigin = useCallback((newOrigin: string) => {
@@ -728,6 +754,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         busDetails: busDetailsState,
         conductorName,
         setConductorName,
+        busStatus,
+        setBusStatus,
         registerConductorShift,
         selectedSeatNumber,
         setSelectedSeatNumber,

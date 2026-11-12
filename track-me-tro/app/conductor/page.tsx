@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAppContext, PassengerHail } from "@/lib/AppContext";
+import { useAppContext, PassengerHail, BusDispatchStatus } from "@/lib/AppContext";
 import Logo from "@/components/Logo";
 import SwipeableHailCard from "@/components/SwipeableHailCard";
 
@@ -12,6 +12,8 @@ export default function ConductorHomePage() {
   const {
     busDetails,
     conductorName,
+    busStatus,
+    setBusStatus,
     registerConductorShift,
     passengersOnBoard,
     incrementPassengersOnBoard,
@@ -38,6 +40,7 @@ export default function ConductorHomePage() {
   const [formName, setFormName] = useState<string>(conductorName);
   const [formBusNumber, setFormBusNumber] = useState<string>(busDetails.id);
   const [formDirection, setFormDirection] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">(selectedDirection);
+  const [formIsAircon, setFormIsAircon] = useState<boolean>(busDetails.isAircon ?? true);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -48,6 +51,7 @@ export default function ConductorHomePage() {
     setFormName(conductorName);
     setFormBusNumber(busDetails.id);
     setFormDirection(selectedDirection);
+    setFormIsAircon(busDetails.isAircon ?? true);
     setShowRegisterModal(true);
   };
 
@@ -65,9 +69,20 @@ export default function ConductorHomePage() {
       name: formName.trim(),
       busNumber: formBusNumber.trim(),
       direction: formDirection,
+      isAircon: formIsAircon,
     });
-    showToast(`✓ Shift Registered: ${formName.trim()} • Bus ${formBusNumber.trim().toUpperCase()} • ${formDirection === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}`);
+    showToast(`✓ Shift Registered: ${formName.trim()} • Bus ${formBusNumber.trim().toUpperCase()} (${formIsAircon ? "Aircondition" : "Non-Aircon"}) • Status: In Queue`);
     setShowRegisterModal(false);
+  };
+
+  const handleUpdateStatus = (newStatus: BusDispatchStatus) => {
+    setBusStatus(newStatus);
+    const statusLabels: Record<BusDispatchStatus, string> = {
+      in_queue: "In Queue",
+      boarding: "Boarding",
+      depart: "Depart",
+    };
+    showToast(`✓ Bus Status Updated: ${statusLabels[newStatus]}`);
   };
 
   const handlePickupHail = (hail: PassengerHail) => {
@@ -121,37 +136,37 @@ export default function ConductorHomePage() {
       )}
 
       {/* ── Top Conductor Header (Light Orange matching Passenger Dashboard) ── */}
-      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 py-3.5 shadow-xs border-b border-[#F5DECD]">
-        <div className="max-w-[440px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Logo className="h-8 w-auto" />
-            <div className="flex flex-col">
-              <span className="text-[12px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5">
-                <span>CONDUCTOR DASHBOARD</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-3.5 sm:px-4 py-3 shadow-xs border-b border-[#F5DECD]">
+        <div className="max-w-[440px] w-full mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Logo className="h-7 w-auto shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-[11px] sm:text-[12px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5 truncate">
+                <span className="truncate">CONDUCTOR DASHBOARD</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping shrink-0" />
               </span>
-              <span className="text-[10px] text-slate-700 font-semibold truncate max-w-[200px]">
-                Bus {busDetails.id} • {conductorName}
+              <span className="text-[10px] text-slate-700 font-semibold truncate">
+                Bus {busDetails.id} • {conductorName} • {busDetails.isAircon ?? true ? "Aircon" : "Non-Air"}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-1.5 shrink-0 relative">
             {/* Notification Bell Button with dropdown for Reservation Requests & Location Pings */}
             <button
               type="button"
               onClick={() => {
                 setShowNotificationDropdown(!showNotificationDropdown);
               }}
-              className={`relative w-10 h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs ${
+              className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs ${
                 showNotificationDropdown ? "bg-white/90 ring-2 ring-[#F95700]" : "bg-white/50 backdrop-blur-xs hover:bg-white/70 active:scale-95"
               }`}
               title="Notifications: Reservation Requests & Location Pings"
               aria-label="Toggle Notifications Dropdown"
             >
-              <span className="material-symbols-outlined text-[22px]">notifications</span>
+              <span className="material-symbols-outlined text-[20px] sm:text-[22px]">notifications</span>
               {totalNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-[#F95700] text-white text-[10px] font-black rounded-full px-1 flex items-center justify-center shadow-md animate-bounce ring-2 ring-[#FFDFC9]">
+                <span className="absolute -top-1 -right-1 min-w-[18px] sm:min-w-[20px] h-4.5 sm:h-5 bg-[#F95700] text-white text-[9px] sm:text-[10px] font-black rounded-full px-1 flex items-center justify-center shadow-md animate-bounce ring-2 ring-[#FFDFC9]">
                   {totalNotificationsCount}
                 </span>
               )}
@@ -161,13 +176,13 @@ export default function ConductorHomePage() {
             <button
               type="button"
               onClick={handleOpenRegister}
-              className={`w-10 h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs group ${
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full transition flex items-center justify-center text-slate-800 cursor-pointer shadow-2xs group ${
                 showRegisterModal ? "bg-white/90 ring-2 ring-[#F95700]" : "bg-white/50 backdrop-blur-xs hover:bg-white/70 active:scale-95"
               }`}
               title="Register Conductor Name, Bus Number & Direction"
               aria-label="Conductor & Bus Registration"
             >
-              <span className="material-symbols-outlined text-[22px] group-hover:scale-105 transition-transform">person</span>
+              <span className="material-symbols-outlined text-[20px] sm:text-[22px] group-hover:scale-105 transition-transform">person</span>
             </button>
 
             {/* ── Notification Dropdown Menu ── */}
@@ -180,41 +195,41 @@ export default function ConductorHomePage() {
                 />
 
                 {/* Dropdown Floating Panel */}
-                <div className="absolute right-0 top-12 w-[370px] max-w-[92vw] bg-white text-[#191C1E] rounded-3xl shadow-2xl border border-[#ECEEF0] z-50 overflow-hidden animate-fade-in text-left">
+                <div className="absolute right-0 top-11 sm:top-12 w-[340px] sm:w-[370px] max-w-[calc(100vw-20px)] bg-white text-[#191C1E] rounded-3xl shadow-2xl border border-[#ECEEF0] z-50 overflow-hidden animate-fade-in text-left">
                   {/* Dropdown Header */}
-                  <div className="p-4 pb-3 border-b border-[#ECEEF0] flex items-center justify-between bg-[#F8F9FA]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[19px]">notifications_active</span>
+                  <div className="p-3.5 pb-2.5 border-b border-[#ECEEF0] flex items-center justify-between bg-[#F8F9FA]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[18px]">notifications_active</span>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[14px] font-black text-[#191C1E]">Notifications</h3>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="text-[13px] font-black text-[#191C1E]">Notifications</h3>
                           {totalNotificationsCount > 0 && (
-                            <span className="bg-[#F95700] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                            <span className="bg-[#F95700] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full">
                               {totalNotificationsCount}
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] text-slate-500 font-medium">Reservations &amp; Location Pings</p>
+                        <p className="text-[9.5px] text-slate-500 font-medium truncate">Reservations &amp; Location Pings</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowNotificationDropdown(false)}
-                      className="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs cursor-pointer"
+                      className="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs cursor-pointer shrink-0"
                       aria-label="Close Dropdown"
                     >
                       ✕
                     </button>
                   </div>
 
-                  {/* Category Filter Tabs */}
-                  <div className="px-3 pt-2.5 pb-2 bg-white flex items-center gap-1.5 border-b border-[#ECEEF0]">
+                  {/* Category Filter Tabs - 3 column responsive grid */}
+                  <div className="grid grid-cols-3 gap-1 px-2.5 py-2 bg-white border-b border-[#ECEEF0]">
                     <button
                       type="button"
                       onClick={() => setDropdownTab("all")}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition cursor-pointer flex items-center gap-1 ${
+                      className={`py-1.5 px-1 rounded-xl text-[10.5px] font-black transition cursor-pointer flex items-center justify-center gap-1 truncate ${
                         dropdownTab === "all"
                           ? "bg-[#101A2C] text-white shadow-2xs"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -227,28 +242,28 @@ export default function ConductorHomePage() {
                     <button
                       type="button"
                       onClick={() => setDropdownTab("reservations")}
-                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black transition cursor-pointer flex items-center gap-1 ${
+                      className={`py-1.5 px-1 rounded-xl text-[10.5px] font-black transition cursor-pointer flex items-center justify-center gap-1 truncate ${
                         dropdownTab === "reservations"
                           ? "bg-[#F95700] text-white shadow-2xs"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[13px]">airline_seat_recline_extra</span>
-                      <span>Reservations</span>
+                      <span className="material-symbols-outlined text-[12px]">airline_seat_recline_extra</span>
+                      <span className="truncate">Seats</span>
                       <span className="text-[9px] opacity-75">({pendingSeatBookings.length})</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setDropdownTab("pings")}
-                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black transition cursor-pointer flex items-center gap-1 ${
+                      className={`py-1.5 px-1 rounded-xl text-[10.5px] font-black transition cursor-pointer flex items-center justify-center gap-1 truncate ${
                         dropdownTab === "pings"
                           ? "bg-[#101A2C] text-white shadow-2xs"
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[13px]">cell_tower</span>
-                      <span>Pings</span>
+                      <span className="material-symbols-outlined text-[12px]">cell_tower</span>
+                      <span className="truncate">Pings</span>
                       <span className="text-[9px] opacity-75">({activeHails.length})</span>
                     </button>
                   </div>
@@ -438,33 +453,36 @@ export default function ConductorHomePage() {
       </header>
 
       {/* ── Main Content Container ── */}
-      <main className="max-w-[440px] w-full mx-auto px-4 pt-3.5 space-y-4">
+      <main className="max-w-[440px] w-full mx-auto px-3.5 sm:px-4 pt-3.5 space-y-3.5">
         {/* ── Active Corridor & Direction Strip ── */}
-        <section className="bg-white rounded-2xl p-3.5 shadow-2xs border border-[#ECEEF0] flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+        <section className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#ECEEF0] flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">
                 ROUTE 04 • {selectedDirection === "sogod-to-ormoc" ? "OUTBOUND" : "INBOUND"}
               </span>
+              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                {busDetails.isAircon ?? true ? "Aircon" : "Non-Aircon"}
+              </span>
             </div>
-            <h2 className="text-[15px] font-black text-[#191C1E] mt-0.5">
+            <h2 className="text-[14px] sm:text-[15px] font-black text-[#191C1E] mt-0.5 truncate">
               {selectedDirection === "sogod-to-ormoc" ? "Sogod ➔ Ormoc City" : "Ormoc City ➔ Sogod"}
             </h2>
-            <p className="text-[11px] text-slate-600 font-medium flex items-center gap-1 mt-0.5">
-              <span className="material-symbols-outlined text-[13px] text-[#F95700]">near_me</span>
-              <span>Next Stop: <strong>{currentBusStop}</strong></span>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-600 font-medium flex items-center gap-1 mt-0.5 truncate">
+              <span className="material-symbols-outlined text-[13px] text-[#F95700] shrink-0">near_me</span>
+              <span className="truncate">Next Stop: <strong>{currentBusStop}</strong></span>
             </p>
           </div>
 
-          <div className="flex items-center">
+          <div className="shrink-0 flex items-center">
             <button
               type="button"
               onClick={() => {
                 advanceToNextStop();
                 showToast(`Bus location updated: Approaching ${currentBusStop}`);
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[11px] font-black flex items-center gap-1 cursor-pointer shadow-2xs"
+              className="px-2.5 py-1.5 rounded-xl bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[10.5px] sm:text-[11px] font-black flex items-center gap-1 cursor-pointer shadow-2xs"
               title="Advance Bus Stop"
             >
               <span className="material-symbols-outlined text-[13px]">fast_forward</span>
@@ -473,22 +491,92 @@ export default function ConductorHomePage() {
           </div>
         </section>
 
+        {/* ── BUS DISPATCH STATUS UPDATE (In Queue, Boarding, Depart) ── */}
+        <section className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#ECEEF0] space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[17px] text-[#F95700]">swap_driving_apps</span>
+              <span className="text-[11px] font-black tracking-wider uppercase text-slate-700">
+                Bus Status Update
+              </span>
+            </div>
+            <span
+              className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                busStatus === "in_queue"
+                  ? "bg-amber-100 text-amber-800 border border-amber-300"
+                  : busStatus === "boarding"
+                  ? "bg-blue-100 text-blue-800 border border-blue-300 animate-pulse"
+                  : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+              }`}
+            >
+              {busStatus === "in_queue" ? "In Queue" : busStatus === "boarding" ? "Boarding" : "Depart"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            {/* 1. In Queue */}
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus("in_queue")}
+              className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-center flex flex-col items-center justify-center gap-1 cursor-pointer transition active:scale-95 border ${
+                busStatus === "in_queue"
+                  ? "bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-300/60"
+                  : "bg-[#F7F9FB] hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+              title="Set bus status to In Queue"
+            >
+              <span className="material-symbols-outlined text-[20px]">schedule</span>
+              <span className="text-[11px] font-black uppercase tracking-tight">In Queue</span>
+            </button>
+
+            {/* 2. Boarding */}
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus("boarding")}
+              className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-center flex flex-col items-center justify-center gap-1 cursor-pointer transition active:scale-95 border ${
+                busStatus === "boarding"
+                  ? "bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-300/60"
+                  : "bg-[#F7F9FB] hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+              title="Set bus status to Boarding"
+            >
+              <span className="material-symbols-outlined text-[20px]">door_front</span>
+              <span className="text-[11px] font-black uppercase tracking-tight">Boarding</span>
+            </button>
+
+            {/* 3. Depart */}
+            <button
+              type="button"
+              onClick={() => handleUpdateStatus("depart")}
+              className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-center flex flex-col items-center justify-center gap-1 cursor-pointer transition active:scale-95 border ${
+                busStatus === "depart"
+                  ? "bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300/60"
+                  : "bg-[#F7F9FB] hover:bg-slate-100 text-slate-700 border-slate-200"
+              }`}
+              title="Set bus status to Depart"
+            >
+              <span className="material-symbols-outlined text-[20px]">directions_bus</span>
+              <span className="text-[11px] font-black uppercase tracking-tight">Depart</span>
+            </button>
+          </div>
+        </section>
+
         {/* ── HERO CARD: Display Number of Passengers on Board ── */}
-        <section className="bg-gradient-to-br from-[#101A2C] via-[#162238] to-[#1F2F4C] text-white rounded-3xl p-5 shadow-lg border border-slate-700/60 relative overflow-hidden">
+        <section className="bg-gradient-to-br from-[#101A2C] via-[#162238] to-[#1F2F4C] text-white rounded-3xl p-4 sm:p-5 shadow-lg border border-slate-700/60 relative overflow-hidden">
           {/* Subtle background graphic */}
           <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none blur-xl" />
 
-          <div className="relative z-10 space-y-3.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#FF9E58]">
+          <div className="relative z-10 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#FF9E58] shrink-0">
                   <span className="material-symbols-outlined text-[19px]">groups</span>
                 </span>
-                <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-300">
+                <div className="min-w-0">
+                  <h3 className="text-[10.5px] sm:text-[11px] font-black uppercase tracking-wider text-slate-300 truncate">
                     PASSENGERS ON BOARD
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-medium">
+                  <p className="text-[9.5px] sm:text-[10px] text-slate-400 font-medium truncate">
                     Live Cabin Headcount
                   </p>
                 </div>
@@ -496,7 +584,7 @@ export default function ConductorHomePage() {
 
               {/* Status Badge */}
               <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
                   availableSeats === 0
                     ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                     : availableSeats <= 5
@@ -509,72 +597,69 @@ export default function ConductorHomePage() {
             </div>
 
             {/* Big Headcount Counter */}
-            <div className="flex items-baseline justify-between pt-1">
-              <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black text-white tracking-tight drop-shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-sm">
                   {passengersOnBoard}
                 </span>
-                <span className="text-slate-300 font-bold text-lg">
+                <span className="text-slate-300 font-bold text-base sm:text-lg">
                   / {totalSeats}
                 </span>
-                <span className="text-[12px] font-extrabold text-[#FF9E58] bg-[#F95700]/20 px-2 py-0.5 rounded-md border border-[#F95700]/30 ml-1">
+                <span className="text-[11px] sm:text-[12px] font-extrabold text-[#FF9E58] bg-[#F95700]/20 px-2 py-0.5 rounded-md border border-[#F95700]/30 ml-1">
                   {occupancyPercent}% FULL
                 </span>
               </div>
 
-              {/* Headcount Status Badge (No manual + / -) */}
-              <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-2xl border border-white/10">
+              {/* Headcount Status Badge */}
+              <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/10 text-[10px] font-bold text-slate-200 shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-bold text-slate-200">Live Cabin Count</span>
+                <span>Live Cabin Count</span>
               </div>
             </div>
 
             {/* Capacity Progress Bar */}
             <div className="space-y-1.5">
-              <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden flex p-0.5 border border-white/10">
+              <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex p-0.5 border border-white/10">
                 <div
                   className="h-full bg-gradient-to-r from-[#00C853] via-[#FFB300] to-[#F95700] rounded-full transition-all duration-300"
                   style={{ width: `${occupancyPercent}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px] text-emerald-400">sync</span>
-                  <span>Increases strictly on Walk-in Ticket or Online QR Scan</span>
+              <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] text-slate-400 font-medium">
+                <span className="flex items-center gap-1 truncate mr-1">
+                  <span className="material-symbols-outlined text-[12px] text-emerald-400 shrink-0">sync</span>
+                  <span className="truncate">Increases on Walk-in or QR Scan</span>
                 </span>
-                <span>{availableSeats} Vacant</span>
+                <span className="shrink-0">{availableSeats} Vacant</span>
               </div>
             </div>
           </div>
         </section>
 
         {/* ── THE TWO CORE ACTION BUTTONS ── */}
-        <section className="grid grid-cols-2 gap-3">
+        <section className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* 1. Walk-in Ticket Button */}
           <button
             type="button"
             onClick={() => router.push("/conductor/pos")}
-            className="group relative bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white p-4 rounded-3xl shadow-md transition-all flex flex-col justify-between text-left cursor-pointer border border-[#F95700]"
+            className="group relative bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-md transition-all flex flex-col justify-between text-left cursor-pointer border border-[#F95700]"
           >
             <div className="flex items-center justify-between w-full">
-              <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-[24px]">receipt_long</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                <span className="material-symbols-outlined text-[20px] sm:text-[22px]">receipt_long</span>
               </div>
-              <span className="material-symbols-outlined text-[18px] opacity-75 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition">
+              <span className="material-symbols-outlined text-[16px] sm:text-[18px] opacity-75 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition">
                 arrow_outward
               </span>
             </div>
 
-            <div className="mt-4">
-              <span className="text-[10px] font-black uppercase tracking-wider text-orange-200">
+            <div className="mt-3 sm:mt-4">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-orange-200">
                 CASH &amp; POS
               </span>
-              <h3 className="text-[17px] font-black leading-tight text-white mt-0.5">
+              <h3 className="text-[15px] sm:text-[17px] font-black leading-tight text-white mt-0.5">
                 Walk-in Ticket
               </h3>
-              <p className="text-[11px] text-orange-100/90 font-medium mt-1 leading-snug">
-                Issue roadside ticket &amp; update passenger count (+1)
-              </p>
             </div>
           </button>
 
@@ -582,27 +667,24 @@ export default function ConductorHomePage() {
           <button
             type="button"
             onClick={() => router.push("/conductor/scan")}
-            className="group relative bg-[#101A2C] hover:bg-[#182640] active:scale-[0.98] text-white p-4 rounded-3xl shadow-md transition-all flex flex-col justify-between text-left cursor-pointer border border-slate-700/80"
+            className="group relative bg-[#101A2C] hover:bg-[#182640] active:scale-[0.98] text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-md transition-all flex flex-col justify-between text-left cursor-pointer border border-slate-700/80"
           >
             <div className="flex items-center justify-between w-full">
-              <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-[#FF9E58]">
-                <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-[#FF9E58]">
+                <span className="material-symbols-outlined text-[20px] sm:text-[22px]">qr_code_scanner</span>
               </div>
-              <span className="material-symbols-outlined text-[18px] opacity-75 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition">
+              <span className="material-symbols-outlined text-[16px] sm:text-[18px] opacity-75 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition">
                 arrow_outward
               </span>
             </div>
 
-            <div className="mt-4">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+            <div className="mt-3 sm:mt-4">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400">
                 ONLINE RESERVATION
               </span>
-              <h3 className="text-[17px] font-black leading-tight text-white mt-0.5">
+              <h3 className="text-[15px] sm:text-[17px] font-black leading-tight text-white mt-0.5">
                 Scan Passenger
               </h3>
-              <p className="text-[11px] text-slate-300 font-medium mt-1 leading-snug">
-                Scan boarding QR pass &amp; update passenger count (+1)
-              </p>
             </div>
           </button>
         </section>
@@ -628,9 +710,6 @@ export default function ConductorHomePage() {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  Passengers who paid online awaiting seat selection
-                </p>
               </div>
             </div>
 
@@ -753,7 +832,7 @@ export default function ConductorHomePage() {
           )}
         </section>
 
-        {/* ── ADVANCE PASSENGER HAILS ("Notify Bus" pings) ── */}
+        {/* ── PASSENGER ALERT ("Notify Bus" pings) ── */}
         <section className="bg-white rounded-3xl p-4.5 shadow-2xs border border-[#ECEEF0] space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -762,11 +841,8 @@ export default function ConductorHomePage() {
               </div>
               <div>
                 <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
-                  Advance Passenger Hails ({passengerHails?.length || 0})
+                  Passenger Alert
                 </h3>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  Commuters pinging from highway waiting stops
-                </p>
               </div>
             </div>
 
@@ -826,12 +902,12 @@ export default function ConductorHomePage() {
 
       {/* ── Conductor & Bus Registration Modal ── */}
       {showRegisterModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-[420px] w-full p-6 shadow-2xl space-y-4 border border-[#ECEEF0] text-[#191C1E]">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-[420px] w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 border border-[#ECEEF0] text-[#191C1E] my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[22px]">badge</span>
                 </div>
                 <div>
@@ -846,7 +922,7 @@ export default function ConductorHomePage() {
               <button
                 type="button"
                 onClick={() => setShowRegisterModal(false)}
-                className="w-8 h-8 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm cursor-pointer"
+                className="w-8 h-8 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm cursor-pointer shrink-0"
                 aria-label="Close"
               >
                 ✕
@@ -889,7 +965,7 @@ export default function ConductorHomePage() {
                   />
                 </div>
                 {/* Quick suggestions */}
-                <div className="flex items-center gap-1.5 pt-0.5">
+                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
                   <span className="text-[10px] text-slate-400 font-bold">Quick:</span>
                   {["DMS-048", "DMS-032", "DMS-089", "DMS-104"].map((bNum) => (
                     <button
@@ -974,8 +1050,80 @@ export default function ConductorHomePage() {
                 </div>
               </div>
 
+              {/* 4. Kind of Bus: Aircondition or Non Aircon */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Kind of Bus (Amenity)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormIsAircon(true)}
+                    className={`p-3 rounded-2xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
+                      formIsAircon
+                        ? "border-[#F95700] bg-[#FFF8F2] shadow-2xs"
+                        : "border-[#ECEEF0] bg-[#F7F9FB] hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="material-symbols-outlined text-[20px] text-[#F95700]">ac_unit</span>
+                      <span
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          formIsAircon
+                            ? "border-[#F95700] bg-[#F95700]"
+                            : "border-slate-300"
+                        }`}
+                      >
+                        {formIsAircon && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-[13px] font-black text-[#191C1E]">Aircondition</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Cool &amp; Express</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormIsAircon(false)}
+                    className={`p-3 rounded-2xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
+                      !formIsAircon
+                        ? "border-[#F95700] bg-[#FFF8F2] shadow-2xs"
+                        : "border-[#ECEEF0] bg-[#F7F9FB] hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="material-symbols-outlined text-[20px] text-slate-600">mode_fan</span>
+                      <span
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          !formIsAircon
+                            ? "border-[#F95700] bg-[#F95700]"
+                            : "border-slate-300"
+                        }`}
+                      >
+                        {!formIsAircon && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-[13px] font-black text-[#191C1E]">Non Aircon</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Regular Airflow</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Note */}
+              <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                <span className="material-symbols-outlined text-[15px] text-amber-600">info</span>
+                <span>Registering will automatically set bus status to <strong>In Queue</strong>.</span>
+              </div>
+
               {/* Submit & Cancel CTAs */}
-              <div className="pt-2 space-y-2">
+              <div className="pt-1 space-y-2">
                 <button
                   type="submit"
                   className="w-full py-3.5 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[14px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"

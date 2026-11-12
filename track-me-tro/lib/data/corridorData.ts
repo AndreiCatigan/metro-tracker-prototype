@@ -13,6 +13,7 @@ export interface BusDetails {
   capacity: number;
   baseFare: number;
   convenienceFee: number;
+  isAircon?: boolean;
 }
 
 export type PassengerType = "regular" | "student" | "pwd" | "senior";
@@ -127,6 +128,7 @@ export const busDetails: BusDetails = {
   capacity: 40,
   baseFare: 275, // Regular full trip fare (₱220 with 20% student discount)
   convenienceFee: 15,
+  isAircon: true,
 };
 
 // ── Live Map Fleet Data ──
