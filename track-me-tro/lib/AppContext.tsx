@@ -15,6 +15,17 @@ import {
 
 export type SimulatedTime = "9:00 AM" | "2:00 PM" | "4:00 PM";
 
+export interface PassengerHail {
+  id: string;
+  busId: string;
+  passengerName: string;
+  location: string;
+  timestamp: string;
+  status: "hailed" | "acknowledged" | "boarded";
+  tier: "free" | "premium";
+  etaAtHail?: string;
+}
+
 export interface TicketDetails {
   pnr: string;
   busId: string;
@@ -50,6 +61,7 @@ interface AppContextType {
   setBoardingAlertMinutes: (mins: number) => void;
   isAlertActive: boolean;
   setIsAlertActive: (active: boolean) => void;
+  stopAlert: () => void;
   isPremium: boolean;
   setIsPremium: (premium: boolean) => void;
   isModalOpen: boolean;
@@ -78,6 +90,12 @@ interface AppContextType {
   assignSeatToBooking: (bookingId: string, seatNumber: string) => void;
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
   getActiveBooking: () => BookingRequest | undefined;
+  // Advance Passenger Hail & Location Ping
+  passengerHails: PassengerHail[];
+  hailBus: (busId: string, location: string, etaAtHail?: string) => PassengerHail;
+  cancelHail: (busId: string) => void;
+  acknowledgeHail: (hailId: string) => void;
+  getActiveHailForBus: (busId: string) => PassengerHail | undefined;
 }
 
 const DEFAULT_TICKET: TicketDetails = {
@@ -114,7 +132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userLocation, setUserLocation] = useState<string>("VSU Main Campus");
   const [simulatedTime, setSimulatedTime] = useState<SimulatedTime>("9:00 AM");
   const [boardingAlertMinutes, setBoardingAlertMinutes] = useState<number>(10);
-  const [isAlertActive, setIsAlertActive] = useState<boolean>(true);
+  const [isAlertActive, setIsAlertActive] = useState<boolean>(false);
   const [isPremium, setIsPremium] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedDirection, setSelectedDirectionState] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">("sogod-to-ormoc");
@@ -122,6 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
   const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
+  const [passengerHails, setPassengerHails] = useState<PassengerHail[]>([]);
 
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
@@ -266,6 +285,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return bookings.find((b) => b.status === "pending_seat" || b.status === "confirmed");
   }, [bookings]);
 
+  // Passenger Advance Hail Operations
+  const hailBus = useCallback((busId: string, location: string, etaAtHail?: string): PassengerHail => {
+    const newHail: PassengerHail = {
+      id: `HAIL-${Date.now()}`,
+      busId,
+      passengerName: passengerName || "Juana de la Cruz",
+      location,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      status: "hailed",
+      tier: isPremium ? "premium" : "free",
+      etaAtHail,
+    };
+    setPassengerHails((prev) => [newHail, ...prev.filter((h) => h.busId !== busId)]);
+    return newHail;
+  }, [passengerName, isPremium]);
+
+  const cancelHail = useCallback((busId: string) => {
+    setPassengerHails((prev) => prev.filter((h) => h.busId !== busId));
+  }, []);
+
+  const acknowledgeHail = useCallback((hailId: string) => {
+    setPassengerHails((prev) =>
+      prev.map((h) => (h.id === hailId ? { ...h, status: "acknowledged" as const } : h))
+    );
+  }, []);
+
+  const getActiveHailForBus = useCallback((busId: string): PassengerHail | undefined => {
+    return passengerHails.find((h) => h.busId === busId && h.status !== "boarded");
+  }, [passengerHails]);
+
+  const stopAlert = useCallback(() => {
+    setIsAlertActive(false);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -284,6 +337,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setBoardingAlertMinutes,
         isAlertActive,
         setIsAlertActive,
+        stopAlert,
         isPremium,
         setIsPremium,
         isModalOpen,
@@ -303,6 +357,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         assignSeatToBooking,
         updateBookingStatus,
         getActiveBooking,
+        passengerHails,
+        hailBus,
+        cancelHail,
+        acknowledgeHail,
+        getActiveHailForBus,
       }}
     >
       {children}

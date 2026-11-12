@@ -85,22 +85,17 @@ export default function ProfilePage() {
 
             {/* ── User Membership Status Badge (Free tier vs MEtro+) ── */}
             <div className="pt-2 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowMetroPlusModal(true)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-2xs ${
+              <div
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider select-none shadow-2xs ${
                   isPremium
                     ? "bg-gradient-to-r from-amber-500 via-[#F95700] to-amber-600 text-white shadow-[0_2px_10px_rgba(249,87,0,0.3)] ring-2 ring-amber-300/40"
-                    : "bg-[#ECEEF0] text-slate-600 border border-slate-300/80 hover:bg-slate-200"
+                    : "bg-[#ECEEF0] text-slate-600 border border-slate-300/80"
                 }`}
-                title="Tap to view membership perks"
+                aria-label={isPremium ? "MEtro+ Member" : "Free Tier Commuter"}
               >
                 <span>{isPremium ? "👑" : "👤"}</span>
                 <span>{isPremium ? "MEtro+ Member" : "Free Tier Commuter"}</span>
-                <span className="material-symbols-outlined text-[13px] opacity-75">
-                  info
-                </span>
-              </button>
+              </div>
             </div>
           </div>
         </div>

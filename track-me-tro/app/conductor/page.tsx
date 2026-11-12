@@ -8,7 +8,7 @@ import Logo from "@/components/Logo";
 
 export default function ConductorAuthPage() {
   const router = useRouter();
-  const { busDetails } = useAppContext();
+  const { busDetails, passengerHails } = useAppContext();
 
   const [employeeId, setEmployeeId] = useState("EMP-8842");
   const [pin, setPin] = useState("1234");
@@ -56,6 +56,23 @@ export default function ConductorAuthPage() {
       </header>
 
       <main className="max-w-[420px] w-full mx-auto px-4 space-y-4">
+        {/* ── Active Advance Hails Notice ── */}
+        {passengerHails && passengerHails.length > 0 && (
+          <div className="bg-[#FFE8D6] border border-[#F95700] rounded-2xl p-3 flex items-center justify-between text-xs animate-fade-in shadow-2xs">
+            <div className="flex items-center gap-2 text-[#A53700] font-black">
+              <span className="material-symbols-outlined text-[18px]">cell_tower</span>
+              <span>{passengerHails.length} Passenger(s) Hailing Ahead on Route!</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/conductor/matrix")}
+              className="py-1 px-2.5 rounded-lg bg-[#F95700] text-white font-black text-[10px] hover:bg-[#E04E00] transition active:scale-95 cursor-pointer"
+            >
+              View Queue
+            </button>
+          </div>
+        )}
+
         {/* ── Card 1: Conductor Authentication ── */}
         <section className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-4">
           <div className="flex items-center gap-3">

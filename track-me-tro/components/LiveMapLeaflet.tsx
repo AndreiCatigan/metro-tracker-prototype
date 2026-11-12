@@ -6,6 +6,15 @@ import "leaflet/dist/leaflet.css";
 import { ActiveBus, CoordinatePair, STOP_COORDINATES, calculateBusETA } from "@/lib/mockData";
 import { useAppContext } from "@/lib/AppContext";
 
+// Safeguard Leaflet against accessing properties of torn-down elements during in-flight pan/zoom animations
+if (typeof window !== "undefined" && L && L.DomUtil) {
+  const originalGetPosition = L.DomUtil.getPosition;
+  L.DomUtil.getPosition = function (el: HTMLElement) {
+    if (!el) return new L.Point(0, 0);
+    return originalGetPosition.call(this, el);
+  };
+}
+
 interface LiveMapLeafletProps {
   buses: ActiveBus[];
   selectedBusId: string | null;
@@ -29,7 +38,7 @@ export default function LiveMapLeaflet({
   userLocation,
   isPremium: propIsPremium,
 }: LiveMapLeafletProps) {
-  const { isPremium: contextIsPremium } = useAppContext();
+  const { isPremium: contextIsPremium, passengerHails } = useAppContext();
   const isPremium = propIsPremium !== undefined ? propIsPremium : contextIsPremium;
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -38,7 +47,18 @@ export default function LiveMapLeaflet({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
 
-  // Initialize Map
+  // Keep callback refs stable across re-renders to prevent map teardowns
+  const onMapClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
+
+  const onSelectBusRef = useRef(onSelectBus);
+  useEffect(() => {
+    onSelectBusRef.current = onSelectBus;
+  }, [onSelectBus]);
+
+  // Initialize Map (Mounts once)
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -103,7 +123,7 @@ export default function LiveMapLeaflet({
 
     // Handle map click to deselect / hide active bus details
     map.on("click", () => {
-      onMapClick();
+      onMapClickRef.current?.();
     });
 
     // Bus Markers Layer Group
@@ -118,10 +138,18 @@ export default function LiveMapLeaflet({
     });
 
     return () => {
-      map.remove();
+      try {
+        map.stop();
+        map.remove();
+      } catch (err) {
+        console.warn("Leaflet cleanup error:", err);
+      }
       mapInstanceRef.current = null;
+      busLayerRef.current = null;
+      userMarkerRef.current = null;
+      polylineRef.current = null;
     };
-  }, [waypoints, onMapClick]);
+  }, [waypoints]);
 
   // Dynamic Commuter User Location Marker based on simulated userLocation
   useEffect(() => {
@@ -137,21 +165,33 @@ export default function LiveMapLeaflet({
     const userLng = stopData.lng;
     const displayName = stopData.displayName;
 
+    const isHailing = passengerHails?.some((h) => h.status !== "boarded");
+
     const userDivIcon = L.divIcon({
       className: "custom-user-marker",
       iconSize: [0, 0],
       iconAnchor: [0, 0],
       html: `
         <div style="position: relative; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%);">
-          <span style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background: rgba(255, 232, 214, 0.7); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-          <span style="position: absolute; width: 36px; height: 36px; border-radius: 9999px; background: rgba(255, 232, 214, 0.85); border: 1.5px solid #F5DECD;"></span>
-          <div style="position: relative; width: 30px; height: 30px; border-radius: 9999px; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 2px solid #181C24; display: flex; align-items: center; justify-content: center; color: #181C24;">
+          <span style="position: absolute; width: 48px; height: 48px; border-radius: 9999px; background: ${
+            isHailing ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 232, 214, 0.7)"
+          }; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+          <span style="position: absolute; width: 36px; height: 36px; border-radius: 9999px; background: ${
+            isHailing ? "rgba(209, 250, 229, 0.9)" : "rgba(255, 232, 214, 0.85)"
+          }; border: 1.5px solid ${isHailing ? "#10B981" : "#F5DECD"};"></span>
+          <div style="position: relative; width: 30px; height: 30px; border-radius: 9999px; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 2px solid ${
+            isHailing ? "#059669" : "#181C24"
+          }; display: flex; align-items: center; justify-content: center; color: ${
+            isHailing ? "#059669" : "#181C24"
+          };">
             <svg style="width: 17px; height: 17px; fill: currentColor;" viewBox="0 0 24 24">
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
           </div>
-          <div style="position: absolute; bottom: -20px; white-space: nowrap; background: #181C24; color: #ffffff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-            You (${displayName})
+          <div style="position: absolute; bottom: -20px; white-space: nowrap; background: ${
+            isHailing ? "#065F46" : "#181C24"
+          }; color: #ffffff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+            You (${displayName})${isHailing ? " • 📡 Notified" : ""}
           </div>
         </div>
       `,
@@ -163,7 +203,7 @@ export default function LiveMapLeaflet({
     }).addTo(map);
 
     userMarkerRef.current = userMarker;
-  }, [userLocation]);
+  }, [userLocation, passengerHails]);
 
   // Update Bus Markers whenever buses or selectedBusId changes
   useEffect(() => {
@@ -179,8 +219,10 @@ export default function LiveMapLeaflet({
       // Calculate dynamic ETA from this bus to the user's location
       const etaResult = calculateBusETA(bus, userLocation);
       const etaLabel = etaResult.etaText;
+      const isHailedByMe = passengerHails?.some((h) => h.busId === bus.id && h.status !== "boarded");
       // Free Tier: only ETA. Premium Tier: Bus ID and ETA
-      const tagText = isPremium ? `${bus.id} • ${etaLabel}` : etaLabel;
+      const baseTag = isPremium ? `${bus.id} • ${etaLabel}` : etaLabel;
+      const tagText = isHailedByMe ? `${baseTag} • 📡 Notified` : baseTag;
 
       const busDivIcon = L.divIcon({
         className: `bus-marker-${bus.id}`,
@@ -219,41 +261,55 @@ export default function LiveMapLeaflet({
       marker.on("click", (e) => {
         // Prevent map click deselect from firing
         L.DomEvent.stopPropagation(e);
-        onSelectBus(bus);
-        map.panTo([bus.lat, bus.lng], { animate: true, duration: 0.6 });
+        onSelectBusRef.current?.(bus);
+        if (mapInstanceRef.current) {
+          try {
+            mapInstanceRef.current.panTo([bus.lat, bus.lng], { animate: true, duration: 0.6 });
+          } catch (err) {
+            console.warn("Marker panTo error:", err);
+          }
+        }
       });
 
       busLayer.addLayer(marker);
     });
-  }, [buses, selectedBusId, onSelectBus, userLocation, isPremium]);
+  }, [buses, selectedBusId, userLocation, isPremium, passengerHails]);
 
   // Recenter trigger
   useEffect(() => {
     if (recenterTrigger === 0 || !mapInstanceRef.current) return;
-    const selectedBus = buses.find((b) => b.id === selectedBusId);
-    if (selectedBus) {
-      mapInstanceRef.current.panTo([selectedBus.lat, selectedBus.lng], {
-        animate: true,
-        duration: 0.7,
-      });
-    } else {
-      // Recenter on user's location if no bus selected
-      const stopData = STOP_COORDINATES[userLocation] || STOP_COORDINATES["VSU Main Campus"];
-      mapInstanceRef.current.panTo([stopData.lat, stopData.lng], {
-        animate: true,
-        duration: 0.7,
-      });
+    try {
+      const selectedBus = buses.find((b) => b.id === selectedBusId);
+      if (selectedBus) {
+        mapInstanceRef.current.panTo([selectedBus.lat, selectedBus.lng], {
+          animate: true,
+          duration: 0.7,
+        });
+      } else {
+        // Recenter on user's location if no bus selected
+        const stopData = STOP_COORDINATES[userLocation] || STOP_COORDINATES["VSU Main Campus"];
+        mapInstanceRef.current.panTo([stopData.lat, stopData.lng], {
+          animate: true,
+          duration: 0.7,
+        });
+      }
+    } catch (err) {
+      console.warn("Recenter error:", err);
     }
   }, [recenterTrigger, buses, selectedBusId, userLocation]);
 
   // Fit bounds trigger (corridor overview)
   useEffect(() => {
     if (fitBoundsTrigger === 0 || !mapInstanceRef.current || !polylineRef.current) return;
-    mapInstanceRef.current.fitBounds(polylineRef.current.getBounds(), {
-      padding: [70, 70],
-      maxZoom: 11,
-      animate: true,
-    });
+    try {
+      mapInstanceRef.current.fitBounds(polylineRef.current.getBounds(), {
+        padding: [70, 70],
+        maxZoom: 11,
+        animate: true,
+      });
+    } catch (err) {
+      console.warn("Fit bounds error:", err);
+    }
   }, [fitBoundsTrigger]);
 
   return (
