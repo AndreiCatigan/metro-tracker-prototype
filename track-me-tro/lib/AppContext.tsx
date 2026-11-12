@@ -50,6 +50,8 @@ interface AppContextType {
   setBoardingAlertMinutes: (mins: number) => void;
   isAlertActive: boolean;
   setIsAlertActive: (active: boolean) => void;
+  isPremium: boolean;
+  setIsPremium: (premium: boolean) => void;
   // Route Direction & Origin/Destination Management
   selectedDirection: "sogod-to-ormoc" | "ormoc-to-sogod";
   setSelectedDirection: (dir: "sogod-to-ormoc" | "ormoc-to-sogod") => void;
@@ -111,6 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [simulatedTime, setSimulatedTime] = useState<SimulatedTime>("9:00 AM");
   const [boardingAlertMinutes, setBoardingAlertMinutes] = useState<number>(10);
   const [isAlertActive, setIsAlertActive] = useState<boolean>(true);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const [selectedDirection, setSelectedDirectionState] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">("sogod-to-ormoc");
   const [origin, setOriginState] = useState<string>("Sogod, Southern Leyte");
   const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
@@ -278,6 +281,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setBoardingAlertMinutes,
         isAlertActive,
         setIsAlertActive,
+        isPremium,
+        setIsPremium,
         selectedDirection,
         setSelectedDirection,
         origin,

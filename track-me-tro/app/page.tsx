@@ -4,8 +4,9 @@ import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { useAppContext } from "@/lib/AppContext";
 
-/** Auto-format a PH mobile number as "912 345 6789" */
+/** Auto-format a PH mobile number as "922 333 4444" */
 function formatPhoneNumber(raw: string): string {
   const digits = raw.replace(/\D/g, "").substring(0, 10);
   if (digits.length > 6) {
@@ -19,13 +20,15 @@ function formatPhoneNumber(raw: string): string {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState("912 345 6789");
+  const { setIsPremium } = useAppContext();
+  const [phone, setPhone] = useState("922 333 4444");
   const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<"password" | "otp">("password");
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -46,10 +49,11 @@ export default function LoginPage() {
       e.preventDefault();
       setLoading(true);
       setTimeout(() => {
-        router.push("/home");
-      }, 700);
+        setLoading(false);
+        setShowPremiumModal(true);
+      }, 500);
     },
-    [router]
+    []
   );
 
   return (
@@ -59,6 +63,136 @@ export default function LoginPage() {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">mark_chat_unread</span>
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* ── Why Use Premium Modal (Post-Login Suggestion) ── */}
+      {showPremiumModal && (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-[32px] max-w-[410px] w-full p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative overflow-hidden text-left">
+            {/* Subtle background glow decoration */}
+            <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#FFE8D6] blur-2xl pointer-events-none" />
+
+            {/* Header row with crown & close button */}
+            <div className="flex items-center justify-between relative z-10">
+              <div className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider">
+                <span>👑</span>
+                <span>TRACK METRO PREMIUM</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPremiumModal(false);
+                  router.push("/home");
+                }}
+                className="w-8 h-8 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs cursor-pointer transition active:scale-95"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Title & subtitle */}
+            <div className="space-y-1 relative z-10">
+              <h3 className="text-[22px] font-black tracking-tight text-[#191C1E] leading-tight">
+                Why Use Premium?
+              </h3>
+              <p className="text-[12px] text-slate-500 font-medium leading-snug">
+                Unlock smart transit advantages on your Leyte corridor journey:
+              </p>
+            </div>
+
+            {/* The 4 Core Premium Features */}
+            <div className="space-y-2.5 relative z-10 text-xs">
+              {/* Feature 1: Full Bus Information */}
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">directions_bus</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-black text-[13px] text-[#191C1E] tracking-tight">
+                    Full Bus Information
+                  </h4>
+                  <p className="text-slate-600 font-medium text-[11px] mt-0.5 leading-snug">
+                    View complete bus specs: unit number, aircon or non-aircon class, and verified driver details.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 2: Reserve a Seat */}
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">airline_seat_recline_extra</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-black text-[13px] text-[#191C1E] tracking-tight">
+                    Reserve A Seat
+                  </h4>
+                  <p className="text-slate-600 font-medium text-[11px] mt-0.5 leading-snug">
+                    Guaranteed seat reservation. Secure your exact seat in advance before you reach the terminal.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 3: Passengers On Board */}
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">groups</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-black text-[13px] text-[#191C1E] tracking-tight">
+                    Passengers On Board
+                  </h4>
+                  <p className="text-slate-600 font-medium text-[11px] mt-0.5 leading-snug">
+                    See exactly how many passengers are currently on board the incoming bus in real time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Feature 4: No Ads */}
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">block</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-black text-[13px] text-[#191C1E] tracking-tight">
+                    Zero Sponsored Ads
+                  </h4>
+                  <p className="text-slate-600 font-medium text-[11px] mt-0.5 leading-snug">
+                    Enjoy a completely ad-free experience without commercial banners or local sponsor promotions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="space-y-2 pt-1 relative z-10">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPremium(true);
+                  setShowPremiumModal(false);
+                  router.push("/home");
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-[#F95700] to-[#E04E00] hover:brightness-105 active:scale-[0.98] text-white rounded-full font-black text-[14px] tracking-tight shadow-[0_8px_20px_rgba(249,87,0,0.35)] transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Upgrade to Premium (7-Day Free Trial)</span>
+                <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPremium(false);
+                  setShowPremiumModal(false);
+                  router.push("/home");
+                }}
+                className="w-full py-2.5 text-slate-500 hover:text-slate-800 font-bold text-[12px] transition cursor-pointer text-center block"
+              >
+                Continue with Free Plan
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -130,7 +264,7 @@ export default function LoginPage() {
                 required
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="912 345 6789"
+                placeholder="922 333 4444"
                 maxLength={12}
                 className="w-full bg-transparent font-extrabold text-[15px] text-[#191C1E] placeholder:text-slate-400 outline-none px-3 py-1"
               />

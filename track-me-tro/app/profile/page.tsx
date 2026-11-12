@@ -76,7 +76,7 @@ export default function ProfilePage() {
               {passengerName}
             </h1>
             <p className="text-[11px] font-medium text-slate-500">
-              juana.delacruz@gmail.com • 09123456781
+              juana.delacruz@gmail.com • 0922 333 4444
             </p>
           </div>
         </div>

@@ -26,6 +26,7 @@ export default function HomePage() {
     destination,
     setDestination,
     swapOriginDestination,
+    isPremium,
   } = useAppContext();
 
   // Extract first name for personalized greeting
@@ -337,63 +338,65 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* ── Localized Sponsored Ad: Regional Commuter Spotlight ── */}
-        <section className="bg-gradient-to-br from-[#FFF5EE] via-white to-[#FFF0E6] rounded-3xl p-4.5 border border-[#F5DECD] shadow-xs relative overflow-hidden space-y-3">
-          <div className="absolute -right-5 -bottom-5 text-amber-900/5 pointer-events-none select-none">
-            <span className="material-symbols-outlined text-[110px]">local_cafe</span>
-          </div>
-
-          <div className="relative z-10 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
-                <span>COMMUTER SPOTLIGHT • SPONSORED</span>
-              </span>
-              <span className="text-[11px] font-black text-amber-800 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[13px] text-amber-600">star</span>
-                <span>4.9 (340+ reviews)</span>
-              </span>
+        {/* ── Localized Sponsored Ad: Regional Commuter Spotlight (Hidden for Premium Users) ── */}
+        {!isPremium && (
+          <section className="bg-gradient-to-br from-[#FFF5EE] via-white to-[#FFF0E6] rounded-3xl p-4.5 border border-[#F5DECD] shadow-xs relative overflow-hidden space-y-3">
+            <div className="absolute -right-5 -bottom-5 text-amber-900/5 pointer-events-none select-none">
+              <span className="material-symbols-outlined text-[110px]">local_cafe</span>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white flex flex-col items-center justify-center flex-shrink-0 shadow-sm border border-amber-800">
-                <span className="material-symbols-outlined text-[22px] text-amber-200">local_cafe</span>
-                <span className="text-[7px] font-black text-amber-200 tracking-wider">CAFE</span>
+            <div className="relative z-10 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
+                  <span>COMMUTER SPOTLIGHT • SPONSORED</span>
+                </span>
+                <span className="text-[11px] font-black text-amber-800 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px] text-amber-600">star</span>
+                  <span>4.9 (340+ reviews)</span>
+                </span>
               </div>
 
-              <div className="flex-1 min-w-0">
-                <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
-                  Kape Isla Cafe &amp; Roastery
-                </h3>
-                <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
-                  <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
-                  <span>Baybay Terminal Crossing • 2 mins walk</span>
-                </p>
-                <p className="text-[11px] text-slate-600 font-medium mt-1 leading-snug">
-                  Caffeine stop on your journey? Flash your <strong>track MEtro boarding pass</strong> for a <strong>10% commuter discount</strong> on all iced coffees and fresh ensaymada.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white flex flex-col items-center justify-center flex-shrink-0 shadow-sm border border-amber-800">
+                  <span className="material-symbols-outlined text-[22px] text-amber-200">local_cafe</span>
+                  <span className="text-[7px] font-black text-amber-200 tracking-wider">CAFE</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
+                    Kape Isla Cafe &amp; Roastery
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
+                    <span>Baybay Terminal Crossing • 2 mins walk</span>
+                  </p>
+                  <p className="text-[11px] text-slate-600 font-medium mt-1 leading-snug">
+                    Caffeine stop on your journey? Flash your <strong>track MEtro boarding pass</strong> for a <strong>10% commuter discount</strong> on all iced coffees and fresh ensaymada.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1.5 border-t border-[#F5DECD]/70">
+                <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Open Daily 6:00 AM – 9:00 PM</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push(`/map?direction=${selectedDirection}`);
+                  }}
+                  className="py-1 px-3 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[11px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                >
+                  <span>View on Map</span>
+                  <span className="material-symbols-outlined text-[13px] text-[#F95700]">near_me</span>
+                </button>
               </div>
             </div>
-
-            <div className="flex items-center justify-between pt-1.5 border-t border-[#F5DECD]/70">
-              <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-slate-500">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Open Daily 6:00 AM – 9:00 PM</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  router.push(`/map?direction=${selectedDirection}`);
-                }}
-                className="py-1 px-3 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[11px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
-              >
-                <span>View on Map</span>
-                <span className="material-symbols-outlined text-[13px] text-[#F95700]">near_me</span>
-              </button>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ── Book A Ticket (same-day, choose your bus) ── */}
         <section className="space-y-3">
