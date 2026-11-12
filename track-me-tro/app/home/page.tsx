@@ -96,11 +96,11 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 select-none">
+    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 select-none overflow-x-hidden">
       {/* ── Notification Modal / Drawer ── */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4 border border-[#ECEEF0] animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-[360px] sm:max-w-sm w-full p-5 shadow-2xl space-y-4 border border-[#ECEEF0] animate-fade-in">
             <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[20px] text-[#F95700]">notifications</span>
@@ -109,7 +109,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setShowNotifications(false)}
-                className="w-7 h-7 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs"
+                className="w-7 h-7 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs cursor-pointer"
               >
                 ✕
               </button>
@@ -158,10 +158,27 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* ── Top Header Bar (Colored #FFDFC9 matching Header Brand Theme) ── */}
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 py-2.5 border-b border-[#F5DECD]/60 shadow-2xs">
+        <div className="max-w-[440px] w-full mx-auto flex items-center justify-between">
+          <Logo className="h-8 sm:h-9 w-auto" />
+
+          <button
+            type="button"
+            onClick={() => setShowNotifications(true)}
+            className="w-9 h-9 rounded-full bg-white/50 backdrop-blur-xs flex items-center justify-center text-slate-800 shadow-2xs hover:bg-white/70 transition active:scale-95 cursor-pointer relative"
+            aria-label="Open Notifications"
+          >
+            <span className="material-symbols-outlined text-[19px]">notifications</span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#F95700] ring-2 ring-white" />
+          </button>
+        </div>
+      </header>
+
       {/* ── Warm Peach Hero Section ── */}
-      <section className="relative w-full bg-[#FFDFC9] pt-8 pb-16 px-6 overflow-hidden">
+      <section className="relative w-full bg-[#FFDFC9] pt-3 pb-14 px-4 sm:px-6 overflow-hidden">
         {/* Background Stylized Curvy Ribbon / Bus Track Graphic */}
-        <div className="absolute right-0 top-0 bottom-0 w-44 pointer-events-none opacity-45 overflow-hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-40 pointer-events-none opacity-40 overflow-hidden">
           <svg
             className="w-full h-full text-[#F89C6B]"
             viewBox="0 0 160 260"
@@ -178,29 +195,14 @@ export default function HomePage() {
           </svg>
         </div>
 
-        <div className="max-w-[440px] mx-auto relative z-10">
-          {/* Header Row: Logo & Notification Bell */}
-          <div className="flex items-center justify-between">
-            <Logo className="h-11 w-auto" />
-
-            <button
-              type="button"
-              onClick={() => setShowNotifications(true)}
-              className="w-10 h-10 rounded-full bg-white/40 backdrop-blur-xs flex items-center justify-center text-slate-800 shadow-2xs hover:bg-white/60 transition active:scale-95 cursor-pointer relative"
-              aria-label="Open Notifications"
-            >
-              <span className="material-symbols-outlined text-[20px]">notifications</span>
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#F95700] ring-2 ring-white" />
-            </button>
-          </div>
-
+        <div className="max-w-[440px] w-full mx-auto relative z-10">
           {/* Hero Headline */}
-          <div className="mt-6 space-y-1">
-            <h1 className="text-[34px] font-black tracking-tight text-[#191C1E] leading-[1.12]">
+          <div className="space-y-1">
+            <h1 className="text-[28px] sm:text-[32px] font-black tracking-tight text-[#191C1E] leading-[1.14]">
               Where to,<br />
               {firstName}?
             </h1>
-            <p className="text-[11px] font-black text-[#A53700] uppercase tracking-wider pt-0.5">
+            <p className="text-[10px] sm:text-[11px] font-black text-[#A53700] uppercase tracking-wider pt-0.5">
               Eastern Visayas • Live Transit Network
             </p>
           </div>
@@ -208,15 +210,15 @@ export default function HomePage() {
       </section>
 
       {/* ── Main Content Container ── */}
-      <main className="max-w-[440px] w-full mx-auto px-4 -mt-8 relative z-20 space-y-5">
+      <main className="max-w-[440px] w-full mx-auto px-3.5 sm:px-4 -mt-8 relative z-20 space-y-4 sm:space-y-5">
         {/* ── Elevated Route Input Card ── */}
-        <section className="bg-white rounded-[32px] p-6 shadow-[0_12px_36px_rgba(0,0,0,0.06)] border border-[#ECEEF0] space-y-4">
+        <section className="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)] border border-[#ECEEF0] space-y-3.5">
           <div className="flex items-center gap-3">
             {/* Left Route Connector Graphics */}
-            <div className="flex flex-col items-center justify-between h-24 py-1 flex-shrink-0">
-              <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-700 bg-white" />
-              <div className="w-[1.5px] h-12 bg-slate-200" />
-              <span className="w-3.5 h-3.5 rounded-full bg-[#F95700] ring-2 ring-[#FFE8D6]" />
+            <div className="flex flex-col items-center justify-between h-20 py-1 flex-shrink-0">
+              <span className="w-3 h-3 rounded-full border-2 border-slate-700 bg-white" />
+              <div className="w-[1.5px] h-10 bg-slate-200" />
+              <span className="w-3 h-3 rounded-full bg-[#F95700] ring-2 ring-[#FFE8D6]" />
             </div>
 
             {/* Inputs: Origin & Destination */}
@@ -292,38 +294,38 @@ export default function HomePage() {
 
           {/* ── Free Tier: Pure Tracking Summary (No bus cards list, purpose is purely tracking) ── */}
           {!isPremium ? (
-            <div className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[26px]">directions_bus</span>
+            <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-[#ECEEF0] space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[24px] sm:text-[26px]">directions_bus</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black text-[#A53700] uppercase tracking-wider bg-[#FFE8D6]/60 px-2 py-0.5 rounded-full">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black text-[#A53700] uppercase tracking-wider bg-[#FFE8D6]/60 px-2 py-0.5 rounded-full inline-block">
                       Corridor Tracking
                     </span>
-                    <h3 className="text-[18px] font-black text-[#191C1E] mt-0.5 leading-tight">
+                    <h3 className="text-[16px] sm:text-[18px] font-black text-[#191C1E] mt-0.5 leading-tight truncate">
                       {enRouteBuses.length} {enRouteBuses.length === 1 ? "Bus" : "Buses"} Currently Departed
                     </h3>
-                    <p className="text-[11px] text-slate-500 font-medium">
+                    <p className="text-[11px] text-slate-500 font-medium truncate">
                       Active along {direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"} corridor
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-[30px] font-black text-[#F95700] leading-none">
+                <div className="text-right flex-shrink-0">
+                  <span className="text-[28px] sm:text-[30px] font-black text-[#F95700] leading-none">
                     {enRouteBuses.length}
                   </span>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">En Route</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-slate-600 font-medium">
-                  <span className="material-symbols-outlined text-[16px] text-emerald-600">radar</span>
-                  <span>Free GPS Tracking Active</span>
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-slate-600 font-medium min-w-0">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600 flex-shrink-0">radar</span>
+                  <span className="truncate">Free GPS Tracking Active</span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
                   Live Corridor Feed
                 </span>
               </div>
@@ -412,13 +414,14 @@ export default function HomePage() {
 
         {/* ── Localized Sponsored Ad: Regional Commuter Spotlight (Hidden for Premium Users) ── */}
         {!isPremium && (
-          <section className="bg-gradient-to-br from-[#FFF5EE] via-white to-[#FFF0E6] rounded-3xl p-4.5 border border-[#F5DECD] shadow-xs relative overflow-hidden space-y-3">
+          <section className="bg-gradient-to-br from-[#FFF5EE] via-white to-[#FFF0E6] rounded-3xl p-4 sm:p-5 border border-[#F5DECD] shadow-xs relative overflow-hidden">
             <div className="absolute -right-5 -bottom-5 text-amber-900/5 pointer-events-none select-none">
               <span className="material-symbols-outlined text-[110px]">local_cafe</span>
             </div>
 
-            <div className="relative z-10 space-y-2.5">
-              <div className="flex items-center justify-between">
+            <div className="relative z-10 space-y-3">
+              {/* Header Badge & Rating */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
                   <span>COMMUTER SPOTLIGHT • SPONSORED</span>
@@ -429,28 +432,30 @@ export default function HomePage() {
                 </span>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white flex flex-col items-center justify-center flex-shrink-0 shadow-sm border border-amber-800">
-                  <span className="material-symbols-outlined text-[22px] text-amber-200">local_cafe</span>
+              {/* Main Ad Content: Icon, Title, Location & Description */}
+              <div className="flex items-start gap-3 sm:gap-3.5 pt-0.5">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white flex flex-col items-center justify-center flex-shrink-0 shadow-sm border border-amber-800 mt-0.5">
+                  <span className="material-symbols-outlined text-[20px] sm:text-[22px] text-amber-200">local_cafe</span>
                   <span className="text-[7px] font-black text-amber-200 tracking-wider">CAFE</span>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
+                  <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight leading-snug">
                     Kape Isla Cafe &amp; Roastery
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-1">
                     <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
                     <span>Baybay Terminal Crossing • 2 mins walk</span>
                   </p>
-                  <p className="text-[11px] text-slate-600 font-medium mt-1 leading-snug">
+                  <p className="text-[11.5px] text-slate-600 font-medium mt-2 leading-relaxed">
                     Caffeine stop on your journey? Flash your <strong>track MEtro boarding pass</strong> for a <strong>10% commuter discount</strong> on all iced coffees and fresh ensaymada.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1.5 border-t border-[#F5DECD]/70">
-                <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-slate-500">
+              {/* Footer Row: Status & Action Button */}
+              <div className="flex items-center justify-between gap-2 flex-wrap pt-2.5 sm:pt-3 border-t border-[#F5DECD]">
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-extrabold text-slate-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>Open Daily 6:00 AM – 9:00 PM</span>
                 </div>
@@ -460,7 +465,7 @@ export default function HomePage() {
                   onClick={() => {
                     router.push(`/map?direction=${selectedDirection}`);
                   }}
-                  className="py-1 px-3 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[11px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                  className="py-1.5 px-3.5 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[11px] shadow-xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
                 >
                   <span>View on Map</span>
                   <span className="material-symbols-outlined text-[13px] text-[#F95700]">near_me</span>
@@ -485,15 +490,15 @@ export default function HomePage() {
           <div className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] space-y-3">
             {/* Free Tier Notice Banner for Seat Reservation */}
             {!isPremium && (
-              <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200/80 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-amber-900 font-medium">
-                  <span className="text-[15px]">👑</span>
-                  <span>Seat reservation is reserved for MEtro+ members. Free tier passengers queue at terminal.</span>
+              <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-amber-900 font-medium min-w-0">
+                  <span className="text-[15px] flex-shrink-0">👑</span>
+                  <span className="text-[11.5px] leading-snug">Seat reservation is reserved for MEtro+ members.</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowMetroPlusModal(true)}
-                  className="text-[11px] font-black text-[#F95700] underline whitespace-nowrap cursor-pointer hover:opacity-80"
+                  className="text-[11px] font-black text-[#F95700] underline whitespace-nowrap cursor-pointer hover:opacity-80 flex-shrink-0"
                 >
                   Unlock
                 </button>
@@ -522,13 +527,13 @@ export default function HomePage() {
                       key={trip.bus}
                       type="button"
                       onClick={() => setSelectedTripIdx(idx)}
-                      className={`w-full p-2.5 rounded-2xl flex items-center justify-between text-left transition cursor-pointer ${
+                      className={`w-full p-2.5 rounded-2xl flex items-center justify-between gap-2.5 text-left transition cursor-pointer ${
                         isSelected
                           ? "bg-[#FFE8D6]/60 border-2 border-[#F95700] ring-1 ring-[#F95700]/20"
                           : "bg-[#F7F9FB] border border-[#ECEEF0] hover:border-[#F95700]/30"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <span
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                             isSelected ? "border-[#F95700]" : "border-slate-300"
@@ -536,18 +541,18 @@ export default function HomePage() {
                         >
                           {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />}
                         </span>
-                        <div>
-                          <p className="text-[13px] font-black text-[#191C1E]">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-black text-[#191C1E] truncate">
                             {trip.dep} • {isPremium ? trip.bus : "Express Metro"}
                           </p>
-                          <p className="text-[10px] text-slate-400 font-medium">
+                          <p className="text-[10px] text-slate-400 font-medium truncate">
                             {isPremium
                               ? `${trip.aircon ? "Aircon Express" : "Non-Aircon"} • ${trip.seats} seats left`
                               : "🔒 Guaranteed seat reservation (MEtro+ only)"}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <span className="text-[13px] font-black text-[#A53700]">₱275.00</span>
                         <p className="text-[9px] text-emerald-700 font-extrabold uppercase">₱220 Student</p>
                       </div>
