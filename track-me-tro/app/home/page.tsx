@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import { useAppContext } from "@/lib/AppContext";
 import {
   TRAVEL_TIMES_FROM_SOGOD,
+  TRAVEL_TIMES_FROM_ORMOC,
   getDepartedBuses,
   parseTimeToMinutes,
   calculateTripETA,
@@ -15,28 +16,36 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
-  const { passengerName, userLocation, simulatedTime } = useAppContext();
+  const {
+    passengerName,
+    userLocation,
+    simulatedTime,
+    selectedDirection,
+    origin,
+    setOrigin,
+    destination,
+    setDestination,
+    swapOriginDestination,
+  } = useAppContext();
 
   // Extract first name for personalized greeting
   const firstName = passengerName ? passengerName.split(" ")[0] : "Juana";
-
-  // State for swapping origin and destination
-  const [origin, setOrigin] = useState("Sogod, Southern Leyte");
-  const [destination, setDestination] = useState("Ormoc City, Leyte");
 
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Bus the passenger picked in "Book A Ticket" (index into today's remaining trips)
   const [selectedTripIdx, setSelectedTripIdx] = useState<number>(0);
 
-  const direction: "sogod-ormoc" | "ormoc-sogod" = origin.toLowerCase().includes("sogod")
-    ? "sogod-ormoc"
-    : "ormoc-sogod";
+  const direction: "sogod-ormoc" | "ormoc-sogod" =
+    selectedDirection === "sogod-to-ormoc" ? "sogod-ormoc" : "ormoc-sogod";
 
-  const allDepartedBuses = getDepartedBuses(simulatedTime);
+  const allDepartedBuses = getDepartedBuses(simulatedTime, direction);
   // Home only shows a summary of buses that are currently en route
   const enRouteBuses = allDepartedBuses.filter((b) => b.status === "en_route");
-  const userTravelMins = TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115;
+  const userTravelMins =
+    direction === "sogod-ormoc"
+      ? (TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115)
+      : (TRAVEL_TIMES_FROM_ORMOC[userLocation] ?? 45);
 
   // Upcoming same-day departures the passenger can choose from
   const currentMinutes = parseTimeToMinutes(simulatedTime);
@@ -59,8 +68,7 @@ export default function HomePage() {
   const selectedTrip = visibleTrips[selectedTripIdx] ?? visibleTrips[0];
 
   const handleSwap = () => {
-    setOrigin(destination);
-    setDestination(origin);
+    swapOriginDestination();
     setSelectedTripIdx(0);
   };
 
@@ -234,11 +242,13 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Action Button: Live Buses only (booking lives in the Book A Ticket section) */}
+          {/* Action Button: Live Buses with Swapped Direction Quick-Access */}
           <div className="pt-1">
             <button
               type="button"
-              onClick={() => router.push("/map")}
+              onClick={() => {
+                router.push(`/map?direction=${selectedDirection}`);
+              }}
               className="w-full py-3.5 px-4 rounded-full bg-[#181C24] hover:bg-black active:scale-[0.98] text-white font-black text-[14px] tracking-tight shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px] text-[#F95700]">near_me</span>
@@ -274,7 +284,9 @@ export default function HomePage() {
                   <button
                     key={bus.id}
                     type="button"
-                    onClick={() => router.push("/map")}
+                    onClick={() => {
+                      router.push(`/map?direction=${selectedDirection}`);
+                    }}
                     className="w-full bg-white rounded-2xl p-3.5 shadow-2xs border border-emerald-100 text-left space-y-2.5 transition active:scale-[0.98] cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
@@ -289,10 +301,11 @@ export default function HomePage() {
                           <div className="flex items-center gap-1.5">
                             <span className="text-[14px] font-black text-[#191C1E]">{bus.busNumber}</span>
                             <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${bus.isAircon
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                bus.isAircon
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : "bg-rose-50 text-rose-700 border-rose-200"
-                                }`}
+                              }`}
                             >
                               {bus.isAircon ? "Aircon" : "Non-Air"}
                             </span>
@@ -324,6 +337,64 @@ export default function HomePage() {
           )}
         </section>
 
+        {/* ── Localized Sponsored Ad: Regional Commuter Spotlight ── */}
+        <section className="bg-gradient-to-br from-[#FFF5EE] via-white to-[#FFF0E6] rounded-3xl p-4.5 border border-[#F5DECD] shadow-xs relative overflow-hidden space-y-3">
+          <div className="absolute -right-5 -bottom-5 text-amber-900/5 pointer-events-none select-none">
+            <span className="material-symbols-outlined text-[110px]">local_cafe</span>
+          </div>
+
+          <div className="relative z-10 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
+                <span>COMMUTER SPOTLIGHT • SPONSORED</span>
+              </span>
+              <span className="text-[11px] font-black text-amber-800 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-amber-600">star</span>
+                <span>4.9 (340+ reviews)</span>
+              </span>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-900 to-amber-950 text-white flex flex-col items-center justify-center flex-shrink-0 shadow-sm border border-amber-800">
+                <span className="material-symbols-outlined text-[22px] text-amber-200">local_cafe</span>
+                <span className="text-[7px] font-black text-amber-200 tracking-wider">CAFE</span>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[15px] font-black text-[#191C1E] tracking-tight">
+                  Kape Isla Cafe &amp; Roastery
+                </h3>
+                <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                  <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
+                  <span>Baybay Terminal Crossing • 2 mins walk</span>
+                </p>
+                <p className="text-[11px] text-slate-600 font-medium mt-1 leading-snug">
+                  Caffeine stop on your journey? Flash your <strong>track MEtro boarding pass</strong> for a <strong>10% commuter discount</strong> on all iced coffees and fresh ensaymada.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1.5 border-t border-[#F5DECD]/70">
+              <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Open Daily 6:00 AM – 9:00 PM</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  router.push(`/map?direction=${selectedDirection}`);
+                }}
+                className="py-1 px-3 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[11px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+              >
+                <span>View on Map</span>
+                <span className="material-symbols-outlined text-[13px] text-[#F95700]">near_me</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* ── Book A Ticket (same-day, choose your bus) ── */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -332,17 +403,17 @@ export default function HomePage() {
               <span className="text-amber-500 text-[16px]">👑</span>
             </h2>
             <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Today only
+              Full Trip Fare
             </span>
           </div>
 
           <div className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] space-y-3">
             <div className="flex items-center justify-between text-[11px]">
               <p className="font-extrabold text-slate-400 uppercase tracking-wider">
-                Choose your bus ({direction === "sogod-ormoc" ? "Sogod → Ormoc" : "Ormoc → Sogod"})
+                Full Corridor Seat ({direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"})
               </p>
-              <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2 py-0.5 rounded-full">
-                Every 30m
+              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                20% Student Disc.
               </span>
             </div>
 
@@ -359,15 +430,17 @@ export default function HomePage() {
                       key={trip.bus}
                       type="button"
                       onClick={() => setSelectedTripIdx(idx)}
-                      className={`w-full p-2.5 rounded-2xl flex items-center justify-between text-left transition cursor-pointer ${isSelected
+                      className={`w-full p-2.5 rounded-2xl flex items-center justify-between text-left transition cursor-pointer ${
+                        isSelected
                           ? "bg-[#FFE8D6]/60 border-2 border-[#F95700] ring-1 ring-[#F95700]/20"
                           : "bg-[#F7F9FB] border border-[#ECEEF0] hover:border-[#F95700]/30"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <span
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-[#F95700]" : "border-slate-300"
-                            }`}
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            isSelected ? "border-[#F95700]" : "border-slate-300"
+                          }`}
                         >
                           {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />}
                         </span>
@@ -381,8 +454,8 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-[12px] font-black text-[#A53700]">₱95.00</span>
-                        <p className="text-[9px] text-[#A53700] font-extrabold uppercase">{trip.status}</p>
+                        <span className="text-[13px] font-black text-[#A53700]">₱275.00</span>
+                        <p className="text-[9px] text-emerald-700 font-extrabold uppercase">₱220 Student</p>
                       </div>
                     </button>
                   );
@@ -394,10 +467,12 @@ export default function HomePage() {
               type="button"
               disabled={!selectedTrip}
               onClick={handleBookSelectedBus}
-              className="w-full py-3 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span>
-                {selectedTrip ? `Book ${selectedTrip.dep} • ${selectedTrip.bus}` : "Select a bus"}
+                {selectedTrip
+                  ? `Book ${selectedTrip.dep} • ₱275 Full Ride`
+                  : "Select a bus"}
               </span>
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
@@ -407,30 +482,9 @@ export default function HomePage() {
               onClick={() => router.push(`/booking?direction=${direction}`)}
               className="w-full text-center text-[11px] font-bold text-[#A53700] hover:underline cursor-pointer"
             >
-              See all departures today
+              See all departures &amp; discounts
             </button>
           </div>
-        </section>
-
-        {/* ── Corridor Highlights / Live Summary ── */}
-        <section className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px]">calendar_month</span>
-            </div>
-            <div>
-              <h3 className="text-[14px] font-black text-[#191C1E]">Daily Corridor Timetable</h3>
-              <p className="text-[11px] text-slate-400 font-medium">Buses depart every 30 mins (4AM–5PM)</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/schedule")}
-            className="px-3.5 py-2 rounded-full bg-[#181C24] text-white text-[11px] font-black hover:bg-black transition cursor-pointer"
-          >
-            Full Schedule
-          </button>
         </section>
       </main>
 

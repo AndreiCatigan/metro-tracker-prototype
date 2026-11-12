@@ -24,12 +24,15 @@ interface ScheduleListProps {
 type ScheduleFilter = "all_active" | "aircon" | "non_aircon" | "arrived";
 
 export default function ScheduleList({
-  initialDirection = "sogod-ormoc",
+  initialDirection,
   onBookClick,
 }: ScheduleListProps) {
   const router = useRouter();
-  const { userLocation, simulatedTime } = useAppContext();
-  const [direction, setDirection] = useState<"sogod-ormoc" | "ormoc-sogod">(initialDirection);
+  const { userLocation, simulatedTime, selectedDirection, setSelectedDirection } = useAppContext();
+  const fallbackDir = selectedDirection === "sogod-to-ormoc" ? "sogod-ormoc" : "ormoc-sogod";
+  const [direction, setDirection] = useState<"sogod-ormoc" | "ormoc-sogod">(
+    initialDirection || fallbackDir
+  );
   const [filter, setFilter] = useState<ScheduleFilter>("all_active");
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
 
@@ -119,6 +122,7 @@ export default function ScheduleList({
           type="button"
           onClick={() => {
             setDirection("sogod-ormoc");
+            setSelectedDirection("sogod-to-ormoc");
             setExpandedTripId(null);
           }}
           className={`flex-1 py-2.5 px-3 rounded-xl font-black text-[12px] tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -136,6 +140,7 @@ export default function ScheduleList({
           type="button"
           onClick={() => {
             setDirection("ormoc-sogod");
+            setSelectedDirection("ormoc-to-sogod");
             setExpandedTripId(null);
           }}
           className={`flex-1 py-2.5 px-3 rounded-xl font-black text-[12px] tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -489,7 +494,7 @@ export default function ScheduleList({
                       className="flex-1 py-2.5 px-3 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[12px] shadow-sm transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
-                      <span>Book Ticket • ₱95</span>
+                      <span>Book Ticket • ₱275</span>
                     </button>
 
                     <button

@@ -73,7 +73,11 @@ export function getActiveBuses(simulatedTime: SimulatedTime): ActiveBus[] {
 /**
  * Returns dynamic departed buses telemetry matching active simulated time
  */
-export function getDepartedBuses(time: SimulatedTime): DepartedBus[] {
+export function getDepartedBuses(
+  time: SimulatedTime,
+  direction: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod" = "sogod-ormoc"
+): DepartedBus[] {
+  const isOutbound = direction === "sogod-ormoc" || direction === "sogod-to-ormoc";
   const currentMinutes = parseTimeToMinutes(time);
   const result: DepartedBus[] = [];
 
@@ -84,21 +88,25 @@ export function getDepartedBuses(time: SimulatedTime): DepartedBus[] {
     if (currentMinutes > depMins) {
       const isArrived = currentMinutes >= arrMins;
       const elapsed = currentMinutes - depMins;
-      const loc = getLocationForElapsed("sogod-ormoc", elapsed);
+      const loc = getLocationForElapsed(isOutbound ? "sogod-ormoc" : "ormoc-sogod", elapsed);
 
       result.push({
         id: isArrived ? `arrived-${item.num}` : `en_route-${item.num}`,
         busNumber: `DMS-0${item.num}`,
         driverName: DRIVER_NAMES[idx % DRIVER_NAMES.length],
         departureTime: item.dep,
-        terminal: "Sogod Terminal",
+        terminal: isOutbound ? "Sogod Terminal" : "Ormoc City Terminal",
         gate: `Bay ${(idx % 3) + 1}`,
         isAircon: item.aircon,
         passengers: 40 + (idx % 6),
         capacity: 45,
         status: isArrived ? "arrived" : "en_route",
         currentStop: loc.currentStop,
-        nextStop: isArrived ? "Arrived at Ormoc Terminal" : loc.locationDesc,
+        nextStop: isArrived
+          ? isOutbound
+            ? "Arrived at Ormoc Terminal"
+            : "Arrived at Sogod Terminal"
+          : loc.locationDesc,
         speed: isArrived ? "0 km/h (Docked)" : "54 km/h",
         progressPercent: loc.progressPercent,
       });

@@ -3,14 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAppContext } from "@/lib/AppContext";
 
 export default function BottomNavigation() {
   const pathname = usePathname();
+  const { selectedDirection } = useAppContext();
 
   const navItems = [
     { label: "Home", href: "/home", icon: "home" },
     { label: "Schedule", href: "/schedule", icon: "calendar_month" },
-    { label: "Live Map", href: "/map", icon: "map" },
+    { label: "Live Map", href: `/map?direction=${selectedDirection}`, icon: "map" },
     { label: "Profile", href: "/profile", icon: "person" },
   ];
 
@@ -23,7 +25,8 @@ export default function BottomNavigation() {
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href === "/home" && pathname === "/");
+            (item.href === "/home" && pathname === "/") ||
+            (item.label === "Live Map" && pathname === "/map");
 
           return (
             <Link

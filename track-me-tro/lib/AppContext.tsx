@@ -50,6 +50,14 @@ interface AppContextType {
   setBoardingAlertMinutes: (mins: number) => void;
   isAlertActive: boolean;
   setIsAlertActive: (active: boolean) => void;
+  // Route Direction & Origin/Destination Management
+  selectedDirection: "sogod-to-ormoc" | "ormoc-to-sogod";
+  setSelectedDirection: (dir: "sogod-to-ormoc" | "ormoc-to-sogod") => void;
+  origin: string;
+  setOrigin: (origin: string) => void;
+  destination: string;
+  setDestination: (dest: string) => void;
+  swapOriginDestination: () => void;
   activeTicket: TicketDetails;
   setActiveTicket: React.Dispatch<React.SetStateAction<TicketDetails>>;
   confirmBooking: (seatNum?: string, payment?: "GCash" | "Maya") => void;
@@ -80,9 +88,9 @@ const DEFAULT_TICKET: TicketDetails = {
   duration: "2 h 23 min",
   seatNumber: "12",
   passengerName: "Juana de la Cruz",
-  baseFare: 80,
+  baseFare: 275,
   convenienceFee: 15,
-  totalFare: 95,
+  totalFare: 290,
   paymentMethod: "GCash",
   passengerType: "regular",
 };
@@ -103,8 +111,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [simulatedTime, setSimulatedTime] = useState<SimulatedTime>("9:00 AM");
   const [boardingAlertMinutes, setBoardingAlertMinutes] = useState<number>(10);
   const [isAlertActive, setIsAlertActive] = useState<boolean>(true);
+  const [selectedDirection, setSelectedDirectionState] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">("sogod-to-ormoc");
+  const [origin, setOriginState] = useState<string>("Sogod, Southern Leyte");
+  const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
   const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
+
+  const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
+    setSelectedDirectionState(dir);
+    if (dir === "sogod-to-ormoc") {
+      setOriginState("Sogod, Southern Leyte");
+      setDestinationState("Ormoc City, Leyte");
+    } else {
+      setOriginState("Ormoc City, Leyte");
+      setDestinationState("Sogod, Southern Leyte");
+    }
+  }, []);
+
+  const setOrigin = useCallback((newOrigin: string) => {
+    setOriginState(newOrigin);
+    if (newOrigin.toLowerCase().includes("ormoc")) {
+      setSelectedDirectionState("ormoc-to-sogod");
+    } else if (newOrigin.toLowerCase().includes("sogod")) {
+      setSelectedDirectionState("sogod-to-ormoc");
+    }
+  }, []);
+
+  const setDestination = useCallback((newDest: string) => {
+    setDestinationState(newDest);
+    if (newDest.toLowerCase().includes("sogod")) {
+      setSelectedDirectionState("ormoc-to-sogod");
+    } else if (newDest.toLowerCase().includes("ormoc")) {
+      setSelectedDirectionState("sogod-to-ormoc");
+    }
+  }, []);
+
+  const swapOriginDestination = useCallback(() => {
+    setOriginState((prevOrigin) => {
+      setDestinationState(prevOrigin);
+      const isOriginNowOrmoc = prevOrigin.toLowerCase().includes("sogod");
+      setSelectedDirectionState(isOriginNowOrmoc ? "ormoc-to-sogod" : "sogod-to-ormoc");
+      return destination;
+    });
+  }, [destination]);
 
   const updateSeatStatus = (seatId: string, newStatus: SeatStatus) => {
     setSeats((prevSeats) =>
@@ -229,6 +278,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setBoardingAlertMinutes,
         isAlertActive,
         setIsAlertActive,
+        selectedDirection,
+        setSelectedDirection,
+        origin,
+        setOrigin,
+        destination,
+        setDestination,
+        swapOriginDestination,
         activeTicket,
         setActiveTicket,
         confirmBooking,

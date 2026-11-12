@@ -105,13 +105,14 @@ export function getDiscountRate(passengerType: PassengerType): number {
 
 export function calculateFare(baseFare: number, convenienceFee: number, passengerType: PassengerType) {
   const discount = getDiscountRate(passengerType);
-  const discountedBase = baseFare * (1 - discount);
+  const discountAmount = Math.round(baseFare * discount);
+  const discountedBase = baseFare - discountAmount;
   const total = discountedBase + convenienceFee;
   return {
     baseFare,
-    discount: baseFare * discount,
+    discount: discountAmount,
     convenienceFee,
-    totalFare: Math.round(total * 100) / 100,
+    totalFare: total,
   };
 }
 
@@ -124,7 +125,7 @@ export const busDetails: BusDetails = {
   id: "DMS-048",
   routeTitle: "Sogod ➔ Ormoc",
   capacity: 40,
-  baseFare: 80,
+  baseFare: 275, // Regular full trip fare (₱220 with 20% student discount)
   convenienceFee: 15,
 };
 

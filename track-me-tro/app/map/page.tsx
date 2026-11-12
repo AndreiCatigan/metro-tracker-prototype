@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import {
   getActiveBuses,
@@ -24,14 +24,23 @@ const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
   ),
 });
 
-export default function MapPage() {
+function MapContent() {
   const router = useRouter();
-  const { isAlertActive, userLocation, simulatedTime } = useAppContext();
+  const searchParams = useSearchParams();
+  const {
+    isAlertActive,
+    userLocation,
+    simulatedTime,
+    selectedDirection,
+    setSelectedDirection,
+  } = useAppContext();
+  const directionParam = searchParams.get("direction");
 
-  // Route Direction Filter: 'sogod-to-ormoc' or 'ormoc-to-sogod'
-  const [activeDirection, setActiveDirection] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">(
-    "sogod-to-ormoc"
-  );
+  // Route Direction: URL query param takes priority, falling back to global AppContext selectedDirection
+  const activeDirection: "sogod-to-ormoc" | "ormoc-to-sogod" =
+    directionParam === "ormoc-to-sogod" || directionParam === "sogod-to-ormoc"
+      ? directionParam
+      : selectedDirection || "sogod-to-ormoc";
 
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -65,7 +74,8 @@ export default function MapPage() {
   const handleToggleRoute = () => {
     const nextDirection =
       activeDirection === "sogod-to-ormoc" ? "ormoc-to-sogod" : "sogod-to-ormoc";
-    setActiveDirection(nextDirection);
+    setSelectedDirection(nextDirection);
+    router.replace(`/map?direction=${nextDirection}`, { scroll: false });
     setSelectedBusId(null);
     setIsDismissed(false);
   };
@@ -284,5 +294,20 @@ export default function MapPage() {
       {/* ── Floating Pill Navigation ── */}
       <BottomNavigation />
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full h-screen flex flex-col items-center justify-center bg-[#EBF0F5] text-slate-500">
+          <div className="w-10 h-10 border-3 border-[#F95700] border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs font-bold text-slate-600">Loading Leyte Highway Map...</p>
+        </div>
+      }
+    >
+      <MapContent />
+    </Suspense>
   );
 }
