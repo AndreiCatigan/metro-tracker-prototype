@@ -6,7 +6,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
 import { useAppContext, SimulatedTime } from "@/lib/AppContext";
 import { TRAVEL_TIMES_FROM_SOGOD } from "@/lib/mockData";
-import { calculateTripETA } from "@/components/ScheduleList";
+import { calculateTripETA, parseTimeToMinutes } from "@/components/ScheduleList";
 
 interface DepartedBus {
   id: string;
@@ -25,13 +25,31 @@ interface DepartedBus {
   progressPercent: number;
 }
 
+// Same-day departures. Order/filtering mirrors generateAvailableTrips() in
+// app/booking/page.tsx so the `trip` id passed in the URL resolves to the same bus.
+const TODAY_DEPARTURES = [
+  { dep: "9:00 AM", bus: "DMS-056", aircon: true, seats: 7 },
+  { dep: "9:30 AM", bus: "DMS-057", aircon: true, seats: 21 },
+  { dep: "10:00 AM", bus: "DMS-058", aircon: false, seats: 34 },
+  { dep: "10:30 AM", bus: "DMS-059", aircon: true, seats: 45 },
+  { dep: "11:00 AM", bus: "DMS-060", aircon: true, seats: 45 },
+  { dep: "11:30 AM", bus: "DMS-061", aircon: false, seats: 45 },
+  { dep: "12:00 PM", bus: "DMS-062", aircon: true, seats: 45 },
+  { dep: "12:30 PM", bus: "DMS-063", aircon: true, seats: 45 },
+  { dep: "1:00 PM", bus: "DMS-064", aircon: false, seats: 45 },
+  { dep: "1:30 PM", bus: "DMS-065", aircon: true, seats: 45 },
+  { dep: "2:00 PM", bus: "DMS-066", aircon: true, seats: 8 },
+  { dep: "2:30 PM", bus: "DMS-067", aircon: false, seats: 24 },
+  { dep: "3:00 PM", bus: "DMS-068", aircon: true, seats: 40 },
+  { dep: "3:30 PM", bus: "DMS-069", aircon: true, seats: 45 },
+  { dep: "4:00 PM", bus: "DMS-070", aircon: false, seats: 11 },
+  { dep: "4:30 PM", bus: "DMS-071", aircon: true, seats: 29 },
+  { dep: "5:00 PM", bus: "DMS-072", aircon: false, seats: 45 },
+];
+
 export default function HomePage() {
   const router = useRouter();
-  const {
-    passengerName,
-    userLocation,
-    simulatedTime,
-  } = useAppContext();
+  const { passengerName, userLocation, simulatedTime } = useAppContext();
 
   // Extract first name for personalized greeting
   const firstName = passengerName ? passengerName.split(" ")[0] : "Juana";
@@ -40,22 +58,14 @@ export default function HomePage() {
   const [origin, setOrigin] = useState("Sogod, Southern Leyte");
   const [destination, setDestination] = useState("Ormoc City, Leyte");
 
-  // Selected departed bus index
-  const [selectedDepartedId, setSelectedDepartedId] = useState<string>("en_route_bus");
-
-  // Calendar dates state
-  const [selectedDate, setSelectedDate] = useState("03");
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const daysOfWeek = [
-    { day: "S", date: "01" },
-    { day: "M", date: "02" },
-    { day: "T", date: "03" },
-    { day: "W", date: "04" },
-    { day: "T", date: "05" },
-    { day: "F", date: "06" },
-    { day: "S", date: "07" },
-  ];
+  // Bus the passenger picked in "Book A Ticket" (index into today's remaining trips)
+  const [selectedTripIdx, setSelectedTripIdx] = useState<number>(0);
+
+  const direction: "sogod-ormoc" | "ormoc-sogod" = origin.toLowerCase().includes("sogod")
+    ? "sogod-ormoc"
+    : "ormoc-sogod";
 
   // Dynamic departed buses based on the active simulated time (9 AM, 2 PM, 4 PM)
   const getDepartedBuses = (time: SimulatedTime): DepartedBus[] => {
@@ -169,46 +179,38 @@ export default function HomePage() {
     }
   };
 
-  const departedBuses = getDepartedBuses(simulatedTime);
-  const activeDeparted = departedBuses.find((b) => b.id === selectedDepartedId) || departedBuses[0];
-
-  // Calculate ETA of the departed bus reaching the user's set location
+  const allDepartedBuses = getDepartedBuses(simulatedTime);
+  // Home only shows a summary of buses that are currently en route
+  const enRouteBuses = allDepartedBuses.filter((b) => b.status === "en_route");
   const userTravelMins = TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115;
-  const departedETAAtUserLoc = calculateTripETA(activeDeparted.departureTime, userTravelMins);
+
+  // Upcoming same-day departures the passenger can choose from
+  const currentMinutes = parseTimeToMinutes(simulatedTime);
+  const availableTrips = TODAY_DEPARTURES.filter(
+    (t) => parseTimeToMinutes(t.dep) >= currentMinutes
+  ).map((t, idx) => ({
+    ...t,
+    tripId: `${direction}-trip-${idx + 1}`,
+    status:
+      parseTimeToMinutes(t.dep) === currentMinutes
+        ? "Boarding Now"
+        : parseTimeToMinutes(t.dep) - currentMinutes <= 30
+          ? "In Queue"
+          : "Scheduled",
+  }));
+  const visibleTrips = availableTrips.slice(0, 5);
+  const selectedTrip = visibleTrips[selectedTripIdx] ?? visibleTrips[0];
 
   const handleSwap = () => {
     setOrigin(destination);
     setDestination(origin);
+    setSelectedTripIdx(0);
   };
 
-  const handleBookTicketClick = () => {
-    const dir = origin.toLowerCase().includes("sogod") ? "sogod-ormoc" : "ormoc-sogod";
-    router.push(`/booking?direction=${dir}`);
+  const handleBookSelectedBus = () => {
+    if (!selectedTrip) return;
+    router.push(`/booking?direction=${direction}&trip=${selectedTrip.tripId}`);
   };
-
-  // Quick book trip previews based on simulated time
-  const getUpcomingPreviews = (time: SimulatedTime) => {
-    switch (time) {
-      case "2:00 PM":
-        return [
-          { dep: "2:00 PM", bus: "DMS-066", aircon: true, seats: "8 seats left", tag: "Boarding Now" },
-          { dep: "2:30 PM", bus: "DMS-067", aircon: false, seats: "24 seats left", tag: "In Queue" },
-        ];
-      case "4:00 PM":
-        return [
-          { dep: "4:00 PM", bus: "DMS-070", aircon: false, seats: "11 seats left", tag: "Boarding Now" },
-          { dep: "4:30 PM", bus: "DMS-071", aircon: true, seats: "29 seats left", tag: "In Queue" },
-        ];
-      case "9:00 AM":
-      default:
-        return [
-          { dep: "9:00 AM", bus: "DMS-056", aircon: true, seats: "7 seats left", tag: "Boarding Now" },
-          { dep: "9:30 AM", bus: "DMS-057", aircon: true, seats: "21 seats left", tag: "In Queue" },
-        ];
-    }
-  };
-
-  const upcomingPreviews = getUpcomingPreviews(simulatedTime);
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 select-none">
@@ -237,7 +239,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-slate-400">At {simulatedTime}</span>
                 </div>
                 <p className="text-slate-700 font-medium">
-                  {departedBuses[1]?.busNumber} completed its trip and arrived at Ormoc City Port Terminal.
+                  {allDepartedBuses[1]?.busNumber} completed its trip and arrived at Ormoc City Port Terminal.
                 </p>
               </div>
 
@@ -247,7 +249,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-slate-400">15m ago</span>
                 </div>
                 <p className="text-slate-700 font-medium">
-                  {departedBuses[0]?.busNumber} departed on schedule. Approaching Bato junction.
+                  {allDepartedBuses[0]?.busNumber} departed on schedule. Approaching Bato junction.
                 </p>
               </div>
 
@@ -336,7 +338,6 @@ export default function HomePage() {
 
             {/* Inputs: Origin & Destination */}
             <div className="flex-1 space-y-3">
-              {/* Origin Field */}
               <div className="border-b border-[#ECEEF0] pb-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   ORIGIN
@@ -350,7 +351,6 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Destination Field */}
               <div className="border-b border-[#ECEEF0] pb-2">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   DESTINATION
@@ -377,8 +377,8 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Action Buttons: Live Buses & Book Ticket */}
-          <div className="grid grid-cols-2 gap-2.5 pt-1">
+          {/* Action Button: Live Buses only (booking lives in the Book A Ticket section) */}
+          <div className="pt-1">
             <button
               type="button"
               onClick={() => router.push("/map")}
@@ -387,19 +387,10 @@ export default function HomePage() {
               <span className="material-symbols-outlined text-[17px] text-[#F95700]">near_me</span>
               <span>Live Buses</span>
             </button>
-
-            <button
-              type="button"
-              onClick={handleBookTicketClick}
-              className="w-full py-3.5 px-4 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[14px] tracking-tight shadow-[0_6px_20px_rgba(249,87,0,0.35)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[17px]">confirmation_number</span>
-              <span>Book Ticket</span>
-            </button>
           </div>
         </section>
 
-        {/* ── Departed Buses Section (Buses That Have Already Departed) ── */}
+        {/* ── Departed Buses: En Route Summary ── */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -410,287 +401,157 @@ export default function HomePage() {
             </div>
 
             <span className="text-[10px] font-black text-slate-500 bg-slate-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              En Route
+              {enRouteBuses.length} En Route
             </span>
           </div>
 
-          {/* Departed Buses Selector Tabs: En Route vs Arrived at Ormoc */}
-          <div className="bg-[#ECEEF0] p-1 rounded-2xl flex items-center gap-1 shadow-2xs">
-            {departedBuses.map((bus) => {
-              const isSelected = selectedDepartedId === bus.id;
-              return (
-                <button
-                  key={bus.id}
-                  type="button"
-                  onClick={() => setSelectedDepartedId(bus.id)}
-                  className={`flex-1 py-2 px-2.5 rounded-xl text-[12px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    isSelected
-                      ? "bg-[#181C24] text-white shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${bus.status === "arrived" ? "bg-emerald-400" : "bg-blue-400"}`} />
-                  <span>{bus.busNumber}</span>
-                  <span className="text-[10px] opacity-75">
-                    ({bus.status === "arrived" ? "Arrived" : bus.departureTime})
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Departed Bus Detailed Card */}
-          <div className="bg-white rounded-3xl p-5 shadow-sm border-2 border-emerald-100 relative overflow-hidden space-y-3.5">
-            {/* Top row: Unit ID, Driver, Aircon status */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#101A2C] text-white flex flex-col items-center justify-center shadow-xs">
-                  <span className="text-[9px] font-bold text-slate-400">BUS</span>
-                  <span className="text-[13px] font-black leading-none">{activeDeparted.busNumber.replace("DMS-", "")}</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-[16px] font-black text-[#191C1E]">Bus {activeDeparted.busNumber}</h3>
-                    {activeDeparted.isAircon ? (
-                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded-full text-[10px] font-black">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Aircon
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.2 rounded-full text-[10px] font-black">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                        Non-Air
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Driver: <span className="font-bold text-slate-700">{activeDeparted.driverName}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                {activeDeparted.status === "arrived" ? (
-                  <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                    Arrived at Ormoc
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    Departed {activeDeparted.departureTime}
-                  </span>
-                )}
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{activeDeparted.terminal} • {activeDeparted.gate}</p>
-              </div>
+          {enRouteBuses.length === 0 ? (
+            <div className="bg-white rounded-3xl p-4 border border-[#ECEEF0] text-center text-[12px] text-slate-500 font-medium">
+              No buses are currently en route.
             </div>
+          ) : (
+            <div className="space-y-2.5">
+              {enRouteBuses.map((bus) => {
+                const eta = calculateTripETA(bus.departureTime, userTravelMins);
+                return (
+                  <button
+                    key={bus.id}
+                    type="button"
+                    onClick={() => router.push("/map")}
+                    className="w-full bg-white rounded-2xl p-3.5 shadow-2xs border border-emerald-100 text-left space-y-2.5 transition active:scale-[0.98] cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-[#101A2C] text-white flex flex-col items-center justify-center">
+                          <span className="text-[8px] font-bold text-slate-400">BUS</span>
+                          <span className="text-[13px] font-black leading-none">
+                            {bus.busNumber.replace("DMS-", "")}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[14px] font-black text-[#191C1E]">{bus.busNumber}</span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${bus.isAircon
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border-rose-200"
+                                }`}
+                            >
+                              {bus.isAircon ? "Aircon" : "Non-Air"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Departed {bus.departureTime} • {bus.currentStop}
+                          </p>
+                        </div>
+                      </div>
 
-            {/* Commuter ETA Banner or Arrived Confirmation */}
-            {activeDeparted.status === "arrived" ? (
-              <div className="bg-emerald-50 rounded-2xl p-3 border border-emerald-200 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-                    TRIP COMPLETED • ORMOC CITY PORT
-                  </p>
-                  <p className="text-[15px] font-black text-emerald-900 leading-tight">
-                    Arrived at {activeDeparted.nextStop.replace("Arrived at Ormoc (", "").replace(")", "")}
-                  </p>
-                </div>
-                <div className="inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl text-[11px] font-extrabold text-emerald-800 shadow-2xs border border-emerald-200">
-                  <span className="material-symbols-outlined text-[14px] text-emerald-600">verified</span>
-                  <span>Docked</span>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-[#FFE8D6]/70 rounded-2xl p-3 border border-[#F5DECD] flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    ETA AT YOUR STOP ({userLocation})
-                  </p>
-                  <p className="text-[16px] font-black text-[#A53700] leading-tight">
-                    {departedETAAtUserLoc}
-                  </p>
-                </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          ETA {userLocation}
+                        </p>
+                        <p className="text-[14px] font-black text-[#A53700] leading-tight">{eta}</p>
+                      </div>
+                    </div>
 
-                <div className="text-right">
-                  <span className="inline-flex items-center gap-1 bg-white px-2 py-1 rounded-lg text-[10px] font-black text-slate-700 shadow-2xs">
-                    <span className="material-symbols-outlined text-[13px] text-[#F95700]">speed</span>
-                    <span>{activeDeparted.speed}</span>
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Corridor Progression Tracker */}
-            <div className="bg-[#F7F9FB] rounded-2xl p-3 border border-[#ECEEF0] space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-slate-600">Sogod ➔ Ormoc Corridor</span>
-                <span className="text-emerald-700 font-black">
-                  {activeDeparted.passengers} / {activeDeparted.capacity} Passengers ({Math.round((activeDeparted.passengers / activeDeparted.capacity) * 100)}%)
-                </span>
-              </div>
-
-              {/* Waypoint route bar */}
-              <div className="relative pt-2 pb-1">
-                <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      activeDeparted.status === "arrived"
-                        ? "bg-emerald-500"
-                        : "bg-gradient-to-r from-emerald-500 to-[#F95700]"
-                    }`}
-                    style={{ width: `${activeDeparted.progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-extrabold text-slate-400 pt-1.5">
-                  <span className="text-slate-700">Sogod</span>
-                  <span className={activeDeparted.status === "arrived" ? "text-slate-700" : "text-[#A53700] font-black"}>
-                    ▶ {activeDeparted.currentStop.split("•")[0]}
-                  </span>
-                  <span>Baybay</span>
-                  <span className={activeDeparted.status === "arrived" ? "text-emerald-700 font-black" : ""}>
-                    Ormoc ✓
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-[#F95700]">location_on</span>
-                  <span>Status: <strong className="text-slate-700">{activeDeparted.nextStop}</strong></span>
-                </span>
-              </div>
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#F95700]"
+                        style={{ width: `${bus.progressPercent}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-
-            {/* Track on Live GPS Map */}
-            <button
-              type="button"
-              onClick={() => router.push("/map")}
-              className="w-full py-2.5 px-4 rounded-2xl bg-[#181C24] hover:bg-black text-white font-extrabold text-[12px] shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-            >
-              <span className="material-symbols-outlined text-[15px] text-[#F95700]">near_me</span>
-              <span>Track {activeDeparted.busNumber} on Live GPS Map</span>
-            </button>
-          </div>
+          )}
         </section>
 
-        {/* ── Book A Ticket Section & Date Selector ── */}
+        {/* ── Book A Ticket (same-day, choose your bus) ── */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-[18px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5">
               <span>Book A Ticket</span>
               <span className="text-amber-500 text-[16px]">👑</span>
             </h2>
-            <button
-              type="button"
-              onClick={handleBookTicketClick}
-              className="text-[11px] font-bold text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full hover:bg-[#F5DECD] transition cursor-pointer"
-            >
-              Reserve Seat ➔
-            </button>
+            <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Today only
+            </span>
           </div>
 
-          {/* Mini-Calendar Card */}
           <div className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-extrabold text-[15px] text-[#191C1E]">
-                November 2026
+            <div className="flex items-center justify-between text-[11px]">
+              <p className="font-extrabold text-slate-400 uppercase tracking-wider">
+                Choose your bus ({direction === "sogod-ormoc" ? "Sogod → Ormoc" : "Ormoc → Sogod"})
+              </p>
+              <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2 py-0.5 rounded-full">
+                Every 30m
               </span>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  className="w-8 h-8 rounded-full bg-[#E0E8F0] text-slate-600 hover:bg-[#D0DCE8] flex items-center justify-center transition cursor-pointer"
-                  aria-label="Previous week"
-                >
-                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                </button>
-                <button
-                  type="button"
-                  className="w-8 h-8 rounded-full bg-[#E0E8F0] text-slate-600 hover:bg-[#D0DCE8] flex items-center justify-center transition cursor-pointer"
-                  aria-label="Next week"
-                >
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-              </div>
             </div>
 
-            {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {daysOfWeek.map((item) => {
-                const isSelected = selectedDate === item.date;
-
-                return (
-                  <button
-                    key={item.date}
-                    type="button"
-                    onClick={() => setSelectedDate(item.date)}
-                    className={`py-2 px-1 rounded-2xl flex flex-col items-center justify-center transition cursor-pointer ${
-                      isSelected
-                        ? "bg-[#FFDBCA] text-[#191C1E] shadow-2xs font-black ring-2 ring-[#F95700]/30"
-                        : "text-slate-600 hover:bg-slate-50 font-bold"
-                    }`}
-                  >
-                    <span className="text-[11px] text-slate-400 font-semibold mb-0.5">
-                      {item.day}
-                    </span>
-                    <span className="text-[14px] leading-tight">{item.date}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Upcoming Trip Reservation Previews for Active Time */}
-            <div className="pt-2 border-t border-[#ECEEF0] space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <p className="font-extrabold text-slate-400 uppercase tracking-wider">
-                  Upcoming Departures ({simulatedTime}):
-                </p>
-                <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2 py-0.5 rounded-full">
-                  Continuous 30m
-                </span>
-              </div>
-
+            {visibleTrips.length === 0 ? (
+              <p className="text-[12px] text-slate-500 font-medium text-center py-3">
+                No more departures today.
+              </p>
+            ) : (
               <div className="space-y-1.5">
-                {upcomingPreviews.map((preview, idx) => (
-                  <button
-                    key={preview.bus}
-                    type="button"
-                    onClick={() => router.push(`/booking?direction=sogod-ormoc&trip=sogod-ormoc-trip-${idx + 1}`)}
-                    className="w-full bg-[#F7F9FB] hover:bg-[#FFE8D6]/40 p-2.5 rounded-2xl border border-[#ECEEF0] flex items-center justify-between text-left transition cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center text-white ${
-                        idx === 0 ? "bg-[#F95700]" : "bg-[#181C24]"
-                      }`}>
-                        {preview.dep.replace(":00", "").replace(" ", "")}
-                      </span>
-                      <div>
-                        <p className="text-[13px] font-black text-[#191C1E]">
-                          {preview.dep} • {preview.bus}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          {preview.aircon ? "Aircon Express" : "Non-Aircon"} • {preview.seats}
-                        </p>
+                {visibleTrips.map((trip, idx) => {
+                  const isSelected = idx === selectedTripIdx;
+                  return (
+                    <button
+                      key={trip.bus}
+                      type="button"
+                      onClick={() => setSelectedTripIdx(idx)}
+                      className={`w-full p-2.5 rounded-2xl flex items-center justify-between text-left transition cursor-pointer ${isSelected
+                          ? "bg-[#FFE8D6]/60 border-2 border-[#F95700] ring-1 ring-[#F95700]/20"
+                          : "bg-[#F7F9FB] border border-[#ECEEF0] hover:border-[#F95700]/30"
+                        }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-[#F95700]" : "border-slate-300"
+                            }`}
+                        >
+                          {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />}
+                        </span>
+                        <div>
+                          <p className="text-[13px] font-black text-[#191C1E]">
+                            {trip.dep} • {trip.bus}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            {trip.aircon ? "Aircon Express" : "Non-Aircon"} • {trip.seats} seats left
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[12px] font-black text-[#A53700]">₱95.00</span>
-                      <p className="text-[9px] text-[#A53700] font-extrabold uppercase">{preview.tag}</p>
-                    </div>
-                  </button>
-                ))}
+                      <div className="text-right">
+                        <span className="text-[12px] font-black text-[#A53700]">₱95.00</span>
+                        <p className="text-[9px] text-[#A53700] font-extrabold uppercase">{trip.status}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={handleBookTicketClick}
-                className="w-full py-3 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1"
-              >
-                <span>View Full Schedule &amp; Book Online</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={!selectedTrip}
+              onClick={handleBookSelectedBus}
+              className="w-full py-3 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span>
+                {selectedTrip ? `Book ${selectedTrip.dep} • ${selectedTrip.bus}` : "Select a bus"}
+              </span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push(`/booking?direction=${direction}`)}
+              className="w-full text-center text-[11px] font-bold text-[#A53700] hover:underline cursor-pointer"
+            >
+              See all departures today
+            </button>
           </div>
         </section>
 
