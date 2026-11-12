@@ -20,12 +20,9 @@ function ConductorMatrixContent() {
     bookings,
     assignSeatToBooking,
     passengerHails,
-    acknowledgeHail,
-    boardHail,
     walkInSales,
-    currentBusStop,
-    advanceToNextStop,
     selectedDirection,
+    removeBookingReservation,
   } = useAppContext();
 
   // Target booking to assign a seat to (either from query param or pending booking)
@@ -34,8 +31,8 @@ function ConductorMatrixContent() {
     ? bookings.find((b) => b.id === assignBookingId) || pendingBooking
     : pendingBooking;
 
-  // Seat state representation
-  const [selectedSeatId, setSelectedSeatId] = useState<string>("15");
+  // Seat state representation: pre-select seat 15 only when in assignment mode
+  const [selectedSeatId, setSelectedSeatId] = useState<string>(assignBookingId ? "15" : "");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showManifestModal, setShowManifestModal] = useState<boolean>(false);
   const [manifestFilter, setManifestFilter] = useState<"all" | "app" | "walkin" | "hail">("all");
@@ -109,14 +106,57 @@ function ConductorMatrixContent() {
     );
   }, [seatsState, rearBench]);
 
-  const availableCount = Math.max(0, 45 - reservedCount);
-  const reservedPercent = Math.round((reservedCount / 45) * 100);
-
   const rows = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"];
 
   const selectedSeat =
     seatsState.find((s) => s.id === selectedSeatId) ||
     rearBench.find((s) => s.id === selectedSeatId);
+
+  const reservedBooking = useMemo(() => {
+    if (!selectedSeat || selectedSeat.type !== "app_reserved") return null;
+    const raw = parseInt(selectedSeat.id, 10).toString();
+    const padded = selectedSeat.id.padStart(2, "0");
+    return (
+      bookings.find(
+        (b) =>
+          b.status === "confirmed" &&
+          (b.assignedSeat === selectedSeat.id ||
+            b.assignedSeat === padded ||
+            b.assignedSeat === raw)
+      ) ||
+      (activeTicket &&
+      (activeTicket.seatNumber === selectedSeat.id ||
+        activeTicket.seatNumber === raw ||
+        activeTicket.seatNumber === padded)
+        ? {
+            id: "ticket-active",
+            pnr: activeTicket.pnr,
+            busNumber: activeTicket.busId,
+            routeTitle: activeTicket.routeTitle,
+            direction: "sogod-ormoc" as const,
+            origin: activeTicket.origin,
+            destination: activeTicket.destination,
+            departureTime: activeTicket.departureTime,
+            passengerType: activeTicket.passengerType,
+            paymentMethod: activeTicket.paymentMethod,
+            status: "confirmed" as const,
+            assignedSeat: selectedSeat.id,
+            passengerName: activeTicket.passengerName,
+            baseFare: activeTicket.baseFare,
+            convenienceFee: activeTicket.convenienceFee,
+            totalFare: activeTicket.totalFare,
+            timestamp: "08:00 AM",
+          }
+        : null)
+    );
+  }, [selectedSeat, bookings, activeTicket]);
+
+  const handleRemoveReservation = () => {
+    if (!selectedSeat) return;
+    removeBookingReservation(selectedSeat.id);
+    showToast(`✓ Removed reservation for Seat ${selectedSeat.id}. Seat is now open.`);
+    setSelectedSeatId("");
+  };
 
   const handleSeatClick = (seat: ConductorSeatData) => {
     setSelectedSeatId(seat.id);
@@ -191,195 +231,15 @@ function ConductorMatrixContent() {
             </h1>
           </div>
 
-          <div className="text-right">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              CORRIDOR STOP (TAP TO ADVANCE)
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                advanceToNextStop();
-                showToast(`Bus location updated: Bus approaching ${currentBusStop}`);
-              }}
-              className="inline-flex items-center gap-1 bg-[#FFCC00]/25 hover:bg-[#FFCC00]/35 text-[#FFD633] px-2.5 py-1 rounded-full text-[11px] font-extrabold mt-0.5 border border-[#FFCC00]/40 transition active:scale-95 cursor-pointer shadow-2xs"
-              title="Tap to advance bus location to next stop"
-            >
-              <span className="material-symbols-outlined text-[13px]">location_on</span>
-              <span className="max-w-[130px] truncate">{currentBusStop}</span>
-              <span className="material-symbols-outlined text-[12px] opacity-80">fast_forward</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Capacity Progress Bar */}
-        <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-baseline gap-1">
-              <span className="text-[16px] font-black text-white">{reservedCount}</span>
-              <span className="text-slate-400 font-semibold text-[11px]">/ 45 Marked Reserved</span>
-              <span className="text-[#FF8C00] font-black text-[11px] ml-1">({reservedPercent}%)</span>
-            </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {availableCount} Available
-            </span>
-          </div>
-
-          <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
-            {/* Reserved segment */}
-            <div
-              className="h-full bg-gradient-to-r from-[#1D6AE5] to-[#F95700] transition-all duration-300"
-              style={{ width: `${Math.min(100, reservedPercent)}%` }}
-            />
-            {/* Vacant segment */}
-            <div className="h-full bg-slate-700 flex-1" />
+          <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shadow-2xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />
+            <span className="text-slate-300 font-bold text-[11px]">Marked Reserved:</span>
+            <span className="text-[15px] font-black text-white">{reservedCount}</span>
           </div>
         </div>
       </header>
 
       <main className="max-w-[420px] w-full mx-auto px-4 -mt-2 space-y-3.5">
-        {/* ── Advance Passenger Hail Notifications (Pinged by Commuters in Advance) ── */}
-        {passengerHails && passengerHails.length > 0 && (
-          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2.5 animate-fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#F95700] animate-ping" />
-                <span className="text-[12px] font-black text-[#A53700] uppercase tracking-wider flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">signpost</span>
-                  <span>Advance Passenger Hails ({passengerHails.length})</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => router.push("/conductor/map")}
-                  className="text-[10px] font-black bg-[#F95700] hover:bg-[#E04E00] text-white px-2 py-0.5 rounded-full uppercase shadow-2xs flex items-center gap-0.5 cursor-pointer transition active:scale-95"
-                  title="Open Passenger Hail Map"
-                >
-                  <span className="material-symbols-outlined text-[12px]">map</span>
-                  <span>Map</span>
-                </button>
-                <span className="text-[10px] font-black bg-[#A53700] text-white px-2 py-0.5 rounded-full uppercase shadow-2xs">
-                  Upcoming
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {passengerHails.map((hail) => (
-                <div
-                  key={hail.id}
-                  className="bg-white rounded-xl p-3 border border-orange-200 shadow-2xs space-y-2 text-left"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-[13px] text-[#191C1E]">
-                          {hail.passengerName}
-                        </span>
-                        <span
-                          className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
-                            hail.tier === "premium"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {hail.tier === "premium" ? "👑 MEtro+" : "👤 Free Tier"}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-800 font-bold mt-0.5 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-[#F95700]">
-                          location_on
-                        </span>
-                        <span>
-                          Waiting at: <span className="underline decoration-[#F95700]">{hail.location}</span>
-                        </span>
-                      </p>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                        Target: <strong>{hail.busId}</strong> • Pinged at {hail.timestamp}{" "}
-                        {hail.etaAtHail ? `(${hail.etaAtHail})` : ""}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      {hail.status === "boarded" ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-300">
-                          <span className="material-symbols-outlined text-[12px]">verified</span>
-                          <span>Boarded ✓</span>
-                        </span>
-                      ) : hail.status === "acknowledged" ? (
-                        <div className="flex flex-col items-end gap-1.5">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                            <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                            <span>Confirmed</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              boardHail(hail.id);
-                              showToast(`✓ ${hail.passengerName} boarded Bus ${busDetails.id}!`);
-                            }}
-                            className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[12px]">how_to_reg</span>
-                            <span>Board Passenger</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            acknowledgeHail(hail.id);
-                            showToast(
-                              `✓ Driver alerted to stop for ${hail.passengerName} at ${hail.location}!`
-                            );
-                          }}
-                          className="py-1.5 px-3 rounded-xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[11px] shadow-sm transition active:scale-95 flex items-center gap-1 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[13px]">check</span>
-                          <span>Acknowledge Stop</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Manifest Modal Button & Commuter App Link ── */}
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setShowManifestModal(true)}
-            className="bg-white border border-[#ECEEF0] text-slate-800 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer text-left"
-          >
-            <div className="w-8 h-8 rounded-xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[18px]">group</span>
-            </div>
-            <div className="min-w-0">
-              <p className="font-black text-[11px] text-[#191C1E] truncate">Passenger Manifest</p>
-              <p className="text-[9px] text-[#A53700] font-bold truncate">
-                {reservedCount} Reserved • View All
-              </p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/home")}
-            className="bg-white border border-[#ECEEF0] text-slate-800 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer text-left"
-          >
-            <div className="w-8 h-8 rounded-xl bg-[#E0E8F0] text-slate-700 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[18px]">phone_iphone</span>
-            </div>
-            <div className="min-w-0">
-              <p className="font-black text-[11px] text-[#191C1E] truncate">Commuter App</p>
-              <p className="text-[9px] text-slate-500 font-bold truncate">Switch to Passenger UI</p>
-            </div>
-          </button>
-        </div>
         {/* ── Pending App Reservation Banner (Conductor Assigns Seat) ── */}
         {targetBooking && (
           <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2 animate-fade-in">
@@ -409,46 +269,13 @@ function ConductorMatrixContent() {
             </div>
 
             <p className="text-[10px] font-bold text-[#A53700] bg-white/70 rounded-lg p-1.5 text-center">
-              👉 Tap a VACANT seat below to assign to {targetBooking.passengerName.split(" ")[0]}
+              👉 Tap a seat below to assign to {targetBooking.passengerName.split(" ")[0]}
             </p>
           </div>
         )}
 
-        {/* ── Big Scan Passenger CTA Banner ── */}
-        <button
-          type="button"
-          onClick={() => router.push("/conductor/scan")}
-          className="w-full bg-gradient-to-r from-[#F95700] to-[#E04E00] text-white rounded-2xl p-4 shadow-md flex items-center justify-between transition-transform active:scale-[0.98] cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[16px] font-black tracking-tight">
-                  Scan Passenger E-Ticket
-                </span>
-                <span className="text-[14px]">🌟</span>
-              </div>
-              <p className="text-[11px] text-white/80 font-medium">
-                Tap to validate QR or transit card
-              </p>
-            </div>
-          </div>
-          <span className="material-symbols-outlined text-[20px] bg-black/20 rounded-full p-1.5">
-            arrow_forward
-          </span>
-        </button>
-
         {/* ── Legend Row ── */}
-        <div className="flex items-center justify-around py-2 px-3 bg-white rounded-2xl shadow-2xs border border-[#ECEEF0] text-[11px] font-bold">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-full border-2 border-emerald-500 bg-emerald-50" />
-            <span className="text-slate-600">Available</span>
-            <span className="text-emerald-700 font-black">({availableCount})</span>
-          </div>
-
+        <div className="flex items-center justify-center gap-6 py-2 px-3 bg-white rounded-2xl shadow-2xs border border-[#ECEEF0] text-[11px] font-bold">
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-3.5 rounded-full bg-[#F95700]" />
             <span className="text-slate-600">Marked Reserved</span>
@@ -552,21 +379,15 @@ function ConductorMatrixContent() {
                   );
                 }
 
-                // Available / Vacant
+                // Unreserved Seat
                 return (
                   <button
                     key={seat.id}
                     type="button"
                     onClick={() => handleSeatClick(seat)}
-                    className="w-full py-2 px-1 rounded-xl bg-white border border-slate-200 text-slate-700 flex flex-col items-center justify-center hover:border-[#1D6AE5] hover:bg-blue-50/50 transition cursor-pointer"
+                    className="w-full py-2.5 px-1 rounded-xl bg-white border border-slate-200 text-slate-700 flex flex-col items-center justify-center hover:border-[#1D6AE5] hover:bg-blue-50/50 transition cursor-pointer"
                   >
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold">{seat.id}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    </div>
-                    <span className="text-[8.5px] font-semibold text-slate-400 uppercase tracking-tight">
-                      VACANT
-                    </span>
+                    <span className="text-[12px] font-bold text-slate-700">{seat.id}</span>
                   </button>
                 );
               };
@@ -649,10 +470,9 @@ function ConductorMatrixContent() {
                     key={seat.id}
                     type="button"
                     onClick={() => handleSeatClick(seat)}
-                    className="py-2 px-1 rounded-xl bg-white border border-slate-200 text-slate-700 flex flex-col items-center justify-center text-center"
+                    className="py-2.5 px-1 rounded-xl bg-white border border-slate-200 text-slate-700 flex flex-col items-center justify-center text-center hover:border-[#1D6AE5] hover:bg-blue-50/50 transition cursor-pointer"
                   >
-                    <span className="text-[10px] font-bold">{seat.id}</span>
-                    <span className="text-[8px] font-semibold text-slate-400">{seat.label}</span>
+                    <span className="text-[11px] font-bold text-slate-700">{seat.id}</span>
                   </button>
                 );
               })}
@@ -675,11 +495,15 @@ function ConductorMatrixContent() {
 
       {/* ── Fixed Bottom Floating Action Card (for Selected Seat) ── */}
       {selectedSeat && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 animate-slide-up">
           <div className="max-w-[420px] mx-auto space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#1D6AE5] text-white font-black text-[14px] flex items-center justify-center shadow-xs">
+                <div
+                  className={`w-9 h-9 rounded-xl font-black text-[14px] flex items-center justify-center shadow-xs text-white ${
+                    selectedSeat.type === "app_reserved" ? "bg-[#F95700]" : "bg-[#1D6AE5]"
+                  }`}
+                >
                   {selectedSeat.id}
                 </div>
                 <div>
@@ -687,17 +511,22 @@ function ConductorMatrixContent() {
                     <span className="text-[15px] font-black text-[#191C1E]">
                       Seat {selectedSeat.id}
                     </span>
-                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-black uppercase ${
-                      selectedSeat.type === "app_reserved"
-                        ? "bg-orange-100 text-[#F95700] border border-orange-300"
-                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    }`}>
-                      {selectedSeat.type === "app_reserved" ? "MARKED RESERVED" : "AVAILABLE"}
+                    <span
+                      className={`px-2 py-0.2 rounded-full text-[10px] font-black uppercase ${
+                        selectedSeat.type === "app_reserved"
+                          ? "bg-orange-100 text-[#F95700] border border-orange-300"
+                          : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      }`}
+                    >
+                      {selectedSeat.type === "app_reserved" ? "MARKED RESERVED" : "UNRESERVED"}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    Right Window • Standard Fare{" "}
-                    <span className="font-extrabold text-[#191C1E]">₱95.00</span>
+                    {selectedSeat.type === "app_reserved"
+                      ? reservedBooking
+                        ? `PNR #${reservedBooking.pnr} • ${reservedBooking.direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}`
+                        : "Passenger Online Reservation"
+                      : "Window • Standard Fare ₱95.00"}
                   </p>
                 </div>
               </div>
@@ -705,43 +534,97 @@ function ConductorMatrixContent() {
               <button
                 type="button"
                 onClick={() => setSelectedSeatId("")}
-                className="w-7 h-7 rounded-full bg-[#F2F4F6] text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs"
+                className="w-7 h-7 rounded-full bg-[#F2F4F6] text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs cursor-pointer"
                 aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 pt-1">
-              {targetBooking && selectedSeat.type === "available" ? (
+            {/* If reserved: show Passenger Details & Remove button */}
+            {selectedSeat.type === "app_reserved" ? (
+              <div className="space-y-2.5 pt-0.5">
+                <div className="bg-[#F8F9FA] border border-[#ECEEF0] rounded-2xl p-3 space-y-1.5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-[13px] text-[#191C1E]">
+                          {reservedBooking?.passengerName || "Juana de la Cruz"}
+                        </span>
+                        <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
+                          👑 MEtro+
+                        </span>
+                        {reservedBooking?.passengerType && (
+                          <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded capitalize">
+                            {reservedBooking.passengerType}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                        {reservedBooking?.direction === "sogod-ormoc"
+                          ? "Sogod ➔ Ormoc City"
+                          : "Ormoc City ➔ Sogod"}{" "}
+                        • Dep: {reservedBooking?.departureTime || "08:00 AM"}
+                      </p>
+                      <p className="text-[10px] text-emerald-700 font-bold mt-0.5">
+                        Paid ₱{reservedBooking?.totalFare?.toFixed(2) || "290.00"} (
+                        {reservedBooking?.paymentMethod || "GCash"})
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[9px] font-bold text-slate-400 block uppercase">
+                        RESERVATION
+                      </span>
+                      <span className="text-[11px] font-black text-[#F95700]">
+                        Assigned Seat #{selectedSeat.id}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRemoveReservation}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Remove passenger reservation (passenger dropped off or didn't show)"
+                >
+                  <span className="material-symbols-outlined text-[17px]">person_remove</span>
+                  <span>Remove</span>
+                </button>
+              </div>
+            ) : targetBooking ? (
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleAssignToPassenger}
                   className="w-full py-3 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[17px]">event_seat</span>
-                  <span>Confirm Seat {selectedSeat.id} for {targetBooking.passengerName.split(" ")[0]}</span>
+                  <span>
+                    Confirm Seat {selectedSeat.id} for {targetBooking.passengerName.split(" ")[0]}
+                  </span>
                 </button>
-              ) : (
-                <>
-                  <div className="bg-[#F2F4F6] rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600">
-                    <p className="text-[9px] text-slate-400 uppercase">FARE CLASS</p>
-                    <p className="text-[#191C1E] font-black text-[11px]">
-                      Regular (₱95) <span className="text-emerald-600 font-medium">↗ 20% Disc</span>
-                    </p>
-                  </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="bg-[#F2F4F6] rounded-xl px-3 py-2 text-[10px] font-bold text-slate-600">
+                  <p className="text-[9px] text-slate-400 uppercase">FARE CLASS</p>
+                  <p className="text-[#191C1E] font-black text-[11px]">
+                    Regular (₱95) <span className="text-emerald-600 font-medium">↗ 20% Disc</span>
+                  </p>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSellWalkIn}
-                    className="flex-1 py-3 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[17px]">receipt_long</span>
-                    <span>Sell Walk-In Ticket</span>
-                  </button>
-                </>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={handleSellWalkIn}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[13px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[17px]">receipt_long</span>
+                  <span>Sell Walk-In Ticket</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -765,7 +648,7 @@ function ConductorMatrixContent() {
                     Bus {busDetails.id} Passenger Manifest
                   </h3>
                   <p className="text-[11px] text-slate-500 font-medium">
-                    {reservedCount} Marked Reserved • {availableCount} Available
+                    {reservedCount} Marked Reserved
                   </p>
                 </div>
               </div>

@@ -16,7 +16,7 @@ export interface BusDetails {
 }
 
 export type PassengerType = "regular" | "student" | "pwd" | "senior";
-export type BookingStatus = "pending_seat" | "confirmed" | "cancelled";
+export type BookingStatus = "pending_seat" | "confirmed" | "cancelled" | "completed";
 
 export interface BookingRequest {
   id: string;

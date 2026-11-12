@@ -129,6 +129,7 @@ interface AppContextType {
   recordWalkInSale: (sale: Omit<WalkInSale, "id" | "timestamp">) => WalkInSale;
   validateTicketBoarding: (pnr: string) => boolean;
   markNoShow: (seatNumber: string) => void;
+  removeBookingReservation: (seatNumber: string) => void;
   currentBusStop: string;
   setCurrentBusStop: (stop: string) => void;
   advanceToNextStop: () => void;
@@ -667,13 +668,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return matched;
   }, []);
 
-  // Mark seat as no-show and free it up
-  const markNoShow = useCallback((seatNumber: string) => {
+  // Mark seat as no-show or drop-off and free it up
+  const removeBookingReservation = useCallback((seatNumber: string) => {
+    const raw = parseInt(seatNumber, 10).toString();
+    const padded = seatNumber.padStart(2, "0");
+
     updateSeatStatus(seatNumber, "available");
-    setActiveTicket((prev) =>
-      prev.seatNumber === seatNumber ? { ...prev, isBoarded: false } : prev
+    updateSeatStatus(padded, "available");
+    updateSeatStatus(raw, "available");
+
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (
+          b.status === "confirmed" &&
+          (b.assignedSeat === seatNumber || b.assignedSeat === padded || b.assignedSeat === raw)
+        ) {
+          return { ...b, assignedSeat: null, status: "completed" as const };
+        }
+        return b;
+      })
     );
-  }, []);
+
+    setActiveTicket((prev) =>
+      prev.seatNumber === seatNumber || prev.seatNumber === padded || prev.seatNumber === raw
+        ? { ...prev, isBoarded: false }
+        : prev
+    );
+  }, [updateSeatStatus]);
+
+  const markNoShow = removeBookingReservation;
 
   // Conductor milestone progression along corridor
   const advanceToNextStop = useCallback(() => {
@@ -755,6 +778,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         recordWalkInSale,
         validateTicketBoarding,
         markNoShow,
+        removeBookingReservation,
         currentBusStop,
         setCurrentBusStop,
         advanceToNextStop,
