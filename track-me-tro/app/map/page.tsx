@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
-import { activeBuses, highwayWaypoints, ActiveBus, calculateBusETA } from "@/lib/mockData";
+import {
+  getActiveBuses,
+  highwayWaypoints,
+  ActiveBus,
+  calculateBusETA,
+} from "@/lib/mockData";
 import BoardingAlertSheet from "@/components/BoardingAlertSheet";
 import BottomNavigation from "@/components/BottomNavigation";
 
@@ -21,20 +26,33 @@ const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
 
 export default function MapPage() {
   const router = useRouter();
-  const { isAlertActive, userLocation } = useAppContext();
+  const { isAlertActive, userLocation, simulatedTime } = useAppContext();
 
   // Route Direction Filter: 'sogod-to-ormoc' or 'ormoc-to-sogod'
   const [activeDirection, setActiveDirection] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">(
     "sogod-to-ormoc"
   );
 
-  // Filtered active buses matching current route
-  const filteredBuses = activeBuses.filter((b) => b.direction === activeDirection);
+  const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
+  const [isDismissed, setIsDismissed] = useState(false);
 
-  // Selected bus state: can be null when dismissed by clicking the map
-  const [selectedBus, setSelectedBus] = useState<ActiveBus | null>(
-    filteredBuses[0] || activeBuses[0]
+  // Dynamic active buses based on simulated time
+  const allActiveBuses = useMemo(() => getActiveBuses(simulatedTime), [simulatedTime]);
+
+  // Filtered active buses matching current route
+  const filteredBuses = useMemo(
+    () => allActiveBuses.filter((b) => b.direction === activeDirection),
+    [allActiveBuses, activeDirection]
   );
+
+  // Derived selected bus without cascading effect setState
+  const selectedBus = useMemo(() => {
+    if (isDismissed || filteredBuses.length === 0) return null;
+    if (selectedBusId) {
+      return filteredBuses.find((b) => b.id === selectedBusId) || filteredBuses[0] || null;
+    }
+    return filteredBuses[0] || null;
+  }, [isDismissed, filteredBuses, selectedBusId]);
 
   // Map control trigger counters
   const [recenterCount, setRecenterCount] = useState(0);
@@ -48,11 +66,17 @@ export default function MapPage() {
     const nextDirection =
       activeDirection === "sogod-to-ormoc" ? "ormoc-to-sogod" : "sogod-to-ormoc";
     setActiveDirection(nextDirection);
+    setSelectedBusId(null);
+    setIsDismissed(false);
+  };
 
-    const nextBus = activeBuses.find((b) => b.direction === nextDirection);
-    if (nextBus) {
-      setSelectedBus(nextBus);
-    }
+  const handleSelectBus = (bus: ActiveBus) => {
+    setSelectedBusId(bus.id);
+    setIsDismissed(false);
+  };
+
+  const handleDismissBus = () => {
+    setIsDismissed(true);
   };
 
   // Primary CTA action: navigate to checkout
@@ -129,8 +153,8 @@ export default function MapPage() {
         <LiveMapLeaflet
           buses={filteredBuses}
           selectedBusId={selectedBus ? selectedBus.id : null}
-          onSelectBus={(bus) => setSelectedBus(bus)}
-          onMapClick={() => setSelectedBus(null)}
+          onSelectBus={handleSelectBus}
+          onMapClick={handleDismissBus}
           waypoints={highwayWaypoints}
           recenterTrigger={recenterCount}
           fitBoundsTrigger={fitBoundsCount}
@@ -159,6 +183,11 @@ export default function MapPage() {
                 <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E] mt-0.5">
                   Bus {selectedBus.id}
                 </h2>
+                {selectedBus.departureTime && (
+                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                    Departed {selectedBus.departureTime} • {selectedBus.currentLocation}
+                  </p>
+                )}
               </div>
 
               {/* Close Button & Direction Chip */}
@@ -168,7 +197,7 @@ export default function MapPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setSelectedBus(null)}
+                  onClick={handleDismissBus}
                   className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer active:scale-95"
                   title="Close Bus Details"
                   aria-label="Close"

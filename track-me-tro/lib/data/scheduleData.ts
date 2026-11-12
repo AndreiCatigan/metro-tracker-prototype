@@ -1,5 +1,9 @@
 import { SimulatedTime } from "../AppContext";
-import { TRAVEL_TIMES_FROM_SOGOD, TRAVEL_TIMES_FROM_ORMOC } from "./corridorData";
+import {
+  TRAVEL_TIMES_FROM_SOGOD,
+  TRAVEL_TIMES_FROM_ORMOC,
+  getLocationForElapsed,
+} from "./corridorData";
 
 export interface BusTrip {
   id: string;
@@ -154,17 +158,8 @@ export function generateScheduleTrips(
     } else if (currentMinutes > depMins) {
       status = "departed";
       const elapsed = currentMinutes - depMins;
-      if (elapsed < 45) {
-        locationDesc = "En Route • Approaching Bato";
-      } else if (elapsed < 75) {
-        locationDesc = "En Route • Approaching Hilongos";
-      } else if (elapsed < 115) {
-        locationDesc = "En Route • Passing Baybay / VSU";
-      } else if (elapsed < 145) {
-        locationDesc = "En Route • Approaching Inopacan";
-      } else {
-        locationDesc = `En Route • Approaching ${destName}`;
-      }
+      const loc = getLocationForElapsed(direction, elapsed);
+      locationDesc = `En Route • ${loc.locationDesc}`;
       passengersOnBoard = 42 + (idx % 4);
       isDetailed = currentMinutes - depMins <= 30;
     } else if (currentMinutes === depMins || (depMins - currentMinutes <= 30 && depMins >= currentMinutes)) {

@@ -68,26 +68,26 @@ export const STOP_COORDINATES: Record<string, { lat: number; lng: number; displa
 // Travel time estimates in minutes from Sogod Terminal to each stop
 export const TRAVEL_TIMES_FROM_SOGOD: Record<string, number> = {
   "Sogod Terminal": 0,
-  "Bato": 45,
-  "Hilongos": 75,
-  "Hindang": 90,
-  "Inopacan": 105,
-  "Baybay City Terminal": 120,
-  "VSU Main Campus": 128,
-  "Albuera": 148,
+  "Bato": 40,
+  "Hilongos": 60,
+  "Hindang": 75,
+  "Inopacan": 90,
+  "Baybay City Terminal": 110,
+  "VSU Main Campus": 120,
+  "Albuera": 145,
   "Ormoc City Terminal": 165,
 };
 
 // Reverse direction (Ormoc → Sogod)
 export const TRAVEL_TIMES_FROM_ORMOC: Record<string, number> = {
   "Ormoc City Terminal": 0,
-  "Albuera": 17,
-  "VSU Main Campus": 37,
-  "Baybay City Terminal": 45,
-  "Inopacan": 60,
-  "Hindang": 75,
-  "Hilongos": 90,
-  "Bato": 120,
+  "Albuera": 20,
+  "VSU Main Campus": 45,
+  "Baybay City Terminal": 55,
+  "Inopacan": 75,
+  "Hindang": 90,
+  "Hilongos": 105,
+  "Bato": 125,
   "Sogod Terminal": 165,
 };
 
@@ -137,52 +137,14 @@ export interface ActiveBus {
   seatsLeft: number;
   lat: number;
   lng: number;
+  departureTime?: string;
+  driverName?: string;
+  elapsedMinutes?: number;
+  progressPercent?: number;
+  currentStop?: string;
 }
 
 export type CoordinatePair = [number, number];
-
-/**
- * 4 mock buses actively tracking along the Sogod ↔ Ormoc corridor
- * (2 traveling Sogod ➔ Ormoc, 2 traveling Ormoc ➔ Sogod)
- */
-export const activeBuses: ActiveBus[] = [
-  {
-    id: "DMS-048",
-    direction: "sogod-to-ormoc",
-    currentLocation: "Passing Hilongos",
-    eta: "8 mins away",
-    seatsLeft: 14,
-    lat: 10.3753,
-    lng: 124.7486,
-  },
-  {
-    id: "ULTR-102",
-    direction: "sogod-to-ormoc",
-    currentLocation: "Approaching Baybay Terminal",
-    eta: "12 mins away",
-    seatsLeft: 8,
-    lat: 10.6620,
-    lng: 124.7935,
-  },
-  {
-    id: "SLB-209",
-    direction: "ormoc-to-sogod",
-    currentLocation: "Departing Inopacan",
-    eta: "5 mins away",
-    seatsLeft: 22,
-    lat: 10.5015,
-    lng: 124.7438,
-  },
-  {
-    id: "DMS-091",
-    direction: "ormoc-to-sogod",
-    currentLocation: "Passing Albuera",
-    eta: "18 mins away",
-    seatsLeft: 11,
-    lat: 10.9168,
-    lng: 124.6958,
-  },
-];
 
 /**
  * Turn-by-turn road coordinates extracted from OpenStreetMap road geometry
@@ -193,6 +155,176 @@ export const highwayWaypoints: CoordinatePair[] = leyteHighwayCoords as Coordina
 
 // Alias for flexibility
 export const routeWaypoints: CoordinatePair[] = highwayWaypoints;
+
+export const STOP_WAYPOINT_INDICES = [
+  { name: "Sogod Terminal", mins: 0, idx: 0 },
+  { name: "Bato", mins: 40, idx: 330 },
+  { name: "Hilongos", mins: 60, idx: 397 },
+  { name: "Hindang", mins: 75, idx: 448 },
+  { name: "Inopacan", mins: 90, idx: 513 },
+  { name: "Baybay City Terminal", mins: 110, idx: 726 },
+  { name: "VSU Main Campus", mins: 120, idx: 808 },
+  { name: "Albuera", mins: 145, idx: 938 },
+  { name: "Ormoc City Terminal", mins: 165, idx: 1067 },
+];
+
+export interface CorridorLocation {
+  currentStop: string;
+  locationDesc: string;
+  lat: number;
+  lng: number;
+  progressPercent: number;
+}
+
+/**
+ * Computes exact highway coordinates, stop name, and progress for any elapsed minutes
+ */
+export function getLocationForElapsed(
+  direction: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod",
+  elapsedMinutes: number
+): CorridorLocation {
+  const isOutbound = direction === "sogod-ormoc" || direction === "sogod-to-ormoc";
+  const clampedElapsed = Math.min(165, Math.max(0, elapsedMinutes));
+  const progressPercent = Math.round((clampedElapsed / 165) * 100);
+
+  // Compute waypoint index along highwayWaypoints
+  let waypointIdx = 0;
+  if (isOutbound) {
+    let segIdx = 0;
+    while (
+      segIdx < STOP_WAYPOINT_INDICES.length - 1 &&
+      STOP_WAYPOINT_INDICES[segIdx + 1].mins <= clampedElapsed
+    ) {
+      segIdx++;
+    }
+    const currentSeg = STOP_WAYPOINT_INDICES[segIdx];
+    const nextSeg = STOP_WAYPOINT_INDICES[Math.min(segIdx + 1, STOP_WAYPOINT_INDICES.length - 1)];
+    const segRange = nextSeg.mins - currentSeg.mins;
+    const segProgress = segRange > 0 ? (clampedElapsed - currentSeg.mins) / segRange : 0;
+    waypointIdx = Math.round(currentSeg.idx + segProgress * (nextSeg.idx - currentSeg.idx));
+  } else {
+    // Inbound: Ormoc -> Sogod (0 mins at Ormoc, 165 mins at Sogod)
+    const effectiveSogodMins = 165 - clampedElapsed;
+    let segIdx = 0;
+    while (
+      segIdx < STOP_WAYPOINT_INDICES.length - 1 &&
+      STOP_WAYPOINT_INDICES[segIdx + 1].mins <= effectiveSogodMins
+    ) {
+      segIdx++;
+    }
+    const currentSeg = STOP_WAYPOINT_INDICES[segIdx];
+    const nextSeg = STOP_WAYPOINT_INDICES[Math.min(segIdx + 1, STOP_WAYPOINT_INDICES.length - 1)];
+    const segRange = nextSeg.mins - currentSeg.mins;
+    const segProgress = segRange > 0 ? (effectiveSogodMins - currentSeg.mins) / segRange : 0;
+    waypointIdx = Math.round(currentSeg.idx + segProgress * (nextSeg.idx - currentSeg.idx));
+  }
+
+  const [lat, lng] = highwayWaypoints[waypointIdx] || [10.50168, 124.74389];
+
+  if (isOutbound) {
+    if (elapsedMinutes >= 165) {
+      return { currentStop: "Ormoc City Terminal", locationDesc: "Arrived at Ormoc City Terminal", lat, lng, progressPercent: 100 };
+    } else if (elapsedMinutes >= 145) {
+      return { currentStop: "Albuera", locationDesc: "Approaching Albuera • Bound for Ormoc", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 120) {
+      return { currentStop: "VSU Main Campus", locationDesc: "Passing VSU Main Campus", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 110) {
+      return { currentStop: "Baybay City Terminal", locationDesc: "At Baybay City Terminal", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 90) {
+      return { currentStop: "Inopacan", locationDesc: elapsedMinutes === 90 ? "At Inopacan Terminal" : "Passing Inopacan • Bound for Baybay", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 75) {
+      return { currentStop: "Hindang", locationDesc: "Passing Hindang", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 60) {
+      return { currentStop: "Hilongos", locationDesc: "At Hilongos Terminal", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 40) {
+      return { currentStop: "Bato", locationDesc: "Passing Bato Junction", lat, lng, progressPercent };
+    } else if (elapsedMinutes > 0) {
+      return { currentStop: "Sogod North Highway", locationDesc: "Departed Sogod • Approaching Bato", lat, lng, progressPercent };
+    } else {
+      return { currentStop: "Sogod Terminal", locationDesc: "At Sogod Terminal • Boarding", lat, lng, progressPercent: 0 };
+    }
+  } else {
+    if (elapsedMinutes >= 165) {
+      return { currentStop: "Sogod Terminal", locationDesc: "Arrived at Sogod Terminal", lat, lng, progressPercent: 100 };
+    } else if (elapsedMinutes >= 125) {
+      return { currentStop: "Bato", locationDesc: "Approaching Bato • Bound for Sogod", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 105) {
+      return { currentStop: "Hilongos", locationDesc: "At Hilongos Terminal", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 90) {
+      return { currentStop: "Hindang", locationDesc: "Passing Hindang", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 75) {
+      return { currentStop: "Inopacan", locationDesc: elapsedMinutes === 75 ? "At Inopacan Terminal" : "Passing Inopacan • Bound for Hindang", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 55) {
+      return { currentStop: "Baybay City Terminal", locationDesc: "At Baybay City Terminal", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 45) {
+      return { currentStop: "VSU Main Campus", locationDesc: "Passing VSU Campus", lat, lng, progressPercent };
+    } else if (elapsedMinutes >= 20) {
+      return { currentStop: "Albuera", locationDesc: "Passing Albuera", lat, lng, progressPercent };
+    } else if (elapsedMinutes > 0) {
+      return { currentStop: "Ormoc South Highway", locationDesc: "Departed Ormoc • Approaching Albuera", lat, lng, progressPercent };
+    } else {
+      return { currentStop: "Ormoc City Terminal", locationDesc: "At Ormoc Terminal • Boarding", lat, lng, progressPercent: 0 };
+    }
+  }
+}
+
+/**
+ * 4 default mock buses (kept for fallback / backward compatibility)
+ */
+export const activeBuses: ActiveBus[] = [
+  {
+    id: "DMS-054",
+    direction: "sogod-to-ormoc",
+    currentLocation: "At Inopacan Terminal",
+    eta: "75 mins away",
+    seatsLeft: 14,
+    lat: 10.50168,
+    lng: 124.74389,
+    departureTime: "7:30 AM",
+    elapsedMinutes: 90,
+    progressPercent: 55,
+    currentStop: "Inopacan",
+  },
+  {
+    id: "DMS-055",
+    direction: "sogod-to-ormoc",
+    currentLocation: "At Hilongos Terminal",
+    eta: "105 mins away",
+    seatsLeft: 8,
+    lat: 10.3750,
+    lng: 124.7450,
+    departureTime: "8:00 AM",
+    elapsedMinutes: 60,
+    progressPercent: 36,
+    currentStop: "Hilongos",
+  },
+  {
+    id: "DMS-053",
+    direction: "ormoc-to-sogod",
+    currentLocation: "At Inopacan Terminal",
+    eta: "90 mins away",
+    seatsLeft: 22,
+    lat: 10.50168,
+    lng: 124.74389,
+    departureTime: "7:30 AM",
+    elapsedMinutes: 90,
+    progressPercent: 55,
+    currentStop: "Inopacan",
+  },
+  {
+    id: "DMS-056",
+    direction: "ormoc-to-sogod",
+    currentLocation: "Passing Albuera",
+    eta: "135 mins away",
+    seatsLeft: 11,
+    lat: 10.9168,
+    lng: 124.6958,
+    departureTime: "8:30 AM",
+    elapsedMinutes: 30,
+    progressPercent: 18,
+    currentStop: "Albuera",
+  },
+];
 
 export interface BusETAResult {
   etaMinutes: number;
@@ -207,21 +339,10 @@ export interface BusETAResult {
 export function calculateBusETA(bus: ActiveBus, userLocation: string): BusETAResult {
   const isOutbound = bus.direction === "sogod-to-ormoc";
   const userMinutes = isOutbound
-    ? (TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 128)
-    : (TRAVEL_TIMES_FROM_ORMOC[userLocation] ?? 37);
+    ? (TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 110)
+    : (TRAVEL_TIMES_FROM_ORMOC[userLocation] ?? 55);
 
-  // Bus current elapsed minutes from trip origin
-  let busElapsedMinutes = 0;
-  if (isOutbound) {
-    if (bus.id === "DMS-048") busElapsedMinutes = 75; // Hilongos
-    else if (bus.id === "ULTR-102") busElapsedMinutes = 115; // Approaching Baybay
-    else busElapsedMinutes = 75;
-  } else {
-    if (bus.id === "DMS-091") busElapsedMinutes = 17; // Albuera
-    else if (bus.id === "SLB-209") busElapsedMinutes = 60; // Inopacan
-    else busElapsedMinutes = 30;
-  }
-
+  const busElapsedMinutes = bus.elapsedMinutes ?? 90;
   const diff = userMinutes - busElapsedMinutes;
 
   if (diff > 0) {
