@@ -6,7 +6,7 @@ import { useAppContext } from "@/lib/AppContext";
 
 export default function ConductorScanPage() {
   const router = useRouter();
-  const { activeTicket, validateTicketBoarding, markNoShow, currentBusStop, busDetails } = useAppContext();
+  const { activeTicket, validateTicketBoarding, currentBusStop, busDetails } = useAppContext();
 
   const [torchOn, setTorchOn] = useState(false);
   const [boarded, setBoarded] = useState(activeTicket?.isBoarded || false);
@@ -21,14 +21,6 @@ export default function ConductorScanPage() {
     setBoarded(true);
     validateTicketBoarding(activeTicket.pnr);
     showToast(`✓ Passenger ${activeTicket.passengerName} (Seat ${activeTicket.seatNumber}) Boarded! (+1 to Headcount)`);
-    setTimeout(() => {
-      router.push("/conductor");
-    }, 1200);
-  };
-
-  const handleMarkNoShow = () => {
-    markNoShow(activeTicket.seatNumber);
-    showToast(`Seat ${activeTicket.seatNumber} marked as No-Show. Releasing to walk-in queue.`);
     setTimeout(() => {
       router.push("/conductor");
     }, 1200);
@@ -244,26 +236,16 @@ export default function ConductorScanPage() {
             <span>{boarded ? "Boarding Verified ✓" : "Confirm Boarding & Validate Ticket"}</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleMarkNoShow}
-              className="flex-1 py-3 px-3 rounded-2xl bg-[#F2F4F6] hover:bg-[#E6E8EA] text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[16px] text-rose-600">person_off</span>
-              <span>Mark as No-Show</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => showToast("Scanner refreshed. Point at next passenger pass.")}
-              className="w-12 h-11 rounded-2xl bg-[#F2F4F6] hover:bg-[#E6E8EA] text-slate-700 flex items-center justify-center transition cursor-pointer"
-              aria-label="Refresh Scan"
-              title="Scan Next Ticket"
-            >
-              <span className="material-symbols-outlined text-[18px]">autorenew</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => showToast("Scanner refreshed. Point at next passenger pass.")}
+            className="w-full py-3 px-3 rounded-2xl bg-[#F2F4F6] hover:bg-[#E6E8EA] text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+            aria-label="Refresh Scan"
+            title="Scan Next Ticket"
+          >
+            <span className="material-symbols-outlined text-[18px]">autorenew</span>
+            <span>Scan Next Ticket</span>
+          </button>
         </div>
 
         {/* Footer Note */}
