@@ -18,11 +18,18 @@ export default function ConductorMatrixPage() {
     assignSeatToBooking,
     passengerHails,
     acknowledgeHail,
+    boardHail,
+    walkInSales,
+    currentBusStop,
+    advanceToNextStop,
+    selectedDirection,
   } = useAppContext();
 
   // Seat state representation
   const [selectedSeatId, setSelectedSeatId] = useState<string>("15");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showManifestModal, setShowManifestModal] = useState<boolean>(false);
+  const [manifestFilter, setManifestFilter] = useState<"all" | "app" | "walkin" | "hail">("all");
 
   // Check for any pending bookings from passengers
   const pendingBooking = bookings.find((b) => b.status === "pending_seat");
@@ -32,7 +39,7 @@ export default function ConductorMatrixPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Cabin layout with live sync to activeTicket and any confirmed bookings
+  // Cabin layout with live sync to activeTicket, confirmed bookings, and POS walk-in sales
   const seatsState = useMemo<ConductorSeatData[]>(() => {
     let updated = [...BASE_CABIN_SEATS];
 
@@ -40,11 +47,17 @@ export default function ConductorMatrixPage() {
     if (activeTicket?.seatNumber) {
       const padded = activeTicket.seatNumber.padStart(2, "0");
       updated = updated.map((s) =>
-        s.id === padded ? { ...s, type: "app_reserved" as const, label: "#APP" } : s
+        s.id === padded
+          ? {
+              ...s,
+              type: activeTicket.isBoarded ? ("on_board" as const) : ("app_reserved" as const),
+              label: activeTicket.isBoarded ? "JUANA" : "#APP",
+            }
+          : s
       );
     }
 
-    // Overlay confirmed bookings
+    // Overlay confirmed app bookings
     bookings.forEach((b) => {
       if (b.status === "confirmed" && b.assignedSeat) {
         const padded = b.assignedSeat.padStart(2, "0");
@@ -54,11 +67,30 @@ export default function ConductorMatrixPage() {
       }
     });
 
+    // Overlay POS Walk-in sales
+    walkInSales.forEach((sale) => {
+      const padded = sale.seatId.padStart(2, "0");
+      updated = updated.map((s) =>
+        s.id === padded ? { ...s, type: "on_board" as const, label: "POS" } : s
+      );
+    });
+
     return updated;
-  }, [activeTicket, bookings]);
+  }, [activeTicket, bookings, walkInSales]);
 
   // Rear 5 bench seats
   const rearBench = BASE_REAR_BENCH_SEATS;
+
+  // Real-time capacity computation
+  const occupiedCount = useMemo(() => {
+    return (
+      seatsState.filter((s) => s.type === "on_board" || s.type === "app_reserved").length +
+      rearBench.filter((s) => s.type === "on_board" || s.type === "app_reserved").length
+    );
+  }, [seatsState, rearBench]);
+
+  const availableCount = Math.max(0, 45 - occupiedCount);
+  const occupancyPercent = Math.round((occupiedCount / 45) * 100);
 
   const rows = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"];
 
@@ -119,18 +151,31 @@ export default function ConductorMatrixPage() {
               ASSIGNED ROUTE
             </p>
             <h1 className="text-[18px] font-black tracking-tight text-white mt-0.5">
-              Sogod <span className="text-slate-400">➔</span> Ormoc
+              {selectedDirection === "sogod-to-ormoc" ? (
+                <>Sogod <span className="text-slate-400">➔</span> Ormoc</>
+              ) : (
+                <>Ormoc <span className="text-slate-400">➔</span> Sogod</>
+              )}
             </h1>
           </div>
 
           <div className="text-right">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              NEXT STATION
+              CORRIDOR STOP (TAP TO ADVANCE)
             </p>
-            <div className="inline-flex items-center gap-1 bg-[#FFCC00]/20 text-[#FFD633] px-2.5 py-0.5 rounded-full text-[11px] font-extrabold mt-0.5 border border-[#FFCC00]/30">
+            <button
+              type="button"
+              onClick={() => {
+                advanceToNextStop();
+                showToast(`Bus location updated: Bus approaching ${currentBusStop}`);
+              }}
+              className="inline-flex items-center gap-1 bg-[#FFCC00]/25 hover:bg-[#FFCC00]/35 text-[#FFD633] px-2.5 py-1 rounded-full text-[11px] font-extrabold mt-0.5 border border-[#FFCC00]/40 transition active:scale-95 cursor-pointer shadow-2xs"
+              title="Tap to advance bus location to next stop"
+            >
               <span className="material-symbols-outlined text-[13px]">location_on</span>
-              <span>Baybay Terminal</span>
-            </div>
+              <span className="max-w-[130px] truncate">{currentBusStop}</span>
+              <span className="material-symbols-outlined text-[12px] opacity-80">fast_forward</span>
+            </button>
           </div>
         </div>
 
@@ -138,23 +183,24 @@ export default function ConductorMatrixPage() {
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-baseline gap-1">
-              <span className="text-[16px] font-black text-white">32</span>
+              <span className="text-[16px] font-black text-white">{occupiedCount}</span>
               <span className="text-slate-400 font-semibold text-[11px]">/ 45 Seats Filled</span>
-              <span className="text-[#FF8C00] font-black text-[11px] ml-1">(71%)</span>
+              <span className="text-[#FF8C00] font-black text-[11px] ml-1">({occupancyPercent}%)</span>
             </div>
             <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              13 Available
+              {availableCount} Available
             </span>
           </div>
 
           <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex">
-            {/* On-board segment (navy/blue) */}
-            <div className="h-full bg-[#1D6AE5]" style={{ width: "31%" }} />
-            {/* App segment (orange) */}
-            <div className="h-full bg-[#F95700]" style={{ width: "40%" }} />
+            {/* On-board segment */}
+            <div
+              className="h-full bg-gradient-to-r from-[#1D6AE5] to-[#F95700] transition-all duration-300"
+              style={{ width: `${Math.min(100, occupancyPercent)}%` }}
+            />
             {/* Vacant segment */}
-            <div className="h-full bg-slate-700" style={{ width: "29%" }} />
+            <div className="h-full bg-slate-700 flex-1" />
           </div>
         </div>
       </header>
@@ -213,11 +259,29 @@ export default function ConductorMatrixPage() {
                     </div>
 
                     <div className="shrink-0 text-right">
-                      {hail.status === "acknowledged" ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
-                          <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                          <span>Stop Confirmed</span>
+                      {hail.status === "boarded" ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-300">
+                          <span className="material-symbols-outlined text-[12px]">verified</span>
+                          <span>Boarded ✓</span>
                         </span>
+                      ) : hail.status === "acknowledged" ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                            <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                            <span>Confirmed</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              boardHail(hail.id);
+                              showToast(`✓ ${hail.passengerName} boarded Bus ${busDetails.id}!`);
+                            }}
+                            className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[12px]">how_to_reg</span>
+                            <span>Board Passenger</span>
+                          </button>
+                        </div>
                       ) : (
                         <button
                           type="button"
@@ -240,6 +304,39 @@ export default function ConductorMatrixPage() {
             </div>
           </div>
         )}
+
+        {/* ── Manifest Modal Button & Commuter App Link ── */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setShowManifestModal(true)}
+            className="bg-white border border-[#ECEEF0] text-slate-800 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-[#FFE8D6] text-[#A53700] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px]">group</span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-black text-[11px] text-[#191C1E] truncate">Passenger Manifest</p>
+              <p className="text-[9px] text-[#A53700] font-bold truncate">
+                {occupiedCount} On Board • View All
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            className="bg-white border border-[#ECEEF0] text-slate-800 rounded-2xl p-2.5 shadow-2xs flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-[#E0E8F0] text-slate-700 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[18px]">phone_iphone</span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-black text-[11px] text-[#191C1E] truncate">Commuter App</p>
+              <p className="text-[9px] text-slate-500 font-bold truncate">Switch to Passenger UI</p>
+            </div>
+          </button>
+        </div>
         {/* ── Pending App Reservation Banner (Conductor Assigns Seat) ── */}
         {pendingBooking && (
           <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2 animate-fade-in">
@@ -599,6 +696,193 @@ export default function ConductorMatrixPage() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* ── Live Passenger Manifest Modal ── */}
+      {showManifestModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowManifestModal(false)}
+          />
+          <div className="relative w-full max-w-[480px] bg-white rounded-t-[32px] p-5 shadow-2xl z-10 space-y-4 border-t border-[#ECEEF0] animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto">
+            <div className="w-10 h-1 bg-[#D8DADC] rounded-full mx-auto -mt-1 mb-1" />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-[#101A2C] text-white flex items-center justify-center font-black">
+                  <span className="material-symbols-outlined text-[20px]">badge</span>
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-[17px] text-[#191C1E]">
+                    Bus {busDetails.id} Passenger Manifest
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {occupiedCount} Passengers On Board • {availableCount} Vacant
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManifestModal(false)}
+                className="w-8 h-8 rounded-full bg-[#F2F4F6] text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Summary Strip */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="bg-[#F7F9FB] border border-[#ECEEF0] rounded-xl p-2.5">
+                <p className="text-[9px] font-bold text-slate-400 uppercase">APP RESERVED</p>
+                <p className="text-[15px] font-black text-[#F95700] mt-0.5">
+                  {bookings.filter((b) => b.status === "confirmed").length + (activeTicket ? 1 : 0)}
+                </p>
+                <p className="text-[9px] text-slate-500">E-Wallet</p>
+              </div>
+
+              <div className="bg-[#F7F9FB] border border-[#ECEEF0] rounded-xl p-2.5">
+                <p className="text-[9px] font-bold text-slate-400 uppercase">POS CASH</p>
+                <p className="text-[15px] font-black text-slate-800 mt-0.5">
+                  {walkInSales.length}
+                </p>
+                <p className="text-[9px] text-slate-500">Walk-In</p>
+              </div>
+
+              <div className="bg-[#F7F9FB] border border-[#ECEEF0] rounded-xl p-2.5">
+                <p className="text-[9px] font-bold text-slate-400 uppercase">ADVANCE HAILS</p>
+                <p className="text-[15px] font-black text-emerald-600 mt-0.5">
+                  {passengerHails.length}
+                </p>
+                <p className="text-[9px] text-slate-500">Pings</p>
+              </div>
+            </div>
+
+            {/* Manifest Passenger List */}
+            <div className="space-y-2 pt-1">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                PASSENGER ROSTER
+              </p>
+
+              {/* 1. App Passenger: Juana de la Cruz */}
+              <div className="bg-[#F7F9FB] rounded-2xl p-3 border border-[#ECEEF0] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#F95700] text-white flex items-center justify-center font-black text-[13px]">
+                    {activeTicket.seatNumber || "12"}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-[13px] text-[#191C1E]">
+                        {activeTicket.passengerName}
+                      </span>
+                      <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
+                        👑 MEtro+
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">
+                      PNR #{activeTicket.pnr} • {activeTicket.origin.split(",")[0]} ➔ {activeTicket.destination.split(",")[0]}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span
+                    className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                      activeTicket.isBoarded
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        : "bg-amber-100 text-amber-800 border border-amber-300"
+                    }`}
+                  >
+                    {activeTicket.isBoarded ? "Boarded ✓" : "Paid • Awaiting Scan"}
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-700 mt-0.5">
+                    ₱{activeTicket.totalFare.toFixed(2)} ({activeTicket.paymentMethod})
+                  </p>
+                </div>
+              </div>
+
+              {/* 2. Walk-in POS Ticket Sales */}
+              {walkInSales.map((sale) => (
+                <div
+                  key={sale.id}
+                  className="bg-white rounded-2xl p-3 border border-[#ECEEF0] flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[#101A2C] text-white flex items-center justify-center font-black text-[13px]">
+                      {sale.seatId}
+                    </div>
+                    <div>
+                      <p className="font-black text-[13px] text-[#191C1E]">Walk-in Passenger</p>
+                      <p className="text-[10px] text-slate-500">
+                        Dest: {sale.destination} • Issued {sale.timestamp}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[9px] font-black bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full">
+                      Cash Walk-in
+                    </span>
+                    <p className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                      ₱{sale.finalFare.toFixed(2)} Paid
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {/* 3. Advance Hails waiting or boarded */}
+              {passengerHails.map((hail) => (
+                <div
+                  key={hail.id}
+                  className="bg-white rounded-2xl p-3 border border-orange-200 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-100 text-[#F95700] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[18px]">hail</span>
+                    </div>
+                    <div>
+                      <p className="font-black text-[13px] text-[#191C1E]">
+                        {hail.passengerName}
+                      </p>
+                      <p className="text-[10px] text-slate-500">
+                        Waiting: {hail.location} • {hail.timestamp}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span
+                      className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
+                        hail.status === "boarded"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : hail.status === "acknowledged"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {hail.status === "boarded"
+                        ? "Boarded ✓"
+                        : hail.status === "acknowledged"
+                        ? "Acknowledged"
+                        : "Pinged"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowManifestModal(false);
+                router.push("/conductor/scan");
+              }}
+              className="w-full py-3 rounded-full bg-[#101A2C] text-white font-extrabold text-[13px] shadow-md flex items-center justify-center gap-2 cursor-pointer hover:bg-black transition"
+            >
+              <span className="material-symbols-outlined text-[17px]">qr_code_scanner</span>
+              <span>Open Scanner to Verify Passenger</span>
+            </button>
           </div>
         </div>
       )}

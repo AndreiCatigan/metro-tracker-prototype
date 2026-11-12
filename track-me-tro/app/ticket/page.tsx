@@ -91,14 +91,26 @@ export default function TicketPage() {
       <main className="max-w-[420px] w-full mx-auto px-4 pt-2 space-y-4">
         {/* ── Status Header ── */}
         <div className="text-center pt-1 pb-1">
-          <div className="w-12 h-12 rounded-full bg-[#A53700] text-white flex items-center justify-center mx-auto mb-2 shadow-md">
-            <span className="material-symbols-outlined text-[26px]">check</span>
+          <div
+            className={`w-12 h-12 rounded-full text-white flex items-center justify-center mx-auto mb-2 shadow-md transition-colors ${
+              activeTicket.isBoarded ? "bg-emerald-600" : "bg-[#A53700]"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[26px]">
+              {activeTicket.isBoarded ? "verified" : "check"}
+            </span>
           </div>
           <h1 className="text-[24px] font-black tracking-tight text-[#191C1E]">
             Your Ticket
           </h1>
-          <p className="text-[12px] font-extrabold text-[#A53700] uppercase tracking-wider mt-0.5">
-            BOOKING CONFIRMED • SEAT ASSIGNED
+          <p
+            className={`text-[12px] font-extrabold uppercase tracking-wider mt-0.5 ${
+              activeTicket.isBoarded ? "text-emerald-700" : "text-[#A53700]"
+            }`}
+          >
+            {activeTicket.isBoarded
+              ? "✓ BOARDED • VERIFIED BY BUS CREW"
+              : "BOOKING CONFIRMED • SEAT ASSIGNED"}
           </p>
         </div>
 
@@ -106,9 +118,22 @@ export default function TicketPage() {
         <div className="bg-white rounded-3xl shadow-sm border border-[#ECEEF0] relative overflow-hidden">
           {/* Top PNR Capsule */}
           <div className="pt-5 pb-3 text-center">
-            <div className="inline-flex items-center gap-1.5 bg-[#F5DECD]/70 text-[#812900] px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider">
-              <span className="material-symbols-outlined text-[14px]">confirmation_number</span>
-              <span>PNR: {activeTicket.pnr}</span>
+            <div
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider ${
+                activeTicket.isBoarded
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-[#F5DECD]/70 text-[#812900]"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[14px]">
+                {activeTicket.isBoarded ? "check_circle" : "confirmation_number"}
+              </span>
+              <span>
+                PNR: {activeTicket.pnr}
+                {activeTicket.isBoarded && activeTicket.boardedAt
+                  ? ` • BOARDED ${activeTicket.boardedAt}`
+                  : ""}
+              </span>
             </div>
           </div>
 

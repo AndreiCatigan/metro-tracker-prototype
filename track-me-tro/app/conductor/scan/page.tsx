@@ -6,10 +6,10 @@ import { useAppContext } from "@/lib/AppContext";
 
 export default function ConductorScanPage() {
   const router = useRouter();
-  const { activeTicket, updateSeatStatus } = useAppContext();
+  const { activeTicket, validateTicketBoarding, markNoShow, currentBusStop, busDetails } = useAppContext();
 
   const [torchOn, setTorchOn] = useState(false);
-  const [boarded, setBoarded] = useState(false);
+  const [boarded, setBoarded] = useState(activeTicket?.isBoarded || false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -19,17 +19,16 @@ export default function ConductorScanPage() {
 
   const handleConfirmBoarding = () => {
     setBoarded(true);
-    // Mark seat as on-board in AppContext
-    updateSeatStatus(activeTicket.seatNumber, "occupied");
-    showToast(`Passenger Juana dela Cruz (Seat ${activeTicket.seatNumber}) Boarded!`);
+    validateTicketBoarding(activeTicket.pnr);
+    showToast(`✓ Passenger ${activeTicket.passengerName} (Seat ${activeTicket.seatNumber}) Boarded!`);
     setTimeout(() => {
       router.push("/conductor/matrix");
-    }, 1000);
+    }, 1200);
   };
 
   const handleMarkNoShow = () => {
+    markNoShow(activeTicket.seatNumber);
     showToast(`Seat ${activeTicket.seatNumber} marked as No-Show. Releasing to walk-in queue.`);
-    updateSeatStatus(activeTicket.seatNumber, "available");
     setTimeout(() => {
       router.push("/conductor/matrix");
     }, 1200);
@@ -149,11 +148,11 @@ export default function ConductorScanPage() {
             </div>
             <div>
               <h3 className="text-[15px] font-black text-[#191C1E] leading-tight">
-                Juana dela Cruz
+                {activeTicket.passengerName || "Juana de la Cruz"}
               </h3>
               <p className="text-[11px] text-emerald-700 font-bold flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                <span>Regular Commuter</span>
+                <span className="material-symbols-outlined text-[12px]">verified_user</span>
+                <span className="capitalize">{activeTicket.passengerType || "Regular"} Passenger</span>
               </p>
             </div>
           </div>
@@ -163,7 +162,7 @@ export default function ConductorScanPage() {
               Seat {activeTicket.seatNumber}
             </span>
             <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">
-              STANDARD AISLE
+              APP RESERVED
             </p>
           </div>
         </div>
@@ -185,22 +184,22 @@ export default function ConductorScanPage() {
 
           <div className="bg-[#F7F9FB] rounded-2xl p-2.5 border border-[#ECEEF0]">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-              BAGGAGE
+              STATUS
             </p>
-            <p className="text-[15px] font-black text-[#191C1E] my-0.5">
-              1 Carry
+            <p className={`text-[13px] font-black my-1 ${boarded ? "text-emerald-700" : "text-amber-700"}`}>
+              {boarded ? "Boarded ✓" : "Paid Pass"}
             </p>
-            <p className="text-[9px] text-slate-500 font-medium">Under Seat Allowed</p>
+            <p className="text-[9px] text-slate-500 font-medium">Verified E-Ticket</p>
           </div>
 
           <div className="bg-[#F7F9FB] rounded-2xl p-2.5 border border-[#ECEEF0]">
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-              BOARDING BAY
+              BUS UNIT
             </p>
             <p className="text-[15px] font-black text-[#191C1E] my-0.5">
-              Bay 03
+              {busDetails.id}
             </p>
-            <p className="text-[9px] text-slate-500 font-medium">Priority Lane</p>
+            <p className="text-[9px] text-slate-500 font-medium">Aircon Express</p>
           </div>
         </div>
 
@@ -211,12 +210,12 @@ export default function ConductorScanPage() {
               BOARDING AT
             </p>
             <p className="text-[13px] font-black text-[#191C1E] mt-0.5">
-              Baybay Terminal
+              {activeTicket.origin.split(",")[0] || currentBusStop}
             </p>
           </div>
 
           <div className="flex flex-col items-center px-2">
-            <span className="text-[9px] font-bold text-slate-400">48 km Direct</span>
+            <span className="text-[9px] font-bold text-slate-400">Direct Route</span>
             <div className="flex items-center gap-1 text-[#A53700]">
               <span className="w-6 h-[1.5px] bg-[#A53700]" />
               <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
@@ -227,9 +226,8 @@ export default function ConductorScanPage() {
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
               BOUND FOR
             </p>
-            <p className="text-[13px] font-black text-[#191C1E] mt-0.5 flex items-center gap-1 justify-end">
-              <span>Ormoc Port</span>
-              <span className="material-symbols-outlined text-[14px] text-slate-500">directions_boat</span>
+            <p className="text-[13px] font-black text-[#191C1E] mt-0.5">
+              {activeTicket.destination.split(",")[0] || "Ormoc City"}
             </p>
           </div>
         </div>
@@ -243,7 +241,7 @@ export default function ConductorScanPage() {
             className="w-full py-4 rounded-full bg-[#A53700] hover:bg-[#812900] active:scale-[0.98] text-white font-black text-[15px] shadow-lg transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
           >
             <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
-            <span>{boarded ? "Boarding Verified!" : "Confirm Boarding"}</span>
+            <span>{boarded ? "Boarding Verified ✓" : "Confirm Boarding & Validate Ticket"}</span>
           </button>
 
           <div className="flex items-center gap-2">

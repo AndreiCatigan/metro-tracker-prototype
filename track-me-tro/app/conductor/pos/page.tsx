@@ -9,11 +9,18 @@ function PosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const seatId = searchParams.get("seat") || "15";
-  const { busDetails, updateSeatStatus } = useAppContext();
+  const { busDetails, recordWalkInSale, selectedDirection } = useAppContext();
 
-  const routeStops = POS_ROUTE_STOPS;
+  const routeStops = POS_ROUTE_STOPS.filter((stop) => {
+    if (selectedDirection === "ormoc-to-sogod") {
+      return stop.id !== "ormoc";
+    }
+    return stop.id !== "sogod";
+  });
 
-  const [selectedStopId, setSelectedStopId] = useState("baybay");
+  const [selectedStopId, setSelectedStopId] = useState(
+    selectedDirection === "ormoc-to-sogod" ? "vsu" : "baybay"
+  );
   const [discountType, setDiscountType] = useState<"regular" | "discount">("regular");
   const [isPrinting, setIsPrinting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -29,8 +36,14 @@ function PosContent() {
     setTimeout(() => {
       setIsPrinting(false);
       setShowReceipt(true);
-      // Mark seat as occupied in AppContext
-      updateSeatStatus(seatId, "occupied");
+      // Record walk-in ticket sale in AppContext (syncs to matrix & passenger app)
+      recordWalkInSale({
+        seatId,
+        destination: activeStop.name,
+        baseFare: activeStop.baseFare,
+        discountType,
+        finalFare: calculatedFare,
+      });
     }, 1000);
   };
 

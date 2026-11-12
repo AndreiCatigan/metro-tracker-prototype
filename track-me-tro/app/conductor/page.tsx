@@ -8,12 +8,14 @@ import Logo from "@/components/Logo";
 
 export default function ConductorAuthPage() {
   const router = useRouter();
-  const { busDetails, passengerHails } = useAppContext();
+  const { busDetails, passengerHails, bookings, selectedDirection, setSelectedDirection } = useAppContext();
 
   const [employeeId, setEmployeeId] = useState("EMP-8842");
   const [pin, setPin] = useState("1234");
   const [showPin, setShowPin] = useState(false);
-  const [direction, setDirection] = useState<"outbound" | "inbound">("outbound");
+  const [direction, setDirection] = useState<"outbound" | "inbound">(
+    selectedDirection === "ormoc-to-sogod" ? "inbound" : "outbound"
+  );
   const [isStarting, setIsStarting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -22,9 +24,14 @@ export default function ConductorAuthPage() {
     setTimeout(() => setToastMessage(null), 2500);
   };
 
+  const handleDirectionChange = (newDir: "outbound" | "inbound") => {
+    setDirection(newDir);
+    setSelectedDirection(newDir === "outbound" ? "sogod-to-ormoc" : "ormoc-to-sogod");
+  };
+
   const handleStartTrip = () => {
     setIsStarting(true);
-    showToast("GPS lock acquired. Dispatching Bus DMS-048...");
+    showToast(`GPS lock acquired. Bus ${busDetails.id} connected to commuter live map!`);
     setTimeout(() => {
       router.push("/conductor/matrix");
     }, 800);
@@ -229,7 +236,7 @@ export default function ConductorAuthPage() {
             <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
-                onClick={() => setDirection("outbound")}
+                onClick={() => handleDirectionChange("outbound")}
                 className={`p-3 rounded-2xl text-center transition-all cursor-pointer ${
                   direction === "outbound"
                     ? "bg-[#812900] text-white shadow-sm"
@@ -242,7 +249,7 @@ export default function ConductorAuthPage() {
 
               <button
                 type="button"
-                onClick={() => setDirection("inbound")}
+                onClick={() => handleDirectionChange("inbound")}
                 className={`p-3 rounded-2xl text-center transition-all cursor-pointer ${
                   direction === "inbound"
                     ? "bg-[#812900] text-white shadow-sm"

@@ -80,12 +80,15 @@ export interface PosRouteStop {
 }
 
 export const POS_ROUTE_STOPS: PosRouteStop[] = [
-  { id: "baybay", name: "Baybay", distance: "24.8 km", tag: "Dropoff", baseFare: 50 },
-  { id: "inopacan", name: "Inopacan", distance: "18.2 km", baseFare: 40 },
-  { id: "hindang", name: "Hindang", distance: "12.5 km", baseFare: 30 },
-  { id: "hilongos", name: "Hilongos", distance: "31.0 km", baseFare: 65 },
-  { id: "bato", name: "Bato", distance: "39.4 km", baseFare: 80 },
-  { id: "albuera", name: "Albuera", distance: "48.7 km", baseFare: 95 },
+  { id: "bato", name: "Bato", distance: "39.4 km", baseFare: 65 },
+  { id: "hilongos", name: "Hilongos", distance: "52.0 km", baseFare: 90 },
+  { id: "hindang", name: "Hindang", distance: "64.5 km", baseFare: 110 },
+  { id: "inopacan", name: "Inopacan", distance: "78.2 km", baseFare: 140 },
+  { id: "baybay", name: "Baybay City", distance: "96.8 km", tag: "Major Hub", baseFare: 180 },
+  { id: "vsu", name: "VSU Main Campus", distance: "105.0 km", tag: "Campus Stop", baseFare: 215 },
+  { id: "albuera", name: "Albuera", distance: "135.7 km", baseFare: 245 },
+  { id: "ormoc", name: "Ormoc City", distance: "155.0 km", tag: "Terminus", baseFare: 275 },
+  { id: "sogod", name: "Sogod Terminal", distance: "155.0 km", tag: "Terminus", baseFare: 275 },
 ];
 
 export interface PassengerSeatRow {

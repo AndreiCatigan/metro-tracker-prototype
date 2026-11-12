@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import {
   Seat,
   SeatStatus,
@@ -11,6 +11,7 @@ import {
   BookingStatus,
   PassengerType,
   calculateFare,
+  CORRIDOR_STOPS,
 } from "./mockData";
 
 export type SimulatedTime = "9:00 AM" | "2:00 PM" | "4:00 PM";
@@ -24,6 +25,16 @@ export interface PassengerHail {
   status: "hailed" | "acknowledged" | "boarded";
   tier: "free" | "premium";
   etaAtHail?: string;
+}
+
+export interface WalkInSale {
+  id: string;
+  seatId: string;
+  destination: string;
+  baseFare: number;
+  discountType: "regular" | "discount";
+  finalFare: number;
+  timestamp: string;
 }
 
 export interface TicketDetails {
@@ -43,6 +54,8 @@ export interface TicketDetails {
   totalFare: number;
   paymentMethod: "GCash" | "Maya";
   passengerType: PassengerType;
+  isBoarded?: boolean;
+  boardedAt?: string;
 }
 
 interface AppContextType {
@@ -95,7 +108,16 @@ interface AppContextType {
   hailBus: (busId: string, location: string, etaAtHail?: string) => PassengerHail;
   cancelHail: (busId: string) => void;
   acknowledgeHail: (hailId: string) => void;
+  boardHail: (hailId: string) => void;
   getActiveHailForBus: (busId: string) => PassengerHail | undefined;
+  // Conductor Operations & Two-Way Sync
+  walkInSales: WalkInSale[];
+  recordWalkInSale: (sale: Omit<WalkInSale, "id" | "timestamp">) => WalkInSale;
+  validateTicketBoarding: (pnr: string) => boolean;
+  markNoShow: (seatNumber: string) => void;
+  currentBusStop: string;
+  setCurrentBusStop: (stop: string) => void;
+  advanceToNextStop: () => void;
 }
 
 const DEFAULT_TICKET: TicketDetails = {
@@ -141,6 +163,73 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [passengerHails, setPassengerHails] = useState<PassengerHail[]>([]);
+  const [walkInSales, setWalkInSales] = useState<WalkInSale[]>([]);
+  const [currentBusStop, setCurrentBusStop] = useState<string>("Baybay City Terminal");
+
+  // Hydrate from localStorage for multi-tab and reload sync between Conductor and Passenger apps
+  useEffect(() => {
+    try {
+      const savedTicket = localStorage.getItem("trackmetro_active_ticket");
+      if (savedTicket) setActiveTicket(JSON.parse(savedTicket));
+
+      const savedHails = localStorage.getItem("trackmetro_hails");
+      if (savedHails) setPassengerHails(JSON.parse(savedHails));
+
+      const savedSales = localStorage.getItem("trackmetro_walkin_sales");
+      if (savedSales) setWalkInSales(JSON.parse(savedSales));
+
+      const savedStop = localStorage.getItem("trackmetro_current_stop");
+      if (savedStop) setCurrentBusStop(savedStop);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Listen for storage events from other tabs (e.g. Passenger hailing in tab 1, Conductor seeing in tab 2)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      try {
+        if (e.key === "trackmetro_active_ticket" && e.newValue) {
+          setActiveTicket(JSON.parse(e.newValue));
+        } else if (e.key === "trackmetro_hails" && e.newValue) {
+          setPassengerHails(JSON.parse(e.newValue));
+        } else if (e.key === "trackmetro_walkin_sales" && e.newValue) {
+          setWalkInSales(JSON.parse(e.newValue));
+        } else if (e.key === "trackmetro_current_stop" && e.newValue) {
+          setCurrentBusStop(e.newValue);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  // Persist state updates to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_active_ticket", JSON.stringify(activeTicket));
+    } catch (e) {}
+  }, [activeTicket]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_hails", JSON.stringify(passengerHails));
+    } catch (e) {}
+  }, [passengerHails]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_walkin_sales", JSON.stringify(walkInSales));
+    } catch (e) {}
+  }, [walkInSales]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("trackmetro_current_stop", currentBusStop);
+    } catch (e) {}
+  }, [currentBusStop]);
 
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
@@ -311,9 +400,89 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const boardHail = useCallback((hailId: string) => {
+    setPassengerHails((prev) =>
+      prev.map((h) => (h.id === hailId ? { ...h, status: "boarded" as const } : h))
+    );
+  }, []);
+
   const getActiveHailForBus = useCallback((busId: string): PassengerHail | undefined => {
     return passengerHails.find((h) => h.busId === busId && h.status !== "boarded");
   }, [passengerHails]);
+
+  // Record a POS Walk-in cash ticket sale & automatically sync seat occupancy
+  const recordWalkInSale = useCallback(
+    (sale: Omit<WalkInSale, "id" | "timestamp">): WalkInSale => {
+      const newSale: WalkInSale = {
+        ...sale,
+        id: `POS-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setWalkInSales((prev) => [newSale, ...prev]);
+      // Mark seat as occupied
+      updateSeatStatus(sale.seatId, "occupied");
+      return newSale;
+    },
+    []
+  );
+
+  // Validate passenger E-ticket during conductor QR scan
+  const validateTicketBoarding = useCallback((pnr: string): boolean => {
+    let matched = false;
+    const cleanInput = pnr.replace(/\D/g, "");
+
+    setActiveTicket((prev) => {
+      const cleanTicketPNR = prev.pnr.replace(/\D/g, "");
+      if (cleanTicketPNR === cleanInput || prev.pnr === pnr || pnr.includes(cleanTicketPNR) || cleanTicketPNR.includes(pnr)) {
+        matched = true;
+        return {
+          ...prev,
+          isBoarded: true,
+          boardedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+      }
+      return prev;
+    });
+
+    setBookings((prev) =>
+      prev.map((b) => {
+        const cleanBookingPNR = b.pnr.replace(/\D/g, "");
+        if (cleanBookingPNR === cleanInput || b.pnr === pnr) {
+          matched = true;
+          return { ...b, status: "confirmed" as const };
+        }
+        return b;
+      })
+    );
+
+    return matched;
+  }, []);
+
+  // Mark seat as no-show and free it up
+  const markNoShow = useCallback((seatNumber: string) => {
+    updateSeatStatus(seatNumber, "available");
+    setActiveTicket((prev) =>
+      prev.seatNumber === seatNumber ? { ...prev, isBoarded: false } : prev
+    );
+  }, []);
+
+  // Conductor milestone progression along corridor
+  const advanceToNextStop = useCallback(() => {
+    const stopsList =
+      selectedDirection === "sogod-to-ormoc"
+        ? (CORRIDOR_STOPS as readonly string[])
+        : ([...CORRIDOR_STOPS].reverse() as readonly string[]);
+
+    setCurrentBusStop((prevStop) => {
+      const currentIndex = stopsList.findIndex(
+        (s) => s.toLowerCase() === prevStop.toLowerCase() || prevStop.toLowerCase().includes(s.toLowerCase())
+      );
+      if (currentIndex === -1 || currentIndex >= stopsList.length - 1) {
+        return stopsList[0]; // Reset or keep at terminus
+      }
+      return stopsList[currentIndex + 1];
+    });
+  }, [selectedDirection]);
 
   const stopAlert = useCallback(() => {
     setIsAlertActive(false);
@@ -361,7 +530,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         hailBus,
         cancelHail,
         acknowledgeHail,
+        boardHail,
         getActiveHailForBus,
+        walkInSales,
+        recordWalkInSale,
+        validateTicketBoarding,
+        markNoShow,
+        currentBusStop,
+        setCurrentBusStop,
+        advanceToNextStop,
       }}
     >
       {children}
