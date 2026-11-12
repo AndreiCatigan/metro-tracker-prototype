@@ -4,48 +4,14 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
-import { useAppContext, SimulatedTime } from "@/lib/AppContext";
-import { TRAVEL_TIMES_FROM_SOGOD } from "@/lib/mockData";
-import { calculateTripETA, parseTimeToMinutes } from "@/components/ScheduleList";
-
-interface DepartedBus {
-  id: string;
-  busNumber: string;
-  driverName: string;
-  departureTime: string;
-  terminal: string;
-  gate: string;
-  isAircon: boolean;
-  passengers: number;
-  capacity: number;
-  status: "en_route" | "arrived";
-  currentStop: string;
-  nextStop: string;
-  speed: string;
-  progressPercent: number;
-}
-
-// Same-day departures. Order/filtering mirrors generateAvailableTrips() in
-// app/booking/page.tsx so the `trip` id passed in the URL resolves to the same bus.
-const TODAY_DEPARTURES = [
-  { dep: "9:00 AM", bus: "DMS-056", aircon: true, seats: 7 },
-  { dep: "9:30 AM", bus: "DMS-057", aircon: true, seats: 21 },
-  { dep: "10:00 AM", bus: "DMS-058", aircon: false, seats: 34 },
-  { dep: "10:30 AM", bus: "DMS-059", aircon: true, seats: 45 },
-  { dep: "11:00 AM", bus: "DMS-060", aircon: true, seats: 45 },
-  { dep: "11:30 AM", bus: "DMS-061", aircon: false, seats: 45 },
-  { dep: "12:00 PM", bus: "DMS-062", aircon: true, seats: 45 },
-  { dep: "12:30 PM", bus: "DMS-063", aircon: true, seats: 45 },
-  { dep: "1:00 PM", bus: "DMS-064", aircon: false, seats: 45 },
-  { dep: "1:30 PM", bus: "DMS-065", aircon: true, seats: 45 },
-  { dep: "2:00 PM", bus: "DMS-066", aircon: true, seats: 8 },
-  { dep: "2:30 PM", bus: "DMS-067", aircon: false, seats: 24 },
-  { dep: "3:00 PM", bus: "DMS-068", aircon: true, seats: 40 },
-  { dep: "3:30 PM", bus: "DMS-069", aircon: true, seats: 45 },
-  { dep: "4:00 PM", bus: "DMS-070", aircon: false, seats: 11 },
-  { dep: "4:30 PM", bus: "DMS-071", aircon: true, seats: 29 },
-  { dep: "5:00 PM", bus: "DMS-072", aircon: false, seats: 45 },
-];
+import { useAppContext } from "@/lib/AppContext";
+import {
+  TRAVEL_TIMES_FROM_SOGOD,
+  getDepartedBuses,
+  parseTimeToMinutes,
+  calculateTripETA,
+  SCHEDULE_INTERVALS,
+} from "@/lib/data";
 
 export default function HomePage() {
   const router = useRouter();
@@ -67,118 +33,6 @@ export default function HomePage() {
     ? "sogod-ormoc"
     : "ormoc-sogod";
 
-  // Dynamic departed buses based on the active simulated time (9 AM, 2 PM, 4 PM)
-  const getDepartedBuses = (time: SimulatedTime): DepartedBus[] => {
-    switch (time) {
-      case "2:00 PM":
-        return [
-          {
-            id: "en_route_bus",
-            busNumber: "DMS-065",
-            driverName: "Kuya Benjie M.",
-            departureTime: "1:30 PM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 2",
-            isAircon: true,
-            passengers: 44,
-            capacity: 45,
-            status: "en_route",
-            currentStop: "Approaching Bato Junction",
-            nextStop: "Bato Terminal (~2:15 PM)",
-            speed: "54 km/h",
-            progressPercent: 36,
-          },
-          {
-            id: "arrived_bus",
-            busNumber: "DMS-060",
-            driverName: "Mang Mario R.",
-            departureTime: "11:00 AM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 1",
-            isAircon: true,
-            passengers: 45,
-            capacity: 45,
-            status: "arrived",
-            currentStop: "Ormoc City Port Terminal",
-            nextStop: "Arrived at Ormoc (1:45 PM)",
-            speed: "0 km/h (Docked)",
-            progressPercent: 100,
-          },
-        ];
-      case "4:00 PM":
-        return [
-          {
-            id: "en_route_bus",
-            busNumber: "DMS-069",
-            driverName: "Kuya Marlon D.",
-            departureTime: "3:30 PM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 1",
-            isAircon: true,
-            passengers: 45,
-            capacity: 45,
-            status: "en_route",
-            currentStop: "Highway 1 • Bato North",
-            nextStop: "Hilongos Terminal (~4:45 PM)",
-            speed: "51 km/h",
-            progressPercent: 42,
-          },
-          {
-            id: "arrived_bus",
-            busNumber: "DMS-064",
-            driverName: "Mang Ruben F.",
-            departureTime: "1:00 PM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 2",
-            isAircon: false,
-            passengers: 45,
-            capacity: 45,
-            status: "arrived",
-            currentStop: "Ormoc City Port Terminal",
-            nextStop: "Arrived at Ormoc (3:45 PM)",
-            speed: "0 km/h (Docked)",
-            progressPercent: 100,
-          },
-        ];
-      case "9:00 AM":
-      default:
-        return [
-          {
-            id: "en_route_bus",
-            busNumber: "DMS-055",
-            driverName: "Mang Danilo T.",
-            departureTime: "8:30 AM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 1",
-            isAircon: false,
-            passengers: 45,
-            capacity: 45,
-            status: "en_route",
-            currentStop: "Approaching Bato Junction",
-            nextStop: "Bato Terminal (~9:15 AM)",
-            speed: "52 km/h",
-            progressPercent: 35,
-          },
-          {
-            id: "arrived_bus",
-            busNumber: "DMS-050",
-            driverName: "Kuya Nestor V.",
-            departureTime: "6:00 AM",
-            terminal: "Sogod Terminal",
-            gate: "Bay 3",
-            isAircon: true,
-            passengers: 45,
-            capacity: 45,
-            status: "arrived",
-            currentStop: "Ormoc City Port Terminal",
-            nextStop: "Arrived at Ormoc (8:45 AM)",
-            speed: "0 km/h (Docked)",
-            progressPercent: 100,
-          },
-        ];
-    }
-  };
-
   const allDepartedBuses = getDepartedBuses(simulatedTime);
   // Home only shows a summary of buses that are currently en route
   const enRouteBuses = allDepartedBuses.filter((b) => b.status === "en_route");
@@ -186,10 +40,13 @@ export default function HomePage() {
 
   // Upcoming same-day departures the passenger can choose from
   const currentMinutes = parseTimeToMinutes(simulatedTime);
-  const availableTrips = TODAY_DEPARTURES.filter(
+  const availableTrips = SCHEDULE_INTERVALS.filter(
     (t) => parseTimeToMinutes(t.dep) >= currentMinutes
   ).map((t, idx) => ({
-    ...t,
+    dep: t.dep,
+    bus: `DMS-0${t.num}`,
+    aircon: t.aircon,
+    seats: idx === 0 ? 7 : idx === 1 ? 21 : idx === 2 ? 34 : 45,
     tripId: `${direction}-trip-${idx + 1}`,
     status:
       parseTimeToMinutes(t.dep) === currentMinutes

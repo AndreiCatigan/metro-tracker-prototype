@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { POS_ROUTE_STOPS } from "@/lib/data";
 
 function PosContent() {
   const router = useRouter();
@@ -10,22 +11,7 @@ function PosContent() {
   const seatId = searchParams.get("seat") || "15";
   const { busDetails, updateSeatStatus } = useAppContext();
 
-  interface RouteStop {
-    id: string;
-    name: string;
-    distance: string;
-    tag?: string;
-    baseFare: number;
-  }
-
-  const routeStops: RouteStop[] = [
-    { id: "baybay", name: "Baybay", distance: "24.8 km", tag: "Dropoff", baseFare: 50 },
-    { id: "inopacan", name: "Inopacan", distance: "18.2 km", baseFare: 40 },
-    { id: "hindang", name: "Hindang", distance: "12.5 km", baseFare: 30 },
-    { id: "hilongos", name: "Hilongos", distance: "31.0 km", baseFare: 65 },
-    { id: "bato", name: "Bato", distance: "39.4 km", baseFare: 80 },
-    { id: "albuera", name: "Albuera", distance: "48.7 km", baseFare: 95 },
-  ];
+  const routeStops = POS_ROUTE_STOPS;
 
   const [selectedStopId, setSelectedStopId] = useState("baybay");
   const [discountType, setDiscountType] = useState<"regular" | "discount">("regular");

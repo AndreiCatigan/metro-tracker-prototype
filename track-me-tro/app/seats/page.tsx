@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { PASSENGER_SEAT_ROWS, DEFAULT_OCCUPIED_SEAT_IDS } from "@/lib/data";
 
 export default function SelectSeatPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function SelectSeatPage() {
   } = useAppContext();
 
   // Preset mock occupancy matching Image 4
-  const occupiedSeatIds = new Set(["1", "2", "8", "9", "15", "17", "23", "24"]);
+  const occupiedSeatIds = new Set(DEFAULT_OCCUPIED_SEAT_IDS);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -37,14 +38,7 @@ export default function SelectSeatPage() {
   };
 
   // 6 rows of 4 seats (24 seats total matching Image 4)
-  const seatRows = [
-    { rowNum: 1, seats: ["1", "2", "3", "4"], arrow: "↓" },
-    { rowNum: 2, seats: ["5", "6", "7", "8"], arrow: "↕" },
-    { rowNum: 3, seats: ["9", "10", "11", "12"], arrow: "↕" },
-    { rowNum: 4, seats: ["13", "14", "15", "16"], arrow: "↕" },
-    { rowNum: 5, seats: ["17", "18", "19", "20"], arrow: "↕" },
-    { rowNum: 6, seats: ["21", "22", "23", "24"], arrow: "↕" },
-  ];
+  const seatRows = PASSENGER_SEAT_ROWS;
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">

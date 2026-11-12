@@ -2,93 +2,13 @@
 
 import React, { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAppContext, SimulatedTime } from "@/lib/AppContext";
-import { PassengerType, calculateFare, TRAVEL_TIMES_FROM_SOGOD, TRAVEL_TIMES_FROM_ORMOC } from "@/lib/mockData";
-import { parseTimeToMinutes, calculateTripETA } from "@/components/ScheduleList";
-
-// Generate available trips for booking based on active simulated time
-interface AvailableTrip {
-  id: string;
-  busNumber: string;
-  departureTime: string;
-  terminalArrival: string;
-  isAircon: boolean;
-  driverName: string;
-  availableSeats: number;
-  capacity: number;
-  status: "boarding" | "in_queue" | "scheduled";
-  etaAtDestination: string;
-  direction: "sogod-ormoc" | "ormoc-sogod";
-}
-
-function generateAvailableTrips(
-  direction: "sogod-ormoc" | "ormoc-sogod",
-  simulatedTime: SimulatedTime
-): AvailableTrip[] {
-  const driverNames = [
-    "Kuya Rolly B.", "Mang Danilo T.", "Kuya Edmar P.", "Kuya Nestor V.",
-    "Mang Crisanto L.", "Kuya Benjie M.", "Kuya Arnel S.",
-  ];
-
-  const allPossibleTrips = [
-    { arr: "8:30 AM", dep: "9:00 AM", num: 56, aircon: true, avail: 7 },
-    { arr: "9:00 AM", dep: "9:30 AM", num: 57, aircon: true, avail: 21 },
-    { arr: "9:30 AM", dep: "10:00 AM", num: 58, aircon: false, avail: 34 },
-    { arr: "10:00 AM", dep: "10:30 AM", num: 59, aircon: true, avail: 45 },
-    { arr: "10:30 AM", dep: "11:00 AM", num: 60, aircon: true, avail: 45 },
-    { arr: "11:00 AM", dep: "11:30 AM", num: 61, aircon: false, avail: 45 },
-    { arr: "11:30 AM", dep: "12:00 PM", num: 62, aircon: true, avail: 45 },
-    { arr: "12:00 PM", dep: "12:30 PM", num: 63, aircon: true, avail: 45 },
-    { arr: "12:30 PM", dep: "1:00 PM", num: 64, aircon: false, avail: 45 },
-    { arr: "1:00 PM", dep: "1:30 PM", num: 65, aircon: true, avail: 45 },
-    { arr: "1:30 PM", dep: "2:00 PM", num: 66, aircon: true, avail: 8 },
-    { arr: "2:00 PM", dep: "2:30 PM", num: 67, aircon: false, avail: 24 },
-    { arr: "2:30 PM", dep: "3:00 PM", num: 68, aircon: true, avail: 40 },
-    { arr: "3:00 PM", dep: "3:30 PM", num: 69, aircon: true, avail: 45 },
-    { arr: "3:30 PM", dep: "4:00 PM", num: 70, aircon: false, avail: 11 },
-    { arr: "4:00 PM", dep: "4:30 PM", num: 71, aircon: true, avail: 29 },
-    { arr: "4:30 PM", dep: "5:00 PM", num: 72, aircon: false, avail: 45 },
-  ];
-
-  const currentMinutes = parseTimeToMinutes(simulatedTime);
-  const travelMinutes = direction === "sogod-ormoc"
-    ? (TRAVEL_TIMES_FROM_SOGOD["Ormoc City Terminal"] ?? 165)
-    : (TRAVEL_TIMES_FROM_ORMOC["Sogod Terminal"] ?? 165);
-
-  // Filter only trips that are at or after simulatedTime
-  const validTrips = allPossibleTrips.filter((t) => {
-    const depM = parseTimeToMinutes(t.dep);
-    return depM >= currentMinutes;
-  });
-
-  return validTrips.map((t, idx) => {
-    const depM = parseTimeToMinutes(t.dep);
-    let status: "boarding" | "in_queue" | "scheduled";
-    if (depM === currentMinutes) {
-      status = "boarding";
-    } else if (depM - currentMinutes <= 30) {
-      status = "in_queue";
-    } else {
-      status = "scheduled";
-    }
-
-    const etaStr = calculateTripETA(t.dep, travelMinutes);
-
-    return {
-      id: `${direction}-trip-${idx + 1}`,
-      busNumber: `DMS-0${t.num}`,
-      departureTime: t.dep,
-      terminalArrival: t.arr,
-      isAircon: t.aircon,
-      driverName: driverNames[idx % driverNames.length],
-      availableSeats: t.avail,
-      capacity: 45,
-      status,
-      etaAtDestination: etaStr,
-      direction,
-    };
-  });
-}
+import { useAppContext } from "@/lib/AppContext";
+import {
+  PassengerType,
+  calculateFare,
+  generateAvailableBookingTrips,
+  AvailableBookingTrip as AvailableTrip,
+} from "@/lib/data";
 
 function BookingContent() {
   const router = useRouter();
@@ -106,7 +26,7 @@ function BookingContent() {
   const [step, setStep] = useState<1 | 2>(preselectedTripId ? 2 : 1);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const trips = useMemo(() => generateAvailableTrips(direction, simulatedTime), [direction, simulatedTime]);
+  const trips = useMemo(() => generateAvailableBookingTrips(direction, simulatedTime), [direction, simulatedTime]);
   const selectedTrip = useMemo(() => trips.find((t) => t.id === selectedTripId), [trips, selectedTripId]);
 
   const fare = useMemo(

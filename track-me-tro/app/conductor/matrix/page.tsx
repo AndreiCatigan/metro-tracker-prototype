@@ -3,15 +3,11 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
-
-interface SeatData {
-  id: string;
-  type: "on_board" | "app_reserved" | "available";
-  label: string; // e.g. "J.D.", "#APP02", "VACANT"
-  col: "A" | "B" | "C" | "D";
-  row: string;
-  isWindow?: boolean;
-}
+import {
+  BASE_CABIN_SEATS,
+  BASE_REAR_BENCH_SEATS,
+  type ConductorSeatData,
+} from "@/lib/data";
 
 export default function ConductorMatrixPage() {
   const router = useRouter();
@@ -30,53 +26,10 @@ export default function ConductorMatrixPage() {
   };
 
   // Cabin layout with live sync to activeTicket and any confirmed bookings
-  const seatsState = useMemo<SeatData[]>(() => {
-    const base: SeatData[] = [
-      // Row 1
-      { id: "01", type: "on_board", label: "J.D.", col: "A", row: "R1", isWindow: true },
-      { id: "02", type: "on_board", label: "M.A.", col: "B", row: "R1" },
-      { id: "03", type: "app_reserved", label: "#APP02", col: "C", row: "R1" },
-      { id: "04", type: "app_reserved", label: "#APP03", col: "D", row: "R1", isWindow: true },
-
-      // Row 2
-      { id: "05", type: "on_board", label: "R.P.", col: "A", row: "R2", isWindow: true },
-      { id: "06", type: "on_board", label: "L.V.", col: "B", row: "R2" },
-      { id: "07", type: "available", label: "VACANT", col: "C", row: "R2" },
-      { id: "08", type: "app_reserved", label: "#APP14", col: "D", row: "R2", isWindow: true },
-
-      // Row 3
-      { id: "09", type: "available", label: "VACANT", col: "A", row: "R3", isWindow: true },
-      { id: "10", type: "available", label: "VACANT", col: "B", row: "R3" },
-      { id: "11", type: "on_board", label: "C.O.", col: "C", row: "R3" },
-      { id: "12", type: "on_board", label: "S.T.", col: "D", row: "R3", isWindow: true },
-
-      // Row 4
-      { id: "13", type: "app_reserved", label: "#APP90", col: "A", row: "R4", isWindow: true },
-      { id: "14", type: "app_reserved", label: "#APP91", col: "B", row: "R4" },
-      { id: "15", type: "available", label: "WIN", col: "C", row: "R4" },
-      { id: "16", type: "available", label: "VACANT", col: "D", row: "R4", isWindow: true },
-
-      // Row 5
-      { id: "17", type: "on_board", label: "G.L.", col: "A", row: "R5", isWindow: true },
-      { id: "18", type: "on_board", label: "A.N.", col: "B", row: "R5" },
-      { id: "19", type: "app_reserved", label: "#APP45", col: "C", row: "R5" },
-      { id: "20", type: "available", label: "VACANT", col: "D", row: "R5", isWindow: true },
-
-      // Row 6
-      { id: "21", type: "available", label: "VACANT", col: "A", row: "R6", isWindow: true },
-      { id: "22", type: "available", label: "VACANT", col: "B", row: "R6" },
-      { id: "23", type: "on_board", label: "W.E.", col: "C", row: "R6" },
-      { id: "24", type: "on_board", label: "K.L.", col: "D", row: "R6", isWindow: true },
-
-      // Row 7
-      { id: "25", type: "app_reserved", label: "#APP02", col: "A", row: "R7", isWindow: true },
-      { id: "26", type: "app_reserved", label: "#APP03", col: "B", row: "R7" },
-      { id: "27", type: "available", label: "VACANT", col: "C", row: "R7" },
-      { id: "28", type: "available", label: "VACANT", col: "D", row: "R7", isWindow: true },
-    ];
+  const seatsState = useMemo<ConductorSeatData[]>(() => {
+    let updated = [...BASE_CABIN_SEATS];
 
     // Overlay active ticket seat
-    let updated = base;
     if (activeTicket?.seatNumber) {
       const padded = activeTicket.seatNumber.padStart(2, "0");
       updated = updated.map((s) =>
@@ -98,13 +51,7 @@ export default function ConductorMatrixPage() {
   }, [activeTicket, bookings]);
 
   // Rear 5 bench seats
-  const rearBench: SeatData[] = [
-    { id: "41", type: "on_board", label: "P.M.", col: "A", row: "REAR" },
-    { id: "42", type: "on_board", label: "T.Y.", col: "B", row: "REAR" },
-    { id: "43", type: "app_reserved", label: "#APP", col: "C", row: "REAR" },
-    { id: "44", type: "app_reserved", label: "#APP", col: "D", row: "REAR" },
-    { id: "45", type: "available", label: "VAC", col: "D", row: "REAR" },
-  ];
+  const rearBench = BASE_REAR_BENCH_SEATS;
 
   const rows = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"];
 
@@ -112,7 +59,7 @@ export default function ConductorMatrixPage() {
     seatsState.find((s) => s.id === selectedSeatId) ||
     rearBench.find((s) => s.id === selectedSeatId);
 
-  const handleSeatClick = (seat: SeatData) => {
+  const handleSeatClick = (seat: ConductorSeatData) => {
     setSelectedSeatId(seat.id);
   };
 
@@ -317,7 +264,7 @@ export default function ConductorMatrixPage() {
               const seatC = rowSeats.find((s) => s.col === "C");
               const seatD = rowSeats.find((s) => s.col === "D");
 
-              const renderSeat = (seat?: SeatData) => {
+              const renderSeat = (seat?: ConductorSeatData) => {
                 if (!seat) return <div className="w-12 h-10" />;
 
                 const isSelected = selectedSeatId === seat.id;

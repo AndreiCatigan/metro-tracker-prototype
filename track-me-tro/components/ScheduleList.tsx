@@ -2,176 +2,18 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAppContext, SimulatedTime } from "@/lib/AppContext";
-import { TRAVEL_TIMES_FROM_SOGOD, TRAVEL_TIMES_FROM_ORMOC } from "@/lib/mockData";
+import { useAppContext } from "@/lib/AppContext";
+import {
+  TRAVEL_TIMES_FROM_SOGOD,
+  TRAVEL_TIMES_FROM_ORMOC,
+  generateScheduleTrips as generateTrips,
+  calculateTripETA,
+  parseTimeToMinutes,
+  BusTrip,
+} from "@/lib/data";
 
-export interface BusTrip {
-  id: string;
-  tripNum: number;
-  terminalArrival: string; // e.g. "4:00 AM"
-  departureTime: string;   // e.g. "4:30 AM"
-  busNumber: string;       // e.g. "DMS-048"
-  isAircon: boolean;       // true = Airconditioned (green), false = Non-Aircon (red)
-  driverName: string;      // e.g. "Kuya Rolly B."
-  passengersOnBoard: number;
-  capacity: number;
-  status: "arrived" | "departed" | "boarding" | "in_queue" | "scheduled";
-  locationDesc: string;
-  isDetailed: boolean;
-  gate: string;
-}
-
-// Convert "4:30 AM" or "2:00 PM" into minutes from midnight
-export function parseTimeToMinutes(timeStr: string): number {
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return 0;
-  let hour = parseInt(match[1], 10);
-  const min = parseInt(match[2], 10);
-  const period = match[3].toUpperCase();
-
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-
-  return hour * 60 + min;
-}
-
-// Compute ETA given a departure time string ("1:00 PM") and travel minutes (e.g. 115)
-export function calculateTripETA(depTimeStr: string, travelMinutes: number): string {
-  const totalMin = parseTimeToMinutes(depTimeStr) + travelMinutes;
-  const newHour24 = Math.floor(totalMin / 60) % 24;
-  const newMin = totalMin % 60;
-
-  const finalPeriod = newHour24 >= 12 ? "PM" : "AM";
-  const finalHour = newHour24 % 12 || 12;
-  const finalMinStr = newMin.toString().padStart(2, "0");
-
-  return `${finalHour}:${finalMinStr} ${finalPeriod}`;
-}
-
-// Generate trips dynamically based on direction and the active simulated time (9 AM, 2 PM, 4 PM)
-function generateTrips(
-  direction: "sogod-ormoc" | "ormoc-sogod",
-  simulatedTime: SimulatedTime
-): BusTrip[] {
-  const driverNames = [
-    "Kuya Rolly B.",
-    "Mang Danilo T.",
-    "Kuya Edmar P.",
-    "Kuya Nestor V.",
-    "Mang Crisanto L.",
-    "Kuya Benjie M.",
-    "Kuya Arnel S.",
-    "Kuya Marlon D.",
-    "Mang Ruben F.",
-    "Kuya Noel G.",
-    "Kuya Gerald T.",
-    "Mang Mario R.",
-  ];
-
-  const intervals = [
-    { arr: "4:00 AM", dep: "4:30 AM", num: 47, aircon: true },
-    { arr: "4:30 AM", dep: "5:00 AM", num: 48, aircon: true },
-    { arr: "5:00 AM", dep: "5:30 AM", num: 49, aircon: false },
-    { arr: "5:30 AM", dep: "6:00 AM", num: 50, aircon: true },
-    { arr: "6:00 AM", dep: "6:30 AM", num: 51, aircon: true },
-    { arr: "6:30 AM", dep: "7:00 AM", num: 52, aircon: false },
-    { arr: "7:00 AM", dep: "7:30 AM", num: 53, aircon: true },
-    { arr: "7:30 AM", dep: "8:00 AM", num: 54, aircon: true },
-    { arr: "8:00 AM", dep: "8:30 AM", num: 55, aircon: false },
-    { arr: "8:30 AM", dep: "9:00 AM", num: 56, aircon: true },
-    { arr: "9:00 AM", dep: "9:30 AM", num: 57, aircon: true },
-    { arr: "9:30 AM", dep: "10:00 AM", num: 58, aircon: false },
-    { arr: "10:00 AM", dep: "10:30 AM", num: 59, aircon: true },
-    { arr: "10:30 AM", dep: "11:00 AM", num: 60, aircon: true },
-    { arr: "11:00 AM", dep: "11:30 AM", num: 61, aircon: false },
-    { arr: "11:30 AM", dep: "12:00 PM", num: 62, aircon: true },
-    { arr: "12:00 PM", dep: "12:30 PM", num: 63, aircon: true },
-    { arr: "12:30 PM", dep: "1:00 PM", num: 64, aircon: false },
-    { arr: "1:00 PM", dep: "1:30 PM", num: 65, aircon: true },
-    { arr: "1:30 PM", dep: "2:00 PM", num: 66, aircon: true },
-    { arr: "2:00 PM", dep: "2:30 PM", num: 67, aircon: false },
-    { arr: "2:30 PM", dep: "3:00 PM", num: 68, aircon: true },
-    { arr: "3:00 PM", dep: "3:30 PM", num: 69, aircon: true },
-    { arr: "3:30 PM", dep: "4:00 PM", num: 70, aircon: false },
-    { arr: "4:00 PM", dep: "4:30 PM", num: 71, aircon: true },
-    { arr: "4:30 PM", dep: "5:00 PM", num: 72, aircon: false },
-  ];
-
-  const currentMinutes = parseTimeToMinutes(simulatedTime);
-  const destName = direction === "sogod-ormoc" ? "Ormoc" : "Sogod";
-
-  return intervals.map((item, idx) => {
-    const depMins = parseTimeToMinutes(item.dep);
-    const arrMins = depMins + 165; // ~2h 45m travel time
-
-    let status: BusTrip["status"];
-    let locationDesc = "";
-    let passengersOnBoard = 0;
-    let isDetailed = false;
-
-    if (currentMinutes >= arrMins) {
-      // Has already arrived at the destination terminal
-      status = "arrived";
-      locationDesc = `Arrived at ${destName} Terminal`;
-      passengersOnBoard = 45;
-      isDetailed = false;
-    } else if (currentMinutes > depMins) {
-      // Currently on the road
-      status = "departed";
-      const elapsed = currentMinutes - depMins;
-      if (elapsed < 45) {
-        locationDesc = "En Route • Approaching Bato";
-      } else if (elapsed < 75) {
-        locationDesc = "En Route • Approaching Hilongos";
-      } else if (elapsed < 115) {
-        locationDesc = "En Route • Passing Baybay / VSU";
-      } else if (elapsed < 145) {
-        locationDesc = "En Route • Approaching Inopacan";
-      } else {
-        locationDesc = `En Route • Approaching ${destName}`;
-      }
-      passengersOnBoard = 42 + (idx % 4);
-      // Give detail to the most recently departed bus
-      isDetailed = currentMinutes - depMins <= 30;
-    } else if (currentMinutes === depMins || (depMins - currentMinutes <= 30 && depMins >= currentMinutes)) {
-      // Boarding at terminal right now!
-      status = "boarding";
-      locationDesc = "Terminal Bay 2 • Boarding Passengers";
-      passengersOnBoard = 38;
-      isDetailed = true;
-    } else if (depMins - currentMinutes <= 60) {
-      // In Queue for the next departure
-      status = "in_queue";
-      locationDesc = "Terminal Bay 3 • In Queue";
-      passengersOnBoard = 12;
-      isDetailed = true;
-    } else {
-      // Future scheduled trip
-      status = "scheduled";
-      locationDesc = "Scheduled Corridor Trip";
-      passengersOnBoard = 0;
-      isDetailed = false;
-    }
-
-    const gateIndex = (idx % 4) + 1;
-
-    return {
-      id: `${direction}-${idx + 1}`,
-      tripNum: idx + 1,
-      terminalArrival: item.arr,
-      departureTime: item.dep,
-      busNumber: `DMS-0${item.num}`,
-      isAircon: item.aircon,
-      driverName: driverNames[idx % driverNames.length],
-      passengersOnBoard,
-      capacity: 45,
-      status,
-      locationDesc,
-      isDetailed,
-      gate: `Bay ${gateIndex}`,
-    };
-  });
-}
+// Re-export for backward compatibility
+export { calculateTripETA, parseTimeToMinutes, type BusTrip };
 
 interface ScheduleListProps {
   initialDirection?: "sogod-ormoc" | "ormoc-sogod";
