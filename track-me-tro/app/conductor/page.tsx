@@ -457,42 +457,18 @@ export default function ConductorHomePage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-1 items-end">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => router.push("/conductor/map")}
-                className="px-2.5 py-1 rounded-lg bg-orange-50 text-[#F95700] hover:bg-orange-100 border border-orange-200 active:scale-95 transition text-[10px] font-black flex items-center gap-1 cursor-pointer"
-                title="View Passenger Pings Map"
-              >
-                <span className="material-symbols-outlined text-[13px]">map</span>
-                <span>Hail Map</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  advanceToNextStop();
-                  showToast(`Bus location updated: Approaching ${currentBusStop}`);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[10px] font-black flex items-center gap-1 cursor-pointer"
-                title="Advance Bus Stop"
-              >
-                <span className="material-symbols-outlined text-[12px]">fast_forward</span>
-                <span>Next Stop</span>
-              </button>
-            </div>
-
+          <div className="flex items-center">
             <button
               type="button"
               onClick={() => {
-                const nextDir = selectedDirection === "sogod-to-ormoc" ? "ormoc-to-sogod" : "sogod-to-ormoc";
-                setSelectedDirection(nextDir);
-                showToast(`Route direction switched to: ${nextDir === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}`);
+                advanceToNextStop();
+                showToast(`Bus location updated: Approaching ${currentBusStop}`);
               }}
-              className="text-[10px] text-slate-600 hover:text-slate-900 font-bold underline cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFD9BC] active:scale-95 transition text-[11px] font-black flex items-center gap-1 cursor-pointer shadow-2xs"
+              title="Advance Bus Stop"
             >
-              Switch Direction
+              <span className="material-symbols-outlined text-[13px]">fast_forward</span>
+              <span>Next Stop</span>
             </button>
           </div>
         </section>
