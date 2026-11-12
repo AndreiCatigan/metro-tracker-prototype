@@ -7,7 +7,12 @@ import { useAppContext } from "@/lib/AppContext";
 
 export default function BottomNavigation() {
   const pathname = usePathname();
-  const { selectedDirection } = useAppContext();
+  const { selectedDirection, isModalOpen } = useAppContext();
+
+  // Hide the entire bottom navigation whenever a modal or popup is open
+  if (isModalOpen) {
+    return null;
+  }
 
   const navItems = [
     { label: "Home", href: "/home", icon: "home" },
@@ -17,7 +22,7 @@ export default function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+    <div className="fixed bottom-3 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
       <nav
         className="w-full max-w-[380px] bg-[#181C24] text-white rounded-full py-2 px-3 shadow-[0_8px_30px_rgba(0,0,0,0.3)] flex items-center justify-around pointer-events-auto border border-white/10"
         aria-label="Main Navigation"

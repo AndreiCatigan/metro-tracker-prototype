@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext, SimulatedTime } from "@/lib/AppContext";
 import { CORRIDOR_STOPS, TRAVEL_TIMES_FROM_SOGOD } from "@/lib/mockData";
 import BottomNavigation from "@/components/BottomNavigation";
+import MetroPlusModal from "@/components/MetroPlusModal";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -15,8 +16,11 @@ export default function ProfilePage() {
     setUserLocation,
     simulatedTime,
     setSimulatedTime,
+    isPremium,
+    setIsPremium,
   } = useAppContext();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -78,18 +82,40 @@ export default function ProfilePage() {
             <p className="text-[11px] font-medium text-slate-500">
               juana.delacruz@gmail.com • 0922 333 4444
             </p>
+
+            {/* ── User Membership Status Badge (Free tier vs MEtro+) ── */}
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowMetroPlusModal(true)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-2xs ${
+                  isPremium
+                    ? "bg-gradient-to-r from-amber-500 via-[#F95700] to-amber-600 text-white shadow-[0_2px_10px_rgba(249,87,0,0.3)] ring-2 ring-amber-300/40"
+                    : "bg-[#ECEEF0] text-slate-600 border border-slate-300/80 hover:bg-slate-200"
+                }`}
+                title="Tap to view membership perks"
+              >
+                <span>{isPremium ? "👑" : "👤"}</span>
+                <span>{isPremium ? "MEtro+ Member" : "Free Tier Commuter"}</span>
+                <span className="material-symbols-outlined text-[13px] opacity-75">
+                  info
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ── Explore Premium CTA ── */}
+        {/* ── Explore Premium CTA / MEtro+ Membership Hub ── */}
         <button
           type="button"
-          onClick={() =>
-            showToast("track MEtro VIP: Unlimited seat reservations with zero convenience fee!")
-          }
-          className="w-full py-3.5 px-4 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-black text-[14px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+          onClick={() => setShowMetroPlusModal(true)}
+          className={`w-full py-3.5 px-4 rounded-full font-black text-[14px] shadow-md transition active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer ${
+            isPremium
+              ? "bg-[#181C24] hover:bg-black text-white"
+              : "bg-[#F95700] hover:bg-[#E04E00] text-white"
+          }`}
         >
-          <span>Explore Premium</span>
+          <span>{isPremium ? "Manage MEtro+ Perks" : "Explore Premium"}</span>
           <span className="text-[16px]">👑</span>
         </button>
 
@@ -269,8 +295,55 @@ export default function ProfilePage() {
               })}
             </select>
           </div>
+
+          {/* 4. Membership Tier Toggle (Free vs MEtro+) */}
+          <div className="space-y-1.5 pt-0.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-slate-600">Simulate Membership Tier:</span>
+              <span className="font-black text-[#A53700]">
+                {isPremium ? "MEtro+ Premium" : "Free Tier"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 bg-white p-1 rounded-2xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPremium(false);
+                  showToast("Switched to Free Tier commuter status.");
+                }}
+                className={`py-2 px-2 rounded-xl text-[12px] font-black transition cursor-pointer text-center ${
+                  !isPremium
+                    ? "bg-[#181C24] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Free Tier
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPremium(true);
+                  showToast("Switched to MEtro+ VIP membership active!");
+                }}
+                className={`py-2 px-2 rounded-xl text-[12px] font-black transition cursor-pointer text-center flex items-center justify-center gap-1 ${
+                  isPremium
+                    ? "bg-[#F95700] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <span>👑</span>
+                <span>MEtro+ Active</span>
+              </button>
+            </div>
+          </div>
         </section>
       </main>
+
+      {/* ── MEtro+ Premium Perks Popup Modal ── */}
+      <MetroPlusModal
+        isOpen={showMetroPlusModal}
+        onClose={() => setShowMetroPlusModal(false)}
+      />
 
       {/* ── Floating Navigation Dock ── */}
       <BottomNavigation />

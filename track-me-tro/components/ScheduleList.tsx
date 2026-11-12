@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import MetroPlusModal from "@/components/MetroPlusModal";
 import {
   TRAVEL_TIMES_FROM_SOGOD,
   TRAVEL_TIMES_FROM_ORMOC,
@@ -28,13 +29,20 @@ export default function ScheduleList({
   onBookClick,
 }: ScheduleListProps) {
   const router = useRouter();
-  const { userLocation, simulatedTime, selectedDirection, setSelectedDirection } = useAppContext();
+  const {
+    userLocation,
+    simulatedTime,
+    selectedDirection,
+    setSelectedDirection,
+    isPremium,
+  } = useAppContext();
   const fallbackDir = selectedDirection === "sogod-to-ormoc" ? "sogod-ormoc" : "ormoc-sogod";
   const [direction, setDirection] = useState<"sogod-ormoc" | "ormoc-sogod">(
     initialDirection || fallbackDir
   );
   const [filter, setFilter] = useState<ScheduleFilter>("all_active");
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
+  const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
 
   const travelMinutes =
     direction === "sogod-ormoc"
@@ -68,6 +76,10 @@ export default function ScheduleList({
   const destName = direction === "sogod-ormoc" ? "Ormoc" : "Sogod";
 
   const handleBook = (trip: BusTrip) => {
+    if (!isPremium) {
+      setShowMetroPlusModal(true);
+      return;
+    }
     if (onBookClick) {
       onBookClick(trip);
     } else {
@@ -295,20 +307,25 @@ export default function ScheduleList({
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="text-[14px] font-black text-[#191C1E]">
-                          {trip.busNumber}
+                          {isPremium ? trip.busNumber : `Trip #${trip.tripNum} • ${trip.departureTime}`}
                         </h4>
-                        {trip.isAircon ? (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded-full text-[9px] font-black">
-                            Aircon
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.2 rounded-full text-[9px] font-black">
-                            Non-Air
-                          </span>
+                        {isPremium && (
+                          trip.isAircon ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded-full text-[9px] font-black">
+                              Aircon
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.2 rounded-full text-[9px] font-black">
+                              Non-Air
+                            </span>
+                          )
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        Driver: <span className="text-slate-700 font-bold">{trip.driverName}</span>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        {isPremium ? (
+                          <>Driver: <span className="text-slate-700 font-bold">{trip.driverName}</span> • </>
+                        ) : null}
+                        <span>{trip.locationDesc}</span>
                       </p>
                     </div>
                   </div>
@@ -376,8 +393,91 @@ export default function ScheduleList({
             );
           })}
 
-        {/* ── RENDER ACTIVE TRIPS (All Active, Aircon, Non-Aircon) ── */}
-        {filter !== "arrived" &&
+        {/* ── FREE TIER SCHEDULE CARDS (Clean timetable: Departure time, Route, Status, and calculated ETA to user location) ── */}
+        {filter !== "arrived" && !isPremium &&
+          displayedTrips.map((trip) => {
+            const tripETA = calculateTripETA(trip.departureTime, travelMinutes);
+            const isDeparted = trip.status === "departed";
+            const isBoarding = trip.status === "boarding";
+
+            return (
+              <div
+                key={trip.id}
+                className="bg-white rounded-2xl p-4 shadow-2xs border border-[#ECEEF0] space-y-3 transition hover:shadow-sm"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#181C24] text-white font-black text-xs flex items-center justify-center shrink-0">
+                      {trip.tripNum}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[16px] font-black text-[#191C1E]">
+                          {trip.departureTime}
+                        </span>
+                        <span className="text-[11px] font-bold text-slate-500">
+                          {originName} ➔ {destName}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        {isDeparted
+                          ? `Departed ${trip.departureTime} • ${trip.locationDesc}`
+                          : isBoarding
+                          ? `Boarding at ${originName} Terminal`
+                          : trip.status === "in_queue"
+                          ? `In Queue at ${originName} Terminal`
+                          : `Scheduled Regional Trip`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    {getStatusBadge(trip)}
+                  </div>
+                </div>
+
+                {/* ETA at Commuter Location */}
+                <div className="bg-[#F7F9FB] rounded-xl p-2.5 border border-[#ECEEF0] flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
+                    <span className="material-symbols-outlined text-[15px] text-[#F95700]">schedule</span>
+                    <span>Estimated Arrival at {userLocation}:</span>
+                  </div>
+                  <span className="text-[13px] font-black text-[#A53700]">{tripETA}</span>
+                </div>
+
+                {/* Quick Link to Map for en route or boarding buses */}
+                {(isDeparted || isBoarding) && (
+                  <div className="flex items-center justify-between pt-0.5 border-t border-slate-100">
+                    <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Live GPS Signal Broadcasting</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/map?direction=${
+                            direction === "sogod-ormoc"
+                              ? "sogod-to-ormoc"
+                              : "ormoc-to-sogod"
+                          }`
+                        )
+                      }
+                      className="py-1 px-3 rounded-full bg-[#181C24] hover:bg-black text-white font-bold text-[11px] shadow-2xs transition active:scale-95 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[13px] text-[#F95700]">
+                        near_me
+                      </span>
+                      <span>Track on Map</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+        {/* ── PREMIUM TIER (METRO+) EXPANDABLE TELEMETRY CARDS ── */}
+        {filter !== "arrived" && isPremium &&
           displayedTrips.map((trip) => {
             const isSelectedOrActive = trip.isDetailed || expandedTripId === trip.id;
             const tripETA = calculateTripETA(trip.departureTime, travelMinutes);
@@ -399,8 +499,8 @@ export default function ScheduleList({
                         <h4 className="text-[15px] font-black text-[#191C1E]">
                           {trip.busNumber}
                         </h4>
-                        <p className="text-[10px] text-slate-400 font-semibold">
-                          Driver: <span className="text-slate-700 font-bold">{trip.driverName}</span>
+                        <p className="text-[10px] font-semibold text-slate-700">
+                          Driver: <span className="font-bold">{trip.driverName}</span>
                         </p>
                       </div>
                     </div>
@@ -477,9 +577,7 @@ export default function ScheduleList({
                     <div className="w-full h-2 bg-[#ECEEF0] rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          trip.passengersOnBoard > 35
-                            ? "bg-[#F95700]"
-                            : "bg-emerald-500"
+                          trip.passengersOnBoard > 35 ? "bg-[#F95700]" : "bg-emerald-500"
                         }`}
                         style={{ width: `${(trip.passengersOnBoard / trip.capacity) * 100}%` }}
                       />
@@ -491,15 +589,17 @@ export default function ScheduleList({
                     <button
                       type="button"
                       onClick={() => handleBook(trip)}
-                      className="flex-1 py-2.5 px-3 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[12px] shadow-sm transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                      className="flex-1 py-2.5 px-3 rounded-full text-white font-black text-[12px] shadow-sm transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer bg-[#F95700] hover:bg-[#E04E00]"
                     >
-                      <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
+                      <span className="material-symbols-outlined text-[15px]">
+                        confirmation_number
+                      </span>
                       <span>Book Ticket • ₱275</span>
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => router.push("/map")}
+                      onClick={() => router.push(`/map?direction=${direction === "sogod-ormoc" ? "sogod-to-ormoc" : "ormoc-to-sogod"}`)}
                       className="px-3.5 py-2.5 rounded-full bg-[#181C24] hover:bg-black text-white font-bold text-[12px] shadow-xs transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[15px] text-[#F95700]">near_me</span>
@@ -510,7 +610,7 @@ export default function ScheduleList({
               );
             }
 
-            // Compact / Greyed-Out Schedule Card (Upcoming Scheduled trips)
+            // Compact View (Upcoming Scheduled trips)
             return (
               <div
                 key={trip.id}
@@ -527,7 +627,7 @@ export default function ScheduleList({
                         <span className="text-[14px] font-black text-slate-800">
                           {trip.departureTime}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-400">
+                        <span className="text-[11px] font-bold text-slate-500">
                           • {trip.busNumber}
                         </span>
                         {trip.isAircon ? (
@@ -540,7 +640,7 @@ export default function ScheduleList({
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
+                      <p className="text-[10px] text-slate-500 font-medium">
                         Driver: {trip.driverName} • {trip.locationDesc}
                       </p>
                     </div>
@@ -569,7 +669,7 @@ export default function ScheduleList({
                         e.stopPropagation();
                         handleBook(trip);
                       }}
-                      className="px-2.5 py-0.5 rounded-full bg-[#F95700] text-white font-extrabold text-[10px] hover:bg-[#E04E00] transition cursor-pointer"
+                      className="px-2.5 py-0.5 rounded-full text-white font-extrabold text-[10px] transition cursor-pointer bg-[#F95700] hover:bg-[#E04E00]"
                     >
                       Book
                     </button>
@@ -579,6 +679,12 @@ export default function ScheduleList({
             );
           })}
       </div>
+
+      {/* ── MEtro+ Modal ── */}
+      <MetroPlusModal
+        isOpen={showMetroPlusModal}
+        onClose={() => setShowMetroPlusModal(false)}
+      />
     </div>
   );
 }

@@ -52,6 +52,8 @@ interface AppContextType {
   setIsAlertActive: (active: boolean) => void;
   isPremium: boolean;
   setIsPremium: (premium: boolean) => void;
+  isModalOpen: boolean;
+  setIsModalOpen: (open: boolean) => void;
   // Route Direction & Origin/Destination Management
   selectedDirection: "sogod-to-ormoc" | "ormoc-to-sogod";
   setSelectedDirection: (dir: "sogod-to-ormoc" | "ormoc-to-sogod") => void;
@@ -114,6 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [boardingAlertMinutes, setBoardingAlertMinutes] = useState<number>(10);
   const [isAlertActive, setIsAlertActive] = useState<boolean>(true);
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedDirection, setSelectedDirectionState] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">("sogod-to-ormoc");
   const [origin, setOriginState] = useState<string>("Sogod, Southern Leyte");
   const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
@@ -283,6 +286,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsAlertActive,
         isPremium,
         setIsPremium,
+        isModalOpen,
+        setIsModalOpen,
         selectedDirection,
         setSelectedDirection,
         origin,

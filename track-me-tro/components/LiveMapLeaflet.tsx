@@ -3,7 +3,8 @@
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { ActiveBus, CoordinatePair, STOP_COORDINATES } from "@/lib/mockData";
+import { ActiveBus, CoordinatePair, STOP_COORDINATES, calculateBusETA } from "@/lib/mockData";
+import { useAppContext } from "@/lib/AppContext";
 
 interface LiveMapLeafletProps {
   buses: ActiveBus[];
@@ -14,6 +15,7 @@ interface LiveMapLeafletProps {
   recenterTrigger: number;
   fitBoundsTrigger: number;
   userLocation: string;
+  isPremium?: boolean;
 }
 
 export default function LiveMapLeaflet({
@@ -25,7 +27,11 @@ export default function LiveMapLeaflet({
   recenterTrigger,
   fitBoundsTrigger,
   userLocation,
+  isPremium: propIsPremium,
 }: LiveMapLeafletProps) {
+  const { isPremium: contextIsPremium } = useAppContext();
+  const isPremium = propIsPremium !== undefined ? propIsPremium : contextIsPremium;
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const busLayerRef = useRef<L.LayerGroup | null>(null);
@@ -170,6 +176,12 @@ export default function LiveMapLeaflet({
     buses.forEach((bus) => {
       const isSelected = bus.id === selectedBusId;
 
+      // Calculate dynamic ETA from this bus to the user's location
+      const etaResult = calculateBusETA(bus, userLocation);
+      const etaLabel = etaResult.etaText;
+      // Free Tier: only ETA. Premium Tier: Bus ID and ETA
+      const tagText = isPremium ? `${bus.id} • ${etaLabel}` : etaLabel;
+
       const busDivIcon = L.divIcon({
         className: `bus-marker-${bus.id}`,
         iconSize: [0, 0],
@@ -191,9 +203,9 @@ export default function LiveMapLeaflet({
               </svg>
             </div>
 
-            <!-- Bus Unit Tag -->
+            <!-- Bus Tag: Free Tier is only ETA, Premium is Bus number and ETA -->
             <div style="position: absolute; bottom: -20px; white-space: nowrap; background: #ffffff; color: #181C24; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #CBD5E1; pointer-events: none;">
-              ${bus.id}
+              ${tagText}
             </div>
           </div>
         `,
@@ -213,7 +225,7 @@ export default function LiveMapLeaflet({
 
       busLayer.addLayer(marker);
     });
-  }, [buses, selectedBusId, onSelectBus]);
+  }, [buses, selectedBusId, onSelectBus, userLocation, isPremium]);
 
   // Recenter trigger
   useEffect(() => {

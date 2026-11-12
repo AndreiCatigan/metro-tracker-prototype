@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppContext } from "@/lib/AppContext";
 
 interface BoardingAlertSheetProps {
@@ -20,7 +20,17 @@ export default function BoardingAlertSheet({
     isAlertActive,
     setIsAlertActive,
     busDetails,
+    setIsModalOpen,
   } = useAppContext();
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsModalOpen(true);
+      return () => {
+        setIsModalOpen(false);
+      };
+    }
+  }, [isOpen, setIsModalOpen]);
 
   const [selectedMins, setSelectedMins] = useState<number>(boardingAlertMinutes || 10);
   const [enabled, setEnabled] = useState<boolean>(isAlertActive);

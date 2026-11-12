@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/mockData";
 import BoardingAlertSheet from "@/components/BoardingAlertSheet";
 import BottomNavigation from "@/components/BottomNavigation";
+import MetroPlusModal from "@/components/MetroPlusModal";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
@@ -33,6 +34,8 @@ function MapContent() {
     simulatedTime,
     selectedDirection,
     setSelectedDirection,
+    isPremium,
+    setIsModalOpen,
   } = useAppContext();
   const directionParam = searchParams.get("direction");
 
@@ -44,6 +47,7 @@ function MapContent() {
 
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
 
   // Dynamic active buses based on simulated time
   const allActiveBuses = useMemo(() => getActiveBuses(simulatedTime), [simulatedTime]);
@@ -70,6 +74,16 @@ function MapContent() {
   // Boarding alert sheet modal
   const [isAlertSheetOpen, setIsAlertSheetOpen] = useState(false);
 
+  // Sync boarding alert sheet with global modal state to hide bottom dock
+  useEffect(() => {
+    if (isAlertSheetOpen) {
+      setIsModalOpen(true);
+      return () => {
+        setIsModalOpen(false);
+      };
+    }
+  }, [isAlertSheetOpen, setIsModalOpen]);
+
   // Toggle or swap route direction
   const handleToggleRoute = () => {
     const nextDirection =
@@ -89,9 +103,13 @@ function MapContent() {
     setIsDismissed(true);
   };
 
-  // Primary CTA action: navigate to checkout
+  // Primary CTA action: navigate to checkout (locked on Free Tier)
   const handleBookSeat = () => {
     if (!selectedBus) return;
+    if (!isPremium) {
+      setShowMetroPlusModal(true);
+      return;
+    }
     router.push(`/checkout?busId=${selectedBus.id}&direction=${activeDirection}`);
   };
 
@@ -169,6 +187,7 @@ function MapContent() {
           recenterTrigger={recenterCount}
           fitBoundsTrigger={fitBoundsCount}
           userLocation={userLocation}
+          isPremium={isPremium}
         />
       </div>
 
@@ -190,12 +209,17 @@ function MapContent() {
                       : "Bound for Sogod Terminal"}
                   </span>
                 </div>
-                <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E] mt-0.5">
-                  Bus {selectedBus.id}
-                </h2>
-                {selectedBus.departureTime && (
-                  <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                    Departed {selectedBus.departureTime} • {selectedBus.currentLocation}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E]">
+                    {isPremium ? `Bus ${selectedBus.id}` : "Express Metro Bus"}
+                  </h2>
+                </div>
+                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                  Departed {selectedBus.departureTime || "Recently"} • {selectedBus.currentLocation}
+                </p>
+                {isPremium && (
+                  <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+                    Driver: {selectedBus.driverName || "Noel Dagami"}
                   </p>
                 )}
               </div>
@@ -236,13 +260,25 @@ function MapContent() {
             {/* Metadata Badges & Alert Action Row */}
             <div className="flex items-center justify-between pt-1 border-t border-[#ECEEF0]">
               <div className="text-[11px] text-slate-600 font-semibold space-x-1.5">
-                <span>Aircon</span>
-                <span>•</span>
-                <span className="text-emerald-600 font-bold">Light Traffic</span>
-                <span>•</span>
-                <span className="text-[#F95700] font-bold">
-                  {selectedBus.seatsLeft} Seats Left
-                </span>
+                {isPremium ? (
+                  <>
+                    <span className="text-emerald-700 font-bold">Aircon Express</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 font-bold">Light Traffic</span>
+                    <span>•</span>
+                    <span className="text-[#F95700] font-bold">
+                      👥 {40 - selectedBus.seatsLeft}/40 On Board ({selectedBus.seatsLeft} Left)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-700 font-bold flex inline-flex items-center gap-1">
+                      ● Live GPS Tracked
+                    </span>
+                    <span>•</span>
+                    <span className="text-emerald-600 font-bold">Light Highway Traffic</span>
+                  </>
+                )}
               </div>
 
               {/* Alert Me Pill Button */}
@@ -262,16 +298,22 @@ function MapContent() {
               </button>
             </div>
 
-            {/* Full-width Orange Primary CTA */}
+            {/* Full-width CTA Button */}
             <button
               type="button"
               onClick={handleBookSeat}
-              className="w-full py-3.5 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-[15px] shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer"
+              className={`w-full py-3.5 rounded-full text-white font-extrabold text-[15px] shadow-md active:scale-[0.98] transition flex items-center justify-center gap-2 cursor-pointer ${
+                isPremium
+                  ? "bg-[#F95700] hover:bg-[#E04E00]"
+                  : "bg-[#181C24] hover:bg-black"
+              }`}
             >
               <span className="material-symbols-outlined text-[18px]">
-                confirmation_number
+                {isPremium ? "confirmation_number" : "lock_open"}
               </span>
-              <span>Book a Ticket Now</span>
+              <span>
+                {isPremium ? "Book a Ticket • Reserve Seat" : "Reserve Seat • 👑 Unlock MEtro+"}
+              </span>
             </button>
           </div>
         ) : (
@@ -289,6 +331,12 @@ function MapContent() {
       <BoardingAlertSheet
         isOpen={isAlertSheetOpen}
         onClose={() => setIsAlertSheetOpen(false)}
+      />
+
+      {/* ── MEtro+ Modal ── */}
+      <MetroPlusModal
+        isOpen={showMetroPlusModal}
+        onClose={() => setShowMetroPlusModal(false)}
       />
 
       {/* ── Floating Pill Navigation ── */}

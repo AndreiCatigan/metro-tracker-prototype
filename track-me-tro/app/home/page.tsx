@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
+import MetroPlusModal from "@/components/MetroPlusModal";
 import { useAppContext } from "@/lib/AppContext";
 import {
   TRAVEL_TIMES_FROM_SOGOD,
@@ -27,12 +28,24 @@ export default function HomePage() {
     setDestination,
     swapOriginDestination,
     isPremium,
+    setIsModalOpen,
   } = useAppContext();
 
   // Extract first name for personalized greeting
   const firstName = passengerName ? passengerName.split(" ")[0] : "Juana";
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
+
+  // Sync notification popup with global modal open state to hide bottom dock
+  useEffect(() => {
+    if (showNotifications) {
+      setIsModalOpen(true);
+      return () => {
+        setIsModalOpen(false);
+      };
+    }
+  }, [showNotifications, setIsModalOpen]);
 
   // Bus the passenger picked in "Book A Ticket" (index into today's remaining trips)
   const [selectedTripIdx, setSelectedTripIdx] = useState<number>(0);
@@ -75,6 +88,10 @@ export default function HomePage() {
 
   const handleBookSelectedBus = () => {
     if (!selectedTrip) return;
+    if (!isPremium) {
+      setShowMetroPlusModal(true);
+      return;
+    }
     router.push(`/booking?direction=${direction}&trip=${selectedTrip.tripId}`);
   };
 
@@ -273,7 +290,54 @@ export default function HomePage() {
             </span>
           </div>
 
-          {enRouteBuses.length === 0 ? (
+          {/* ── Free Tier: Pure Tracking Summary (No bus cards list, purpose is purely tracking) ── */}
+          {!isPremium ? (
+            <div className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[26px]">directions_bus</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-[#A53700] uppercase tracking-wider bg-[#FFE8D6]/60 px-2 py-0.5 rounded-full">
+                      Corridor Tracking
+                    </span>
+                    <h3 className="text-[18px] font-black text-[#191C1E] mt-0.5 leading-tight">
+                      {enRouteBuses.length} {enRouteBuses.length === 1 ? "Bus" : "Buses"} Currently Departed
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Active along {direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"} corridor
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[30px] font-black text-[#F95700] leading-none">
+                    {enRouteBuses.length}
+                  </span>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">En Route</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#F7F9FB] rounded-2xl border border-[#ECEEF0] flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-slate-600 font-medium">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-600">radar</span>
+                  <span>Free GPS Tracking Active</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Live Corridor Feed
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => router.push(`/map?direction=${selectedDirection}`)}
+                className="w-full py-3.5 px-4 rounded-2xl bg-[#181C24] hover:bg-black active:scale-[0.98] text-white font-black text-[13px] tracking-tight shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[17px] text-[#F95700]">near_me</span>
+                <span>Track Departed Buses on Live Map</span>
+              </button>
+            </div>
+          ) : enRouteBuses.length === 0 ? (
             <div className="bg-white rounded-3xl p-4 border border-[#ECEEF0] text-center text-[12px] text-slate-500 font-medium">
               No buses are currently en route.
             </div>
@@ -292,7 +356,7 @@ export default function HomePage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-[#101A2C] text-white flex flex-col items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-[#101A2C] text-white flex flex-col items-center justify-center flex-shrink-0">
                           <span className="text-[8px] font-bold text-slate-400">BUS</span>
                           <span className="text-[13px] font-black leading-none">
                             {bus.busNumber.replace("DMS-", "")}
@@ -300,7 +364,9 @@ export default function HomePage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[14px] font-black text-[#191C1E]">{bus.busNumber}</span>
+                            <span className="text-[14px] font-black text-[#191C1E]">
+                              {bus.busNumber}
+                            </span>
                             <span
                               className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
                                 bus.isAircon
@@ -308,20 +374,26 @@ export default function HomePage() {
                                   : "bg-rose-50 text-rose-700 border-rose-200"
                               }`}
                             >
-                              {bus.isAircon ? "Aircon" : "Non-Air"}
+                              {bus.isAircon ? "Aircon Express" : "Non-Air"}
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-500 font-medium">
                             Departed {bus.departureTime} • {bus.currentStop}
                           </p>
+                          <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+                            Driver: {bus.driverName}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                           ETA {userLocation}
                         </p>
                         <p className="text-[14px] font-black text-[#A53700] leading-tight">{eta}</p>
+                        <p className="text-[10px] font-extrabold text-emerald-700 mt-0.5">
+                          👥 {bus.passengers}/45 On Board
+                        </p>
                       </div>
                     </div>
 
@@ -411,6 +483,23 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white rounded-3xl p-4 shadow-xs border border-[#ECEEF0] space-y-3">
+            {/* Free Tier Notice Banner for Seat Reservation */}
+            {!isPremium && (
+              <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200/80 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-amber-900 font-medium">
+                  <span className="text-[15px]">👑</span>
+                  <span>Seat reservation is reserved for MEtro+ members. Free tier passengers queue at terminal.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMetroPlusModal(true)}
+                  className="text-[11px] font-black text-[#F95700] underline whitespace-nowrap cursor-pointer hover:opacity-80"
+                >
+                  Unlock
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-[11px]">
               <p className="font-extrabold text-slate-400 uppercase tracking-wider">
                 Full Corridor Seat ({direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"})
@@ -449,10 +538,12 @@ export default function HomePage() {
                         </span>
                         <div>
                           <p className="text-[13px] font-black text-[#191C1E]">
-                            {trip.dep} • {trip.bus}
+                            {trip.dep} • {isPremium ? trip.bus : "Express Metro"}
                           </p>
                           <p className="text-[10px] text-slate-400 font-medium">
-                            {trip.aircon ? "Aircon Express" : "Non-Aircon"} • {trip.seats} seats left
+                            {isPremium
+                              ? `${trip.aircon ? "Aircon Express" : "Non-Aircon"} • ${trip.seats} seats left`
+                              : "🔒 Guaranteed seat reservation (MEtro+ only)"}
                           </p>
                         </div>
                       </div>
@@ -470,19 +561,33 @@ export default function HomePage() {
               type="button"
               disabled={!selectedTrip}
               onClick={handleBookSelectedBus}
-              className="w-full py-3.5 rounded-2xl bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`w-full py-3.5 rounded-2xl font-black text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-not-allowed ${
+                isPremium
+                  ? "bg-[#F95700] hover:bg-[#E04E00] text-white"
+                  : "bg-[#181C24] hover:bg-black text-white"
+              }`}
             >
               <span>
                 {selectedTrip
-                  ? `Book ${selectedTrip.dep} • ₱275 Full Ride`
+                  ? isPremium
+                    ? `Reserve Seat on ${selectedTrip.dep} • ₱275 Full Ride`
+                    : `Reserve Seat • 👑 Unlock MEtro+`
                   : "Select a bus"}
               </span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              <span className="material-symbols-outlined text-[16px]">
+                {isPremium ? "arrow_forward" : "lock_open"}
+              </span>
             </button>
 
             <button
               type="button"
-              onClick={() => router.push(`/booking?direction=${direction}`)}
+              onClick={() => {
+                if (!isPremium) {
+                  setShowMetroPlusModal(true);
+                } else {
+                  router.push(`/booking?direction=${direction}`);
+                }
+              }}
               className="w-full text-center text-[11px] font-bold text-[#A53700] hover:underline cursor-pointer"
             >
               See all departures &amp; discounts
@@ -490,6 +595,12 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      {/* ── MEtro+ Modal ── */}
+      <MetroPlusModal
+        isOpen={showMetroPlusModal}
+        onClose={() => setShowMetroPlusModal(false)}
+      />
 
       {/* ── Bottom Navigation Dock ── */}
       <BottomNavigation />
