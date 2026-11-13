@@ -90,6 +90,15 @@ interface AppContextType {
   setIsPremium: (premium: boolean) => void;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
+  // Passenger Concession & Discount Verification
+  verifiedDiscount: PassengerType;
+  setVerifiedDiscount: (type: PassengerType) => void;
+  discountIdNumber: string;
+  setDiscountIdNumber: (id: string) => void;
+  discountSchoolOrAgency: string;
+  setDiscountSchoolOrAgency: (agency: string) => void;
+  verifyDiscount: (type: PassengerType, idNumber?: string, schoolOrAgency?: string) => void;
+  removeDiscount: () => void;
   // Route Direction & Origin/Destination Management
   selectedDirection: "sogod-to-ormoc" | "ormoc-to-sogod";
   setSelectedDirection: (dir: "sogod-to-ormoc" | "ormoc-to-sogod") => void;
@@ -234,6 +243,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [conductorName, setConductorName] = useState<string>("Kuya Rolly B.");
   const [busDetailsState, setBusDetailsState] = useState<BusDetails>(busDetails);
   const [busStatus, setBusStatusState] = useState<BusDispatchStatus>("in_queue");
+  const [verifiedDiscount, setVerifiedDiscountState] = useState<PassengerType>("regular");
+  const [discountIdNumber, setDiscountIdNumberState] = useState<string>("");
+  const [discountSchoolOrAgency, setDiscountSchoolOrAgencyState] = useState<string>("");
+
+  const setVerifiedDiscount = (type: PassengerType) => {
+    setVerifiedDiscountState(type);
+    try {
+      localStorage.setItem("trackmetro_verified_discount", type);
+    } catch (e) {}
+  };
+
+  const setDiscountIdNumber = (id: string) => {
+    setDiscountIdNumberState(id);
+    try {
+      localStorage.setItem("trackmetro_discount_id", id);
+    } catch (e) {}
+  };
+
+  const setDiscountSchoolOrAgency = (agency: string) => {
+    setDiscountSchoolOrAgencyState(agency);
+    try {
+      localStorage.setItem("trackmetro_discount_agency", agency);
+    } catch (e) {}
+  };
+
+  const verifyDiscount = (type: PassengerType, idNumber?: string, schoolOrAgency?: string) => {
+    setVerifiedDiscountState(type);
+    const id = idNumber || (type === "student" ? "2024-88421" : type === "senior" ? "OSCA-2024-0918" : type === "pwd" ? "PWD-0864-10492" : "");
+    const agency = schoolOrAgency || (type === "student" ? "Southern Leyte State University (SLSU)" : type === "senior" ? "Sogod Municipal OSCA" : type === "pwd" ? "Baybay City PDAO" : "");
+    setDiscountIdNumberState(id);
+    setDiscountSchoolOrAgencyState(agency);
+    try {
+      localStorage.setItem("trackmetro_verified_discount", type);
+      localStorage.setItem("trackmetro_discount_id", id);
+      localStorage.setItem("trackmetro_discount_agency", agency);
+    } catch (e) {}
+  };
+
+  const removeDiscount = () => {
+    setVerifiedDiscountState("regular");
+    setDiscountIdNumberState("");
+    setDiscountSchoolOrAgencyState("");
+    try {
+      localStorage.setItem("trackmetro_verified_discount", "regular");
+      localStorage.removeItem("trackmetro_discount_id");
+      localStorage.removeItem("trackmetro_discount_agency");
+    } catch (e) {}
+  };
 
   // Hydrate from localStorage for multi-tab and reload sync between Conductor and Passenger apps
   useEffect(() => {
@@ -289,6 +346,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         } catch (e) {}
       }
+
+      const savedDiscount = localStorage.getItem("trackmetro_verified_discount") as PassengerType | null;
+      if (savedDiscount && (savedDiscount === "student" || savedDiscount === "senior" || savedDiscount === "pwd" || savedDiscount === "regular")) {
+        setVerifiedDiscountState(savedDiscount);
+      }
+      const savedDiscountId = localStorage.getItem("trackmetro_discount_id");
+      if (savedDiscountId) setDiscountIdNumberState(savedDiscountId);
+      const savedDiscountAgency = localStorage.getItem("trackmetro_discount_agency");
+      if (savedDiscountAgency) setDiscountSchoolOrAgencyState(savedDiscountAgency);
     } catch (e) {
       // ignore
     }
@@ -323,6 +389,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             setBookings(JSON.parse(e.newValue));
           } catch (e) {}
+        } else if (e.key === "trackmetro_verified_discount" && e.newValue) {
+          setVerifiedDiscountState(e.newValue as PassengerType);
+        } else if (e.key === "trackmetro_discount_id") {
+          setDiscountIdNumberState(e.newValue || "");
+        } else if (e.key === "trackmetro_discount_agency") {
+          setDiscountSchoolOrAgencyState(e.newValue || "");
         }
       } catch (err) {
         // ignore
@@ -810,6 +882,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         currentBusStop,
         setCurrentBusStop,
         advanceToNextStop,
+        verifiedDiscount,
+        setVerifiedDiscount,
+        discountIdNumber,
+        setDiscountIdNumber,
+        discountSchoolOrAgency,
+        setDiscountSchoolOrAgency,
+        verifyDiscount,
+        removeDiscount,
       }}
     >
       {children}

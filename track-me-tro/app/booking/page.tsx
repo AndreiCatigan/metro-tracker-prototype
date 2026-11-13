@@ -4,7 +4,6 @@ import React, { useState, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import {
-  PassengerType,
   calculateFare,
   generateAvailableBookingTrips,
   AvailableBookingTrip as AvailableTrip,
@@ -13,7 +12,14 @@ import {
 function BookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { passengerName, busDetails, createBooking, simulatedTime } = useAppContext();
+  const {
+    passengerName,
+    busDetails,
+    createBooking,
+    simulatedTime,
+    verifiedDiscount,
+    discountIdNumber,
+  } = useAppContext();
 
   // Read optional pre-selected trip from query params
   const preselectedTripId = searchParams.get("trip");
@@ -21,7 +27,6 @@ function BookingContent() {
 
   const [direction, setDirection] = useState<"sogod-ormoc" | "ormoc-sogod">(preselectedDirection);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(preselectedTripId);
-  const [passengerType, setPassengerType] = useState<PassengerType>("regular");
   const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Maya">("GCash");
   const [step, setStep] = useState<1 | 2>(preselectedTripId ? 2 : 1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -30,16 +35,9 @@ function BookingContent() {
   const selectedTrip = useMemo(() => trips.find((t) => t.id === selectedTripId), [trips, selectedTripId]);
 
   const fare = useMemo(
-    () => calculateFare(busDetails.baseFare, busDetails.convenienceFee, passengerType),
-    [busDetails.baseFare, busDetails.convenienceFee, passengerType]
+    () => calculateFare(busDetails.baseFare, busDetails.convenienceFee, verifiedDiscount),
+    [busDetails.baseFare, busDetails.convenienceFee, verifiedDiscount]
   );
-
-  const passengerTypes: { type: PassengerType; label: string; icon: string }[] = [
-    { type: "regular", label: "Regular", icon: "person" },
-    { type: "student", label: "Student", icon: "school" },
-    { type: "pwd", label: "PWD", icon: "accessible" },
-    { type: "senior", label: "Senior Citizen", icon: "elderly" },
-  ];
 
   const handleSelectTrip = (trip: AvailableTrip) => {
     setSelectedTripId(trip.id);
@@ -55,7 +53,7 @@ function BookingContent() {
         busNumber: selectedTrip.busNumber,
         departureTime: selectedTrip.departureTime,
         direction,
-        passengerType,
+        passengerType: verifiedDiscount,
         paymentMethod,
       });
       router.push(`/booking/pending?id=${booking.id}`);
@@ -273,50 +271,58 @@ function BookingContent() {
           </section>
         )}
 
-        {/* Passenger Info */}
-        <section className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">PASSENGER</h3>
-            <span className="text-[12px] font-bold text-[#191C1E]">{passengerName}</span>
+        {/* Passenger Info & Verified Concession Status */}
+        <section className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-[#ECEEF0]">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PASSENGER</p>
+              <p className="text-[15px] font-black text-[#191C1E]">{passengerName}</p>
+            </div>
+
+            {verifiedDiscount !== "regular" ? (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-[11px] font-extrabold shadow-2xs">
+                <span className="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
+                <span className="capitalize">{verifiedDiscount} (20% Off)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[11px] font-bold">
+                <span>Regular Fare</span>
+              </span>
+            )}
           </div>
 
-          <div>
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">PASSENGER TYPE</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {passengerTypes.map((pt) => (
-                <button
-                  key={pt.type}
-                  type="button"
-                  onClick={() => setPassengerType(pt.type)}
-                  className={`p-3 rounded-2xl flex items-center gap-2.5 transition-all cursor-pointer text-left ${
-                    passengerType === pt.type
-                      ? "bg-[#FFE8D6] border-2 border-[#F95700] ring-1 ring-[#F95700]/20"
-                      : "bg-[#F7F9FB] border border-[#ECEEF0] hover:border-slate-300"
-                  }`}
-                >
-                  <span className={`material-symbols-outlined text-[20px] ${
-                    passengerType === pt.type ? "text-[#F95700]" : "text-slate-400"
-                  }`}>
-                    {pt.icon}
-                  </span>
-                  <div>
-                    <p className={`text-[13px] font-extrabold ${
-                      passengerType === pt.type ? "text-[#A53700]" : "text-[#191C1E]"
-                    }`}>
-                      {pt.label}
-                    </p>
-                    <p className="text-[10px] text-slate-400 font-medium">
-                      {pt.type === "regular" ? "Full rate" : "20% discount"}
-                    </p>
-                  </div>
-                </button>
-              ))}
+          {/* Verification Status Banner */}
+          {verifiedDiscount !== "regular" ? (
+            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3 flex items-start gap-2.5 text-xs">
+              <span className="material-symbols-outlined text-[18px] text-emerald-600 shrink-0 mt-0.5">verified_user</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-emerald-950 font-bold">
+                  Verified {verifiedDiscount.toUpperCase()} Account ({discountIdNumber || "ID on file"})
+                </p>
+                <p className="text-emerald-800 text-[11px] font-medium mt-0.5">
+                  20% statutory fare concession is automatically applied to this booking.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-slate-600 font-medium min-w-0">
+                <span className="material-symbols-outlined text-[17px] text-slate-400 shrink-0">badge</span>
+                <span className="truncate">Eligible for 20% Student, Senior, or PWD discount?</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/profile")}
+                className="text-[11px] font-black text-[#F95700] hover:underline whitespace-nowrap cursor-pointer shrink-0"
+              >
+                Verify in Profile →
+              </button>
+            </div>
+          )}
 
           {/* Seat Assignment Notice */}
           <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3 text-xs flex items-start gap-2">
-            <span className="material-symbols-outlined text-[16px] text-amber-600 mt-0.5">info</span>
+            <span className="material-symbols-outlined text-[16px] text-amber-600 mt-0.5 shrink-0">info</span>
             <p className="text-amber-800 font-medium">
               Your seat will be assigned by the conductor after booking. You&apos;ll receive your ticket details once confirmed.
             </p>
@@ -337,7 +343,7 @@ function BookingContent() {
               <div className="flex items-center justify-between text-emerald-700">
                 <span className="font-semibold flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">discount</span>
-                  {passengerType.charAt(0).toUpperCase() + passengerType.slice(1)} Discount (20%)
+                  Verified {verifiedDiscount.charAt(0).toUpperCase() + verifiedDiscount.slice(1)} Discount (20%)
                 </span>
                 <span className="font-bold">-₱{fare.discount.toFixed(2)}</span>
               </div>
