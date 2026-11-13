@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/AppContext";
-import LoadingScreen from "@/components/LoadingScreen";
+import SplashScreen from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
   title: "Track MeTro",
@@ -45,8 +45,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface pb-safe">
         <AppProvider>
-          <LoadingScreen />
-          {children}
+          <SplashScreen>
+            {children}
+          </SplashScreen>
         </AppProvider>
       </body>
     </html>
