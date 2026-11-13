@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import CrownIcon from "@/components/CrownIcon";
 import { useAppContext } from "@/lib/AppContext";
 
 /** Auto-format a PH mobile number as "922 333 4444" */
@@ -76,7 +77,7 @@ export default function LoginPage() {
             {/* Header row with crown & close button */}
             <div className="flex items-center justify-between relative z-10">
               <div className="inline-flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider">
-                <span>👑</span>
+                <CrownIcon className="w-3.5 h-3.5 text-[#F95700]" />
                 <span>TRACK METRO PREMIUM</span>
               </div>
               <button

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext, PassengerHail, BusDispatchStatus } from "@/lib/AppContext";
 import Logo from "@/components/Logo";
 import SwipeableHailCard from "@/components/SwipeableHailCard";
+import CrownIcon from "@/components/CrownIcon";
 
 export default function ConductorHomePage() {
   const router = useRouter();
@@ -339,10 +340,17 @@ export default function ConductorHomePage() {
                               <div>
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-black text-[13px] text-[#191C1E]">{hail.passengerName}</span>
-                                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${
+                                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded inline-flex items-center gap-1 ${
                                     hail.tier === "premium" ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-700"
                                   }`}>
-                                    {hail.tier === "premium" ? "👑 MEtro+" : "Free Tier"}
+                                    {hail.tier === "premium" ? (
+                                      <>
+                                        <CrownIcon className="w-2.5 h-2.5 text-amber-700" />
+                                        <span>MEtro+</span>
+                                      </>
+                                    ) : (
+                                      "Free Tier"
+                                    )}
                                   </span>
                                 </div>
                                 <p className="text-[11px] text-slate-800 font-bold mt-0.5 flex items-center gap-1">

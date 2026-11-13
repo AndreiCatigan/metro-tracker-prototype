@@ -251,7 +251,11 @@ export default function ConductorMapLeaflet({
 
             <!-- Floating Passenger Hail Label Badge -->
             <div style="position: absolute; top: -32px; white-space: nowrap; background: ${isSelected ? "#101A2C" : "#ffffff"}; color: ${isSelected ? "#ffffff" : "#191C1E"}; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 9999px; box-shadow: 0 3px 10px rgba(0,0,0,0.18); border: 1.5px solid ${isSelected ? "#10B981" : "rgba(226, 232, 240, 0.9)"}; display: flex; align-items: center; gap: 4px; pointer-events: none;">
-              <span>${isPremium ? "👑" : "📍"}</span>
+              <span>${
+                isPremium
+                  ? '<svg style="width:11px;height:11px;display:inline-block;fill:#F59E0B;vertical-align:middle;" viewBox="0 0 24 24"><path d="M5 19h14v2H5v-2zm14-14l-3.5 5.5L12 4 8.5 10.5 5 5l1.5 12h11L19 5z"/></svg>'
+                  : '<svg style="width:11px;height:11px;display:inline-block;fill:#F95700;vertical-align:middle;" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>'
+              }</span>
               <span>${hail.passengerName}</span>
               <span style="font-size: 9px; padding: 1px 5px; border-radius: 9999px; background: ${isAcknowledged ? "#DBEAFE" : "#FFE8D6"}; color: ${isAcknowledged ? "#1D4ED8" : "#A53700"}; font-weight: 900;">
                 ${isAcknowledged ? "Crew Confirmed" : "Pinged 📡"}

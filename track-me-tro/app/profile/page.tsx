@@ -8,6 +8,7 @@ import { PassengerType } from "@/lib/data";
 import { CORRIDOR_STOPS, TRAVEL_TIMES_FROM_SOGOD } from "@/lib/mockData";
 import BottomNavigation from "@/components/BottomNavigation";
 import MetroPlusModal from "@/components/MetroPlusModal";
+import CrownIcon from "@/components/CrownIcon";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -157,7 +158,13 @@ export default function ProfilePage() {
                 }`}
                 aria-label={isPremium ? "MEtro+ Member" : "Free Tier Commuter"}
               >
-                <span>{isPremium ? "👑" : "👤"}</span>
+                <span className="flex items-center justify-center">
+                  {isPremium ? (
+                    <CrownIcon className="w-3.5 h-3.5 text-amber-200" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[15px] leading-none">person</span>
+                  )}
+                </span>
                 <span>{isPremium ? "MEtro+ Member" : "Free Tier Commuter"}</span>
               </div>
             </div>
@@ -175,7 +182,7 @@ export default function ProfilePage() {
           }`}
         >
           <span>{isPremium ? "Manage MEtro+ Perks" : "Explore Premium"}</span>
-          <span className="text-[16px]">👑</span>
+          <CrownIcon className="w-4 h-4 text-amber-300" />
         </button>
 
         {/* ── Concession & Discount Verification Card ── */}
@@ -487,13 +494,13 @@ export default function ProfilePage() {
                   setIsPremium(true);
                   showToast("Switched to MEtro+ VIP membership active!");
                 }}
-                className={`py-2 px-2 rounded-xl text-[12px] font-black transition cursor-pointer text-center flex items-center justify-center gap-1 ${
+                className={`py-2 px-2 rounded-xl text-[12px] font-black transition cursor-pointer text-center flex items-center justify-center gap-1.5 ${
                   isPremium
                     ? "bg-[#F95700] text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <span>👑</span>
+                <CrownIcon className={`w-3.5 h-3.5 ${isPremium ? "text-amber-200" : "text-amber-600"}`} />
                 <span>MEtro+ Active</span>
               </button>
             </div>

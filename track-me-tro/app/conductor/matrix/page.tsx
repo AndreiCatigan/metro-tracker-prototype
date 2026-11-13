@@ -8,6 +8,7 @@ import {
   BASE_REAR_BENCH_SEATS,
   type ConductorSeatData,
 } from "@/lib/data";
+import CrownIcon from "@/components/CrownIcon";
 
 function ConductorMatrixContent() {
   const router = useRouter();
@@ -551,8 +552,9 @@ function ConductorMatrixContent() {
                         <span className="font-black text-[13px] text-[#191C1E]">
                           {reservedBooking?.passengerName || "Juana de la Cruz"}
                         </span>
-                        <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
-                          👑 MEtro+
+                        <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                          <CrownIcon className="w-2.5 h-2.5 text-[#F95700]" />
+                          <span>MEtro+</span>
                         </span>
                         {reservedBooking?.passengerType && (
                           <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded capitalize">
@@ -705,8 +707,9 @@ function ConductorMatrixContent() {
                       <span className="font-black text-[13px] text-[#191C1E]">
                         {activeTicket.passengerName}
                       </span>
-                      <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
-                        👑 MEtro+
+                      <span className="text-[9px] font-extrabold bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+                        <CrownIcon className="w-2.5 h-2.5 text-[#F95700]" />
+                        <span>MEtro+</span>
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-500">

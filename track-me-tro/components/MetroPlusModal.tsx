@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useAppContext } from "@/lib/AppContext";
+import CrownIcon from "@/components/CrownIcon";
 
 interface MetroPlusModalProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export default function MetroPlusModal({
         {/* Top Header: Badge & Close Button */}
         <div className="flex items-center justify-between relative z-10">
           <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-[#F95700] text-white px-3.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider shadow-xs">
-            <span>👑</span>
+            <CrownIcon className="w-3.5 h-3.5 text-amber-100" />
             <span>MEtro+ PREMIUM</span>
           </div>
           <button
@@ -62,7 +63,13 @@ export default function MetroPlusModal({
         {/* Current Tier Status Capsule */}
         <div className="p-2.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between text-xs relative z-10">
           <div className="flex items-center gap-2">
-            <span className="text-[15px]">{isPremium ? "👑" : "👤"}</span>
+            <span className="flex items-center justify-center">
+              {isPremium ? (
+                <CrownIcon className="w-4 h-4 text-amber-600" />
+              ) : (
+                <span className="material-symbols-outlined text-[17px] text-slate-500">person</span>
+              )}
+            </span>
             <span className="font-extrabold text-amber-900">
               Current Status:{" "}
               <span className="underline decoration-amber-500">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
 import MetroPlusModal from "@/components/MetroPlusModal";
+import CrownIcon from "@/components/CrownIcon";
 import { useAppContext } from "@/lib/AppContext";
 import {
   TRAVEL_TIMES_FROM_SOGOD,
@@ -480,7 +481,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between px-1">
             <h2 className="text-[18px] font-black tracking-tight text-[#191C1E] flex items-center gap-1.5">
               <span>Book A Ticket</span>
-              <span className="text-amber-500 text-[16px]">👑</span>
+              <CrownIcon className="w-4 h-4 text-amber-500" />
             </h2>
             <span className="text-[10px] font-black text-[#A53700] bg-[#FFE8D6] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
               Full Trip Fare
@@ -492,7 +493,7 @@ export default function HomePage() {
             {!isPremium && (
               <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2 text-amber-900 font-medium min-w-0">
-                  <span className="text-[15px] flex-shrink-0">👑</span>
+                  <CrownIcon className="w-3.5 h-3.5 text-[#F95700]" />
                   <span className="text-[11.5px] leading-snug">Seat reservation is reserved for MEtro+ members.</span>
                 </div>
                 <button
@@ -546,9 +547,14 @@ export default function HomePage() {
                             {trip.dep} • {isPremium ? trip.bus : "Express Metro"}
                           </p>
                           <p className="text-[10px] text-slate-400 font-medium truncate">
-                            {isPremium
-                              ? `${trip.aircon ? "Aircon Express" : "Non-Aircon"} • ${trip.seats} seats left`
-                              : "🔒 Guaranteed seat reservation (MEtro+ only)"}
+                            {isPremium ? (
+                              `${trip.aircon ? "Aircon Express" : "Non-Aircon"} • ${trip.seats} seats left`
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-slate-400">
+                                <span className="material-symbols-outlined text-[13px] leading-none">lock</span>
+                                <span>Guaranteed seat reservation (MEtro+ only)</span>
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -573,11 +579,19 @@ export default function HomePage() {
               }`}
             >
               <span>
-                {selectedTrip
-                  ? isPremium
-                    ? `Reserve Seat on ${selectedTrip.dep} • ₱275 Full Ride`
-                    : `Reserve Seat • 👑 Unlock MEtro+`
-                  : "Select a bus"}
+                {selectedTrip ? (
+                  isPremium ? (
+                    `Reserve Seat on ${selectedTrip.dep} • ₱275 Full Ride`
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span>Reserve Seat •</span>
+                      <CrownIcon className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Unlock MEtro+</span>
+                    </span>
+                  )
+                ) : (
+                  "Select a bus"
+                )}
               </span>
               <span className="material-symbols-outlined text-[16px]">
                 {isPremium ? "arrow_forward" : "lock_open"}

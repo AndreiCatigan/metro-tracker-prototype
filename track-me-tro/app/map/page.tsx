@@ -13,6 +13,7 @@ import {
 import BoardingAlertSheet from "@/components/BoardingAlertSheet";
 import BottomNavigation from "@/components/BottomNavigation";
 import MetroPlusModal from "@/components/MetroPlusModal";
+import CrownIcon from "@/components/CrownIcon";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
@@ -403,7 +404,15 @@ function MapContent() {
                 {isPremium ? "confirmation_number" : "lock_open"}
               </span>
               <span>
-                {isPremium ? "Book a Ticket • Reserve Seat" : "Reserve Seat • 👑 Unlock MEtro+"}
+                {isPremium ? (
+                  "Book a Ticket • Reserve Seat"
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>Reserve Seat •</span>
+                    <CrownIcon className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Unlock MEtro+</span>
+                  </span>
+                )}
               </span>
             </button>
           </div>

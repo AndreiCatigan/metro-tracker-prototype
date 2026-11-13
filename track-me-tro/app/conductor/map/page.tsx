@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext, PassengerHail } from "@/lib/AppContext";
 import { highwayWaypoints } from "@/lib/data";
+import CrownIcon from "@/components/CrownIcon";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const ConductorMapLeaflet = dynamic(() => import("@/components/ConductorMapLeaflet"), {
@@ -239,7 +240,13 @@ function ConductorMapContent() {
                         : "bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
                     }`}
                   >
-                    <span>{h.tier === "premium" ? "👑" : "📍"}</span>
+                    <span className="inline-flex items-center">
+                      {h.tier === "premium" ? (
+                        <CrownIcon className="w-3 h-3 text-amber-500" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[13px] text-[#F95700]">location_on</span>
+                      )}
+                    </span>
                     <span>{h.passengerName.split(" ")[0]}</span>
                     <span className="text-[9px] opacity-75">({h.location.split(" ")[0]})</span>
                   </button>
@@ -273,7 +280,14 @@ function ConductorMapContent() {
                             : "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {selectedHail.tier === "premium" ? "👑 MEtro+" : "Free Tier"}
+                        {selectedHail.tier === "premium" ? (
+                          <span className="inline-flex items-center gap-1">
+                            <CrownIcon className="w-2.5 h-2.5 text-amber-700" />
+                            <span>MEtro+</span>
+                          </span>
+                        ) : (
+                          "Free Tier"
+                        )}
                       </span>
                     </div>
 

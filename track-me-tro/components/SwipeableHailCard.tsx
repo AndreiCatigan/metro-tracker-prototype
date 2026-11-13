@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { PassengerHail } from "@/lib/AppContext";
+import CrownIcon from "@/components/CrownIcon";
 
 interface SwipeableHailCardProps {
   hail: PassengerHail;
@@ -127,7 +128,14 @@ export default function SwipeableHailCard({
                     : "bg-slate-200 text-slate-700"
                 }`}
               >
-                {hail.tier === "premium" ? "👑 MEtro+" : "Free Tier"}
+                {hail.tier === "premium" ? (
+                  <span className="inline-flex items-center gap-1">
+                    <CrownIcon className="w-2.5 h-2.5 text-amber-700" />
+                    <span>MEtro+</span>
+                  </span>
+                ) : (
+                  "Free Tier"
+                )}
               </span>
             </div>
             <p className="text-[11px] text-slate-700 font-bold mt-0.5 flex items-center gap-1 truncate">
