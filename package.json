@@ -1,9 +1,0 @@
-{
-  "name": "metro-tracker-prototype",
-  "private": true,
-  "scripts": {
-    "dev": "npm run dev --prefix track-me-tro",
-    "build": "npm run build --prefix track-me-tro",
-    "start": "npm run start --prefix track-me-tro"
-  }
-}
