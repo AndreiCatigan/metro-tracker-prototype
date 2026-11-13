@@ -222,3 +222,28 @@ body {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
+/* Logo beating animation for splash/loading screen */
+@keyframes logoBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.08);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+.animate-logo-beat {
+  animation: logoBeat 1s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: transform;
+}
