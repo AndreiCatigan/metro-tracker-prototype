@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd track-me-tro && npm run build",
+  "outputDirectory": "track-me-tro/.next",
+  "framework": "nextjs"
+}

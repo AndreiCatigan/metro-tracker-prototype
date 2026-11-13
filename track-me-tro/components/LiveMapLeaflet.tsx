@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { ActiveBus, CoordinatePair, STOP_COORDINATES, calculateBusETA } from "@/lib/mockData";
 import { useAppContext } from "@/lib/AppContext";
 

@@ -7,6 +7,7 @@ interface LogoProps {
   height?: number;
   alt?: string;
   priority?: boolean;
+  unoptimized?: boolean;
 }
 
 export default function Logo({
@@ -15,6 +16,7 @@ export default function Logo({
   height = 95,
   alt = "track MEtro",
   priority = true,
+  unoptimized = true,
 }: LogoProps) {
   return (
     <Image
@@ -23,6 +25,7 @@ export default function Logo({
       width={width}
       height={height}
       priority={priority}
+      unoptimized={unoptimized}
       className={`object-contain ${className}`}
     />
   );

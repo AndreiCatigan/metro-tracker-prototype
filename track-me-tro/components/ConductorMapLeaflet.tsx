@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { STOP_COORDINATES, CoordinatePair } from "@/lib/data";
 import { PassengerHail } from "@/lib/AppContext";
 
