@@ -21,14 +21,15 @@ export interface DepartedBus {
 
 /**
  * Formats a relative minutes-ago count into user-friendly Kinetic Transit copy:
- * - 0 mins -> "Last updated just now"
- * - 1 min  -> "Last updated 1 min ago"
- * - >1 mins -> "Last updated ${mins} mins ago"
+ * - <=0 mins -> "Last updated just now"
+ * - 1 min    -> "Last updated 1 min ago"
+ * - >1 mins  -> "Last updated ${mins} mins ago"
  */
 export function formatLastUpdated(minsAgo: number): string {
-  if (minsAgo <= 0) return "Last updated just now";
-  if (minsAgo === 1) return "Last updated 1 min ago";
-  return `Last updated ${minsAgo} mins ago`;
+  const rounded = Math.round(minsAgo);
+  if (rounded <= 0) return "Last updated just now";
+  if (rounded === 1) return "Last updated 1 min ago";
+  return `Last updated ${rounded} mins ago`;
 }
 
 /**
@@ -43,6 +44,7 @@ export function computeBusSignalStatus(minsAgo: number): "live" | "delayed" {
 /**
  * Returns all active buses along both corridors (Sogod ➔ Ormoc and Ormoc ➔ Sogod)
  * for the given simulated time, plotting them accurately along the highway based on elapsed travel time.
+ * Guarantees exactly 2 not-live (delayed) buses per direction regardless of time of day for presentation demos.
  */
 export function getActiveBuses(simulatedTime: SimulatedTime): ActiveBus[] {
   const currentMinutes = parseTimeToMinutes(simulatedTime);
@@ -54,6 +56,8 @@ export function getActiveBuses(simulatedTime: SimulatedTime): ActiveBus[] {
   ];
 
   directions.forEach((dir) => {
+    const dirBuses: ActiveBus[] = [];
+
     SCHEDULE_INTERVALS.forEach((item, idx) => {
       const depMins = parseTimeToMinutes(item.dep);
       const arrMins = depMins + 165;
@@ -70,13 +74,7 @@ export function getActiveBuses(simulatedTime: SimulatedTime): ActiveBus[] {
             ? `${remainingToDest} mins away`
             : `${Math.floor(remainingToDest / 60)}h ${remainingToDest % 60}m away`;
 
-        // Assign realistic, varied freshness values across the fleet
-        // Cycle pattern: bus 0 = 0 mins (live), bus 1 = 1 min (live), bus 2 = 2 mins (live), bus 3 = 4 mins (delayed), bus 4 = 5 mins (delayed)
-        const freshnessPattern = [0, 1, 2, 4, 5, 1];
-        const lastUpdatedMinsAgo = freshnessPattern[idx % freshnessPattern.length];
-        const signalStatus = computeBusSignalStatus(lastUpdatedMinsAgo);
-
-        buses.push({
+        dirBuses.push({
           id: `DMS-0${item.num}`,
           direction: dir,
           currentLocation: loc.locationDesc,
@@ -89,10 +87,77 @@ export function getActiveBuses(simulatedTime: SimulatedTime): ActiveBus[] {
           elapsedMinutes: elapsed,
           progressPercent: loc.progressPercent,
           currentStop: loc.currentStop,
-          lastUpdatedMinsAgo,
-          signalStatus,
+          lastUpdatedMinsAgo: 0,
+          signalStatus: "live",
+          isDesignatedDelayed: false,
         });
       }
+    });
+
+    // Presentation Safeguard: If current clock time produces fewer than 4 buses (e.g. night or early hours),
+    // supply representative simulated active buses so the map is never empty during presentation demos.
+    if (dirBuses.length < 4) {
+      const demoIntervals = [
+        { num: dir === "sogod-to-ormoc" ? 54 : 53, elapsed: 45, dep: "7:00 AM" },
+        { num: dir === "sogod-to-ormoc" ? 55 : 56, elapsed: 75, dep: "7:30 AM" },
+        { num: dir === "sogod-to-ormoc" ? 57 : 58, elapsed: 105, dep: "8:00 AM" },
+        { num: dir === "sogod-to-ormoc" ? 59 : 60, elapsed: 135, dep: "8:30 AM" },
+      ];
+
+      demoIntervals.forEach((demo, dIdx) => {
+        if (!dirBuses.some((b) => b.id === `DMS-0${demo.num}`)) {
+          const loc = getLocationForElapsed(dir, demo.elapsed);
+          const remainingToDest = 165 - demo.elapsed;
+          const eta =
+            remainingToDest <= 0
+              ? "Arriving now"
+              : remainingToDest < 60
+              ? `${remainingToDest} mins away`
+              : `${Math.floor(remainingToDest / 60)}h ${remainingToDest % 60}m away`;
+
+          dirBuses.push({
+            id: `DMS-0${demo.num}`,
+            direction: dir,
+            currentLocation: loc.locationDesc,
+            eta,
+            seatsLeft: 8 + dIdx * 3,
+            lat: loc.lat,
+            lng: loc.lng,
+            departureTime: demo.dep,
+            driverName: DRIVER_NAMES[dIdx % DRIVER_NAMES.length],
+            elapsedMinutes: demo.elapsed,
+            progressPercent: loc.progressPercent,
+            currentStop: loc.currentStop,
+            lastUpdatedMinsAgo: 0,
+            signalStatus: "live",
+            isDesignatedDelayed: false,
+          });
+        }
+      });
+    }
+
+    // Guarantee EXACTLY 2 not-live (delayed) buses per direction for presentation demos:
+    // - sogod-to-ormoc: 2 delayed buses (4 mins ago & 7 mins ago)
+    // - ormoc-to-sogod: 2 delayed buses (5 mins ago & 8 mins ago)
+    // All other buses in the direction remain live (0 or 1 min ago)
+    const delayedIndex1 = 1; // 2nd bus
+    const delayedIndex2 = dirBuses.length > 3 ? 3 : dirBuses.length - 1; // 4th bus
+
+    dirBuses.forEach((bus, index) => {
+      if (index === delayedIndex1) {
+        bus.isDesignatedDelayed = true;
+        bus.signalStatus = "delayed";
+        bus.lastUpdatedMinsAgo = dir === "sogod-to-ormoc" ? 4 : 5;
+      } else if (index === delayedIndex2 && delayedIndex2 !== delayedIndex1) {
+        bus.isDesignatedDelayed = true;
+        bus.signalStatus = "delayed";
+        bus.lastUpdatedMinsAgo = dir === "sogod-to-ormoc" ? 7 : 8;
+      } else {
+        bus.isDesignatedDelayed = false;
+        bus.signalStatus = "live";
+        bus.lastUpdatedMinsAgo = index % 2 === 0 ? 0 : 1;
+      }
+      buses.push(bus);
     });
   });
 

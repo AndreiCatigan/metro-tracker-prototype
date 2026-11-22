@@ -17,7 +17,6 @@ import BottomNavigation from "@/components/BottomNavigation";
 import MetroPlusModal from "@/components/MetroPlusModal";
 import CrownIcon from "@/components/CrownIcon";
 import { Badge } from "@/components/ui/badge";
-import { Radio } from "lucide-react";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
@@ -83,7 +82,8 @@ function MapContent() {
     const baseBuses = getActiveBuses(simulatedTime);
     if (!currentTimestamp) return baseBuses;
     return baseBuses.map((b) => {
-      if (b.id === busDetails.id) {
+      // Presentation Safeguard: Do not overwrite designated delayed demo buses with conductor live sync
+      if (b.id === busDetails.id && !b.isDesignatedDelayed) {
         const diffMs = Math.max(0, currentTimestamp - (busLastUpdatedAt || currentTimestamp));
         const mins = Math.floor(diffMs / 60000);
         return {
@@ -245,7 +245,7 @@ function MapContent() {
 
             {/* GPS Signal Freshness Header Row */}
             <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 {selectedBusSignalStatus === "live" ? (
                   <Badge
                     variant="success"
@@ -259,18 +259,13 @@ function MapContent() {
                   </Badge>
                 ) : (
                   <Badge
-                    variant="peach"
-                    className="h-6 px-2.5 text-[10px] font-black tracking-wider flex items-center gap-1.5 shadow-2xs"
+                    variant="outline"
+                    className="h-6 px-2.5 text-[10px] font-bold tracking-normal bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
                   >
-                    <span className="w-2 h-2 rounded-full bg-[#A53700]" />
-                    <span>LAST SEEN</span>
+                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                    <span>{formatLastUpdated(Math.max(2, selectedBusMinsAgo))}</span>
                   </Badge>
                 )}
-
-                <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{formatLastUpdated(selectedBusMinsAgo)}</span>
-                </div>
               </div>
 
               {/* Close Button & Direction Chip */}

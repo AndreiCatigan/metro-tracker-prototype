@@ -77,3 +77,12 @@
   - Added a 30-second client interval in `app/map/page.tsx` compliant with React 19 component purity rules.
   - Added subtle visual ring differentiation in `components/LiveMapLeaflet.tsx` (toning down outer pulse on delayed pins).
   - Enhanced responsive layout: anchored bottom card on phones, floating side card on tablets (`md:left-6 md:bottom-24 md:w-[380px]`).
+- **Telemetry Refinement — Mutually Exclusive Status Badges & Guaranteed 2 Not-Live Buses:**
+  - Simplified bus inspection drawer header into a single mutually exclusive `Badge`:
+    - **Live (`signalStatus === "live"`):** Emerald green badge (`variant="success"`) with pulsing green dot (`animate-ping` + solid `#10B981`) and `LIVE` label only (removed duplicate radio icon and timestamp text).
+    - **Not-Live / Delayed (`signalStatus !== "live"`):** Neutral muted-gray pill (`bg-slate-100 text-slate-600 border border-slate-200`) with a static solid gray dot (`bg-slate-400`) and formatted relative timestamp (`Last updated X mins ago`, guaranteed integer minute count).
+  - Fleet Telemetry Distribution (`lib/data/fleetData.ts` & `lib/data/corridorData.ts`):
+    - Guaranteed **exactly 2 delayed buses** per direction across all clock times: `sogod-to-ormoc` has units at `4` mins and `7` mins ago; `ormoc-to-sogod` has units at `5` mins and `8` mins ago. All remaining active fleet units in each direction are `"live"`.
+    - Added presentation safeguard ensuring conductor multi-tab updates do not overwrite designated delayed demo buses (`!b.isDesignatedDelayed`).
+  - Map Marker Cohesion (`components/LiveMapLeaflet.tsx`):
+    - Aligned delayed bus pins to render a slate dashed ring (`border: 1.5px dashed #94A3B8; background: rgba(241, 245, 249, 0.7);`), slate bus icon (`#64748B`), and a slate dot (`#94A3B8`) in the bottom ETA tag, visually distinguishing live units from delayed units across both route directions.

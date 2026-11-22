@@ -148,6 +148,7 @@ export interface ActiveBus {
   lastUpdatedMinsAgo?: number;
   lastUpdatedAt?: number;
   signalStatus?: "live" | "delayed";
+  isDesignatedDelayed?: boolean;
 }
 
 export type CoordinatePair = [number, number];
@@ -278,6 +279,7 @@ export function getLocationForElapsed(
  * 4 default mock buses (kept for fallback / backward compatibility)
  */
 export const activeBuses: ActiveBus[] = [
+  // ── Sogod to Ormoc (Outbound) ──
   {
     id: "DMS-054",
     direction: "sogod-to-ormoc",
@@ -290,8 +292,9 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 90,
     progressPercent: 55,
     currentStop: "Inopacan",
-    lastUpdatedMinsAgo: 1,
+    lastUpdatedMinsAgo: 0,
     signalStatus: "live",
+    isDesignatedDelayed: false,
   },
   {
     id: "DMS-055",
@@ -307,7 +310,42 @@ export const activeBuses: ActiveBus[] = [
     currentStop: "Hilongos",
     lastUpdatedMinsAgo: 4,
     signalStatus: "delayed",
+    isDesignatedDelayed: true,
   },
+  {
+    id: "DMS-057",
+    direction: "sogod-to-ormoc",
+    currentLocation: "Departed Sogod • Approaching Bato",
+    eta: "150 mins away",
+    seatsLeft: 19,
+    lat: 10.3833,
+    lng: 124.8000,
+    departureTime: "9:00 AM",
+    elapsedMinutes: 20,
+    progressPercent: 12,
+    currentStop: "Bato",
+    lastUpdatedMinsAgo: 1,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
+  },
+  {
+    id: "DMS-059",
+    direction: "sogod-to-ormoc",
+    currentLocation: "Passing Baybay City Terminal",
+    eta: "45 mins away",
+    seatsLeft: 5,
+    lat: 10.6765,
+    lng: 124.7986,
+    departureTime: "7:00 AM",
+    elapsedMinutes: 120,
+    progressPercent: 73,
+    currentStop: "Baybay City Terminal",
+    lastUpdatedMinsAgo: 7,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
+  },
+
+  // ── Ormoc to Sogod (Inbound) ──
   {
     id: "DMS-053",
     direction: "ormoc-to-sogod",
@@ -322,6 +360,7 @@ export const activeBuses: ActiveBus[] = [
     currentStop: "Inopacan",
     lastUpdatedMinsAgo: 0,
     signalStatus: "live",
+    isDesignatedDelayed: false,
   },
   {
     id: "DMS-056",
@@ -337,6 +376,39 @@ export const activeBuses: ActiveBus[] = [
     currentStop: "Albuera",
     lastUpdatedMinsAgo: 5,
     signalStatus: "delayed",
+    isDesignatedDelayed: true,
+  },
+  {
+    id: "DMS-058",
+    direction: "ormoc-to-sogod",
+    currentLocation: "Approaching Hindang",
+    eta: "65 mins away",
+    seatsLeft: 16,
+    lat: 10.4350,
+    lng: 124.7280,
+    departureTime: "8:00 AM",
+    elapsedMinutes: 100,
+    progressPercent: 61,
+    currentStop: "Hindang",
+    lastUpdatedMinsAgo: 1,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
+  },
+  {
+    id: "DMS-060",
+    direction: "ormoc-to-sogod",
+    currentLocation: "Passing VSU Main Campus",
+    eta: "115 mins away",
+    seatsLeft: 7,
+    lat: 10.7450,
+    lng: 124.7920,
+    departureTime: "8:45 AM",
+    elapsedMinutes: 50,
+    progressPercent: 30,
+    currentStop: "VSU Main Campus",
+    lastUpdatedMinsAgo: 8,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
   },
 ];
 
