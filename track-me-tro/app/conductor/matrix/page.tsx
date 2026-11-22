@@ -26,11 +26,17 @@ function ConductorMatrixContent() {
     removeBookingReservation,
   } = useAppContext();
 
-  // Target booking to assign a seat to (either from query param or pending booking)
-  const pendingBooking = bookings.find((b) => b.status === "pending_seat");
-  const targetBooking = assignBookingId
-    ? bookings.find((b) => b.id === assignBookingId) || pendingBooking
-    : pendingBooking;
+  // All paid bookings waiting for seat assignment
+  const pendingBookings = useMemo(() => bookings.filter((b) => b.status === "pending_seat"), [bookings]);
+  const [selectedPendingBookingId, setSelectedPendingBookingId] = useState<string>(assignBookingId || "");
+
+  const activeTargetBooking = useMemo(() => {
+    if (selectedPendingBookingId) {
+      const found = pendingBookings.find((b) => b.id === selectedPendingBookingId);
+      if (found) return found;
+    }
+    return pendingBookings[0] || null;
+  }, [pendingBookings, selectedPendingBookingId]);
 
   // Seat state representation: pre-select seat 15 only when in assignment mode
   const [selectedSeatId, setSelectedSeatId] = useState<string>(assignBookingId ? "15" : "");
@@ -168,16 +174,15 @@ function ConductorMatrixContent() {
   };
 
   const handleAssignToPassenger = () => {
-    if (!targetBooking || !selectedSeat) return;
+    if (!activeTargetBooking || !selectedSeat) return;
     if (selectedSeat.type !== "available") {
       showToast(`Seat ${selectedSeat.id} is not available. Please choose a vacant seat.`);
       return;
     }
-    assignSeatToBooking(targetBooking.id, selectedSeat.id);
-    showToast(`✓ Seat ${selectedSeat.id} assigned to ${targetBooking.passengerName}! Commuter notified.`);
-    setTimeout(() => {
-      router.push("/conductor");
-    }, 1200);
+    assignSeatToBooking(activeTargetBooking.id, selectedSeat.id);
+    showToast(`✓ Seat ${selectedSeat.id} assigned to ${activeTargetBooking.passengerName}! Passenger notified.`);
+    setSelectedSeatId("");
+    setSelectedPendingBookingId("");
   };
 
   return (
@@ -241,37 +246,78 @@ function ConductorMatrixContent() {
       </header>
 
       <main className="max-w-[420px] w-full mx-auto px-4 -mt-2 space-y-3.5">
-        {/* ── Pending App Reservation Banner (Conductor Assigns Seat) ── */}
-        {targetBooking && (
-          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2 animate-fade-in">
-            <div className="flex items-center justify-between">
+        {/* ── Paid Passengers Awaiting Seat Assignment Queue Card ── */}
+        {pendingBookings.length > 0 && (
+          <div className="bg-white rounded-3xl p-4 shadow-sm border-2 border-[#F95700] space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#F95700] animate-ping" />
-                <span className="text-[12px] font-black text-[#A53700] uppercase tracking-wider">
-                  Select Seat for Online Reservation
-                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-ping" />
+                <h3 className="text-[12.5px] font-black tracking-tight text-[#191C1E] uppercase">
+                  Paid Passengers Awaiting Seat Assignment ({pendingBookings.length})
+                </h3>
               </div>
-              <span className="text-[11px] font-bold bg-[#A53700] text-white px-2 py-0.5 rounded-full capitalize">
-                {targetBooking.passengerType}
+              <span className="text-[10px] font-bold bg-[#FFE8D6] text-[#A53700] px-2 py-0.5 rounded-full">
+                Action Required
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs">
-              <div>
-                <p className="font-extrabold text-[#191C1E]">{targetBooking.passengerName}</p>
-                <p className="text-[11px] text-slate-600">
-                  {targetBooking.busNumber} • {targetBooking.direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-bold text-emerald-700">Paid ₱{targetBooking.totalFare.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-500">via {targetBooking.paymentMethod}</p>
-              </div>
-            </div>
+            <div className="space-y-2">
+              {pendingBookings.map((b) => {
+                const isSelected = activeTargetBooking?.id === b.id;
+                const segOrigin = b.origin || (b.direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City");
+                const segDest = b.destination || (b.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
 
-            <p className="text-[10px] font-bold text-[#A53700] bg-white/70 rounded-lg p-1.5 text-center">
-              👉 Tap a seat below to assign to {targetBooking.passengerName.split(" ")[0]}
-            </p>
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setSelectedPendingBookingId(b.id)}
+                    className={`w-full text-left p-3 rounded-2xl transition-all cursor-pointer border ${
+                      isSelected
+                        ? "bg-[#FFE8D6]/40 border-[#F95700] ring-1 ring-[#F95700]/30 shadow-xs"
+                        : "bg-[#F8FAFC] border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13px] font-black text-[#191C1E]">
+                            {b.passengerName}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            • Bus {b.busNumber || busDetails.id}
+                          </span>
+                          {b.passengerType !== "regular" && (
+                            <span className="text-[9px] font-extrabold uppercase bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
+                              {b.passengerType} (20%)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-600 mt-0.5">
+                          {segOrigin} <span className="text-slate-400 font-normal">➔</span> {segDest}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                          Paid ₱{b.totalFare.toFixed(2)}
+                        </span>
+                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                          via {b.paymentMethod}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <div className="mt-2 pt-2 border-t border-[#F95700]/20 flex items-center justify-between text-[11px] font-bold text-[#A53700]">
+                        <span>👉 Tap any vacant seat below to assign to {b.passengerName.split(" ")[0]}</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_downward</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -595,7 +641,7 @@ function ConductorMatrixContent() {
                   <span>Remove</span>
                 </button>
               </div>
-            ) : targetBooking ? (
+            ) : activeTargetBooking ? (
               <div className="pt-1">
                 <button
                   type="button"
@@ -604,7 +650,7 @@ function ConductorMatrixContent() {
                 >
                   <span className="material-symbols-outlined text-[17px]">event_seat</span>
                   <span>
-                    Confirm Seat {selectedSeat.id} for {targetBooking.passengerName.split(" ")[0]}
+                    Confirm Seat {selectedSeat.id} for {activeTargetBooking.passengerName.split(" ")[0]}
                   </span>
                 </button>
               </div>

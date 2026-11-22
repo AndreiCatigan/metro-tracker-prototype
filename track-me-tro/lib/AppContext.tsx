@@ -118,14 +118,17 @@ interface AppContextType {
   // Booking flow
   bookings: BookingRequest[];
   createBooking: (params: {
-    tripId: string;
-    busNumber: string;
-    departureTime: string;
-    direction: "sogod-ormoc" | "ormoc-sogod";
-    passengerType: PassengerType;
+    tripId?: string;
+    busNumber?: string;
+    departureTime?: string;
+    direction?: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod";
+    passengerType?: PassengerType;
     paymentMethod: "GCash" | "Maya";
     origin?: string;
     destination?: string;
+    paymentStatus?: "paid" | "unpaid";
+    etaMinutes?: number;
+    etaText?: string;
   }) => BookingRequest;
   assignSeatToBooking: (bookingId: string, seatNumber: string) => void;
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
@@ -438,6 +441,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             setBookings(JSON.parse(e.newValue));
           } catch (e) {}
+        } else if (e.key === "trackmetro_active_ticket" && e.newValue) {
+          try {
+            setActiveTicket(JSON.parse(e.newValue));
+          } catch (e) {}
         } else if (e.key === "trackmetro_verified_discount" && e.newValue) {
           setVerifiedDiscountState(e.newValue as PassengerType);
         } else if (e.key === "trackmetro_discount_id") {
@@ -608,72 +615,82 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const createBooking = useCallback((params: {
-    tripId: string;
-    busNumber: string;
-    departureTime: string;
-    direction: "sogod-ormoc" | "ormoc-sogod";
-    passengerType: PassengerType;
+    tripId?: string;
+    busNumber?: string;
+    departureTime?: string;
+    direction?: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod";
+    passengerType?: PassengerType;
     paymentMethod: "GCash" | "Maya";
     origin?: string;
     destination?: string;
+    paymentStatus?: "paid" | "unpaid";
+    etaMinutes?: number;
+    etaText?: string;
   }): BookingRequest => {
     const bookingOrigin = params.origin || origin;
     const bookingDestination = params.destination || destination;
-    const fare = calculateSegmentFare(bookingOrigin, bookingDestination, params.passengerType, {
+    const bookingPassengerType = params.passengerType || verifiedDiscount;
+    const fare = calculateSegmentFare(bookingOrigin, bookingDestination, bookingPassengerType, {
       isPremium,
       includeConvenienceFee: true,
     });
+    const normDir: "sogod-ormoc" | "ormoc-sogod" =
+      params.direction === "ormoc-sogod" || params.direction === "ormoc-to-sogod"
+        ? "ormoc-sogod"
+        : "sogod-ormoc";
+
     const newBooking: BookingRequest = {
       id: `BK-${Date.now()}`,
-      tripId: params.tripId,
-      busNumber: params.busNumber,
-      departureTime: params.departureTime,
-      direction: params.direction,
-      passengerType: params.passengerType,
+      tripId: params.tripId || `TRIP-${Date.now()}`,
+      busNumber: params.busNumber || busDetailsState.id,
+      departureTime: params.departureTime || "08:00 AM",
+      direction: normDir,
+      passengerType: bookingPassengerType,
       paymentMethod: params.paymentMethod,
       status: "pending_seat",
+      paymentStatus: params.paymentStatus || "paid",
       assignedSeat: null,
-      passengerName,
+      passengerName: passengerName || "Juana de la Cruz",
       baseFare: fare.baseFare,
       discount: fare.discountAmount,
       convenienceFee: fare.convenienceFee,
       totalFare: fare.totalFare,
       createdAt: new Date().toISOString(),
       pnr: generatePNR(),
+      origin: bookingOrigin,
+      destination: bookingDestination,
+      etaMinutes: params.etaMinutes ?? 12,
+      etaText: params.etaText ?? "Arriving in ~12 mins",
     };
-    setBookings((prev) => [...prev, newBooking]);
+    setBookings((prev) => {
+      const next = [...prev, newBooking];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("trackmetro_bookings", JSON.stringify(next));
+        } catch (e) {}
+      }
+      return next;
+    });
     return newBooking;
-  }, [passengerName, origin, destination, isPremium]);
+  }, [passengerName, origin, destination, isPremium, busDetailsState.id, verifiedDiscount]);
 
   const assignSeatToBooking = useCallback((bookingId: string, seatNumber: string) => {
-    setBookings((prev) =>
-      prev.map((b) =>
+    setBookings((prev) => {
+      const updated = prev.map((b) =>
         b.id === bookingId
           ? { ...b, assignedSeat: seatNumber, status: "confirmed" as const }
           : b
-      )
-    );
-    updateSeatStatus(seatNumber, "app_reserved");
-    // Also update active ticket for the ticket page
-    setBookings((prev) => {
-      const booking = prev.find((b) => b.id === bookingId);
+      );
+      const booking = updated.find((b) => b.id === bookingId);
       if (booking) {
-        const routeTitle = booking.direction === "sogod-ormoc"
-          ? "Sogod ➔ Ormoc City"
-          : "Ormoc City ➔ Sogod";
-        const origin = booking.direction === "sogod-ormoc"
-          ? "Sogod, Southern Leyte"
-          : "Ormoc City, Leyte";
-        const destination = booking.direction === "sogod-ormoc"
-          ? "Ormoc City, Leyte"
-          : "Sogod, Southern Leyte";
-
-        setActiveTicket({
+        const segOrigin = booking.origin || (booking.direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City");
+        const segDest = booking.destination || (booking.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
+        const newTicket: TicketDetails = {
           pnr: booking.pnr,
           busId: booking.busNumber,
-          routeTitle,
-          origin,
-          destination,
+          routeTitle: `${segOrigin} ➔ ${segDest}`,
+          origin: segOrigin,
+          destination: segDest,
           departureTime: booking.departureTime,
           arrivalTime: "—",
           date: "24 Nov 2026",
@@ -685,11 +702,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           totalFare: booking.totalFare,
           paymentMethod: booking.paymentMethod,
           passengerType: booking.passengerType,
-        });
+        };
+        setActiveTicket(newTicket);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("trackmetro_active_ticket", JSON.stringify(newTicket));
+            localStorage.setItem("trackmetro_bookings", JSON.stringify(updated));
+          } catch (e) {}
+        }
       }
-      return prev;
+      return updated;
     });
-  }, []);
+    updateSeatStatus(seatNumber, "app_reserved");
+  }, [updateSeatStatus]);
 
   const updateBookingStatus = useCallback((bookingId: string, status: BookingStatus) => {
     setBookings((prev) =>
@@ -698,7 +723,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getActiveBooking = useCallback((): BookingRequest | undefined => {
-    return bookings.find((b) => b.status === "pending_seat" || b.status === "confirmed");
+    return [...bookings].reverse().find((b) => b.status === "pending_seat" || b.status === "confirmed");
   }, [bookings]);
 
   // Passenger Advance Hail Operations
@@ -759,6 +784,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Simulate an incoming online seat reservation request
   const requestSeatReservation = useCallback((name: string = "Mark Villamor", direction: "sogod-ormoc" | "ormoc-sogod" = "sogod-ormoc"): BookingRequest => {
+    const origin = direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City";
+    const destination = direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal";
     const newBooking: BookingRequest = {
       id: `BK-${Date.now()}`,
       tripId: "trip-sogod-1",
@@ -768,6 +795,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       passengerType: "regular",
       paymentMethod: "GCash",
       status: "pending_seat",
+      paymentStatus: "paid",
       assignedSeat: null,
       passengerName: name,
       baseFare: 275,
@@ -776,6 +804,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       totalFare: 275 + CONVENIENCE_FEE,
       createdAt: new Date().toISOString(),
       pnr: generatePNR(),
+      origin,
+      destination,
+      etaMinutes: 12,
+      etaText: "Arriving in ~12 mins",
     };
     setBookings((prev) => [newBooking, ...prev]);
     return newBooking;

@@ -157,7 +157,7 @@ function MapContent() {
       setOrigin("Ormoc City");
       setDestination("Sogod Terminal");
     }
-    router.push(`/seats?busId=${selectedBus.id}&direction=${activeDirection}`);
+    router.push(`/booking?busId=${selectedBus.id}&direction=${activeDirection}`);
   };
 
   // Calculate dynamic ETA to commuter's simulated userLocation

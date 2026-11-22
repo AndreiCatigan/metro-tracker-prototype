@@ -108,3 +108,31 @@
     - `app/ticket/page.tsx`: Displays corridor segment, 20% concession badge, crossed-out original base fare, and exact total amount.
   - **Conductor POS Dynamic Route Alignment (`lib/data/conductorData.ts` & `app/conductor/pos/page.tsx`):**
     - Added `getPosRouteStops(direction)` returning directional stops and base fares for conductor on-bus ticketing.
+- **Conductor-Assigned Seating Workflow & Post-Payment Two-Stage Experience:**
+  - **Passenger Self-Seat Selection Retired:**
+    - Replaced `app/seats/page.tsx` with a clean client redirect to `/booking` (`useRouter().replace("/booking")`).
+    - Updated entry points across `/home`, `/map`, and `/schedule` so passengers follow the streamlined flow: Trip/Destination Selection (`/booking`) ➔ Payment (`/checkout`).
+  - **Trip Segment Selection in `/booking` (`app/booking/page.tsx`):**
+    - Integrated interactive Kinetic Transit Trip Segment Card on `/booking` featuring direction toggle (`Sogod ➔ Ormoc` / `Ormoc ➔ Sogod`), boarding stop selector, dynamically filtered destination stop selector, active bus unit preview, and clear notice: *"Seats are assigned by the bus conductor upon payment confirmation."*
+    - Live segment fare engine with 20% concession badge, crossed-out base fare, and ₱20 convenience fee breakdown.
+  - **Pre-Payment Checkout Neutrality (`app/checkout/page.tsx`):**
+    - Removed pre-selected seat number; shows `"Seat: To be assigned by conductor"` with a warm peach badge.
+    - Itemizes Base Fare, Concession Discount (-₱36 for student), ₱20 Convenience Fee, and Total Amount.
+    - On payment confirmation, calls `createBooking` with `status: "pending_seat"` and `paymentStatus: "paid"`, and navigates to `/booking/pending`.
+  - **Two-Stage Post-Payment Experience (`app/booking/pending/page.tsx`):**
+    - **Stage A (Payment Successful & Pending Seat Assignment):**
+      - Hero checkmark with payment confirmation (amount, GCash/Maya, route segment, PNR).
+      - Warm peach badge `<Badge variant="peach">PENDING SEAT ASSIGNMENT</Badge>` with animated waiting indicator and copy: *"Your payment is confirmed. Please wait while the conductor on Bus [Bus No.] selects your seat."*
+      - Live multi-tab synchronization via `localStorage` events; automatically transitions to Stage B the moment the conductor assigns a seat.
+      - Single-device demo trigger: *"Demo: Simulate Conductor Assigning Seat"* for presentation pitches.
+    - **Stage B (Seat Assigned & Bus Arrival Wait Screen):**
+      - Celebratory `<Badge variant="success">SEAT CONFIRMED</Badge>`.
+      - Bold headline: **"Your seat is number [##]"** with the seat number highlighted in electric transit orange (`#F95700`).
+      - Bus Arrival & ETA Card: **"Please wait for Bus No. [DMS-XXX] to arrive"** at **[Origin Stop]**, live arrival estimate (**"Arriving in ~12 mins"** + clock time and React 19-compliant 1-minute countdown ticker).
+      - Action CTAs: Primary "View Boarding Pass (QR)" (➔ `/ticket`) and Secondary "Track Bus Live on Map" (➔ `/map`).
+  - **Conductor Operations Queue (`app/conductor/matrix/page.tsx` & `app/conductor/page.tsx`):**
+    - Added **"Paid Passengers Awaiting Seat Assignment"** queue card to `app/conductor/matrix/page.tsx`, allowing the conductor to select a pending passenger and tap any vacant seat on the bus matrix to assign it.
+    - Added high-visibility pending assignment banner on `app/conductor/page.tsx` alerting the crew when passengers are waiting for seats.
+  - **Digital Boarding Pass Sync (`app/ticket/page.tsx`):**
+    - Displays a `"Pending Conductor Seat Assignment"` banner with a direct link back to `/booking/pending` if visited prior to seat assignment.
+    - Displays conductor-assigned seat number, Bus No., route segment, and verified discount badge once confirmed.

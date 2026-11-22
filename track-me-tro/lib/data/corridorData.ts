@@ -36,6 +36,11 @@ export interface BookingRequest {
   totalFare: number;
   createdAt: string;
   pnr: string;
+  origin?: string;
+  destination?: string;
+  paymentStatus?: "paid" | "unpaid";
+  etaMinutes?: number;
+  etaText?: string;
 }
 
 // Available transit corridor stops (Geographical Order South to North)

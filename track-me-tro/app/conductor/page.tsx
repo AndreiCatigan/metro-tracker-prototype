@@ -462,6 +462,35 @@ export default function ConductorHomePage() {
 
       {/* ── Main Content Container ── */}
       <main className="max-w-[440px] w-full mx-auto px-3.5 sm:px-4 pt-3.5 space-y-3.5">
+        {/* ── High-Priority Pending Seat Assignment Alert Banner ── */}
+        {pendingSeatBookings.length > 0 && (
+          <button
+            type="button"
+            onClick={() => router.push("/conductor/matrix")}
+            className="w-full bg-[#FFE8D6] hover:bg-[#FFDFC9] border-2 border-[#F95700] rounded-2xl p-3 sm:p-3.5 shadow-md flex items-center justify-between gap-3 transition active:scale-[0.99] text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-3 h-3 rounded-full bg-[#F95700] animate-ping shrink-0" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] font-black text-[#A53700] uppercase tracking-wider">
+                    {pendingSeatBookings.length} {pendingSeatBookings.length === 1 ? "Passenger" : "Passengers"} Awaiting Seat
+                  </span>
+                  <span className="bg-[#F95700] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                    Action Needed
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-700 font-bold truncate mt-0.5">
+                  Tap to assign seats on the bus matrix now ➔
+                </p>
+              </div>
+            </div>
+            <span className="material-symbols-outlined text-[20px] text-[#F95700] shrink-0">
+              airline_seat_recline_normal
+            </span>
+          </button>
+        )}
+
         {/* ── Active Corridor & Direction Strip ── */}
         <section className="bg-white rounded-2xl p-3 sm:p-3.5 shadow-2xs border border-[#ECEEF0] flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">

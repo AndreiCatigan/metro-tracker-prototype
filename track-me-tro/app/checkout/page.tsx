@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import { calculateSegmentFare } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const {
     busDetails,
-    selectedSeatNumber,
     passengerName,
-    confirmBooking,
+    createBooking,
     origin,
     destination,
+    selectedDirection,
     verifiedDiscount,
     isPremium,
   } = useAppContext();
@@ -40,15 +43,25 @@ export default function CheckoutPage() {
 
   const handlePay = () => {
     setIsProcessing(true);
-    // Simulate payment transaction
+    // Simulate instantaneous payment processing
     setTimeout(() => {
-      confirmBooking(selectedSeatNumber, paymentMethod);
-      router.push("/ticket");
-    }, 900);
+      const booking = createBooking({
+        busNumber: busDetails.id,
+        direction: selectedDirection === "sogod-to-ormoc" ? "sogod-ormoc" : "ormoc-sogod",
+        passengerType: verifiedDiscount,
+        paymentMethod,
+        origin,
+        destination,
+        etaMinutes: 12,
+        etaText: "Arriving in ~12 mins",
+        paymentStatus: "paid",
+      });
+      router.push(`/booking/pending?id=${booking.id}`);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
         <button
@@ -62,10 +75,10 @@ export default function CheckoutPage() {
 
         <div className="text-center">
           <h1 className="text-[17px] font-extrabold tracking-tight text-[#191C1E]">
-            Checkout
+            Checkout &amp; Payment
           </h1>
           <p className="text-[11px] font-medium text-slate-500">
-            Step 2 of 2 • Secure Pay
+            Secure Digital Fare Payment
           </p>
         </div>
 
@@ -74,50 +87,59 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-2xl w-full mx-auto px-4 pt-4 space-y-4">
         {/* ── Card 1: Booking Details ── */}
-        <section className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-4">
+        <Card className="p-5 shadow-xs border-[#ECEEF0] space-y-4">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] px-3 py-1 rounded-full text-[11px] font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
-              Booking Details
+              Booking Summary
             </span>
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">
               BUS {busDetails.id}
             </span>
           </div>
 
-          <div>
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#A53700] uppercase tracking-wider mb-0.5">
-              <span className="w-2 h-2 rounded-full bg-[#A53700]" />
-              Route Corridor
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#A53700] uppercase tracking-wider mb-0.5">
+                <span className="w-2 h-2 rounded-full bg-[#A53700]" />
+                Route Segment
+              </div>
+              <h2 className="text-[18px] font-black text-[#191C1E] tracking-tight">
+                {origin} <span className="text-slate-400 font-normal">➔</span> {destination}
+              </h2>
             </div>
-            <h2 className="text-[18px] font-black text-[#191C1E] tracking-tight">
-              {origin} <span className="text-slate-400 font-normal">➔</span> {destination}
-            </h2>
+            <button
+              type="button"
+              onClick={() => router.push("/booking")}
+              className="text-[11px] font-bold text-[#F95700] hover:underline cursor-pointer"
+            >
+              Edit Route
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#ECEEF0]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#ECEEF0]">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                DEPARTURE DATE &amp; TIME
+                DEPARTURE &amp; DATE
               </p>
               <p className="text-[13px] font-extrabold text-[#191C1E]">
-                Today • 8:00 AM
+                Today • 08:00 AM
               </p>
-              <p className="text-[11px] text-slate-400 font-medium">Nov 24, 2026</p>
+              <p className="text-[11px] text-slate-400 font-medium">Nov 24, 2026 • Aircon Express</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                CHOSEN SEAT
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                SEAT ASSIGNMENT
               </p>
-              <div className="inline-flex items-center gap-1 bg-[#F95700] text-white px-2.5 py-0.5 rounded-full text-[11px] font-black shadow-2xs">
-                <span>★</span>
-                <span>Seat {selectedSeatNumber}</span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                Window • Aircon Express
+              <Badge variant="peach" className="gap-1 font-bold text-[11px] py-1 px-3 shadow-2xs">
+                <span className="material-symbols-outlined text-[13px]">airline_seat_recline_normal</span>
+                <span>To be assigned by conductor</span>
+              </Badge>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">
+                Assigned upon payment confirmation
               </p>
             </div>
           </div>
@@ -125,7 +147,7 @@ export default function CheckoutPage() {
           <div className="flex items-center justify-between pt-3 border-t border-[#ECEEF0]">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-[#E0E3E5] text-slate-700 font-bold text-[11px] flex items-center justify-center">
-                JD
+                {passengerName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </div>
               <span className="text-[13px] font-bold text-[#191C1E]">
                 {passengerName}
@@ -141,10 +163,10 @@ export default function CheckoutPage() {
               </span>
             )}
           </div>
-        </section>
+        </Card>
 
         {/* ── Card 2: Fare Breakdown ── */}
-        <section className="bg-white rounded-3xl p-5 shadow-xs border border-[#ECEEF0] space-y-3">
+        <Card className="p-5 shadow-xs border-[#ECEEF0] space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               FARE BREAKDOWN
@@ -187,16 +209,18 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-dashed border-[#ECEEF0] flex items-center justify-between">
+          <Separator className="my-2 bg-[#ECEEF0]" />
+
+          <div className="flex items-center justify-between pt-1">
             <div>
               <p className="text-[15px] font-extrabold text-[#191C1E]">Total Amount</p>
-              <p className="text-[10px] text-slate-400">Includes all taxes and fees</p>
+              <p className="text-[10px] text-slate-400">Includes all taxes and convenience fees</p>
             </div>
             <div className="text-[22px] font-black text-[#191C1E] tracking-tight">
               ₱{fare.totalFare.toFixed(2)}
             </div>
           </div>
-        </section>
+        </Card>
 
         {/* ── Section 3: Pay With ── */}
         <section className="space-y-2.5">
@@ -221,7 +245,6 @@ export default function CheckoutPage() {
             }`}
           >
             <div className="flex items-center gap-3">
-              {/* GCash Icon */}
               <div className="w-10 h-10 rounded-xl bg-[#005CEE] text-white flex items-center justify-center font-black text-[13px] shadow-xs">
                 GCash
               </div>
@@ -233,7 +256,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Custom Radio */}
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                 paymentMethod === "GCash"
@@ -258,7 +280,6 @@ export default function CheckoutPage() {
             }`}
           >
             <div className="flex items-center gap-3">
-              {/* Maya Icon */}
               <div className="w-10 h-10 rounded-xl bg-[#00D06C] text-slate-900 flex items-center justify-center font-black text-[11px] shadow-xs lowercase tracking-tight">
                 maya
               </div>
@@ -270,7 +291,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Custom Radio */}
             <div
               className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                 paymentMethod === "Maya"
@@ -294,24 +314,26 @@ export default function CheckoutPage() {
 
       {/* ── Fixed Bottom Sticky Bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5">
-        <div className="max-w-[420px] mx-auto space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500 font-semibold">Final Payment Due</span>
-            <span className="text-[17px] font-black text-[#F95700]">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Final Payment Due
+            </span>
+            <span className="text-[20px] font-black text-[#F95700]">
               ₱{fare.totalFare.toFixed(2)}
             </span>
           </div>
 
-          <button
+          <Button
             type="button"
             disabled={isProcessing}
             onClick={handlePay}
-            className="w-full py-3.5 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-extrabold text-[15px] shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-wait"
+            className="flex-1 py-3.5 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-extrabold text-[15px] shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-wait max-w-xs"
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Securing Seat &amp; Processing...</span>
+                <span>Processing Payment...</span>
               </span>
             ) : (
               <span className="flex items-center gap-1.5">
@@ -319,7 +341,7 @@ export default function CheckoutPage() {
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

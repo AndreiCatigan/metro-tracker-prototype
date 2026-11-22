@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 
 export default function TicketPage() {
   const router = useRouter();
-  const { activeTicket, passengerName } = useAppContext();
+  const { activeTicket, passengerName, bookings } = useAppContext();
   const [copied, setCopied] = useState(false);
+
+  const latestBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null;
+  const isPendingAssignment = latestBooking && latestBooking.status === "pending_seat";
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -90,6 +93,33 @@ export default function TicketPage() {
       </div>
 
       <main className="max-w-[420px] w-full mx-auto px-4 pt-2 space-y-4">
+        {/* ── Pending Seat Assignment Banner ── */}
+        {isPendingAssignment && latestBooking && (
+          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-3xl p-4.5 space-y-3 shadow-md text-center animate-fade-in">
+            <div className="w-10 h-10 rounded-full bg-white text-[#F95700] flex items-center justify-center mx-auto shadow-2xs">
+              <span className="material-symbols-outlined text-[22px] animate-spin">
+                progress_activity
+              </span>
+            </div>
+            <div>
+              <h2 className="text-[15px] font-black text-[#191C1E]">
+                Pending Conductor Seat Assignment
+              </h2>
+              <p className="text-[12px] text-slate-700 font-medium mt-1 leading-relaxed">
+                Your payment of ₱{latestBooking.totalFare.toFixed(2)} is confirmed, but your seat has not been assigned by the conductor yet.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/booking/pending?id=${latestBooking.id}`)}
+              className="w-full py-2.5 px-4 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>View Live Assignment Screen</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+        )}
+
         {/* ── Status Header ── */}
         <div className="text-center pt-1 pb-1">
           <div
