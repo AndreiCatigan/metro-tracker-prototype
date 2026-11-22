@@ -17,12 +17,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
+    title: "Track MeTro",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FFDFC9",
+  themeColor: "#F7F9FB",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

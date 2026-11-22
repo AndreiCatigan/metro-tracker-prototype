@@ -151,7 +151,7 @@ export default function SignUpPage() {
     <main className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12 overflow-x-hidden">
       {/* ── Simulated SMS Push Notification Banner (Demo Feature) ── */}
       {smsNotification && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[400px] bg-[#181C24]/95 text-white backdrop-blur-md p-3.5 rounded-2xl shadow-2xl border border-white/20 animate-fade-in">
+        <div className="fixed top-[calc(1rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[400px] bg-[#181C24]/95 text-white backdrop-blur-md p-3.5 rounded-2xl shadow-2xl border border-white/20 animate-fade-in">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#F95700] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
               <span className="material-symbols-outlined text-[20px]">sms</span>
@@ -183,14 +183,14 @@ export default function SignUpPage() {
 
       {/* ── Regular Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(5rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">info</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ── Warm Peach Hero Section Matching Reference Aesthetic ── */}
-      <section className="relative w-full bg-[#FFDFC9] pt-8 pb-16 px-6 overflow-hidden">
+      <section className="relative w-full bg-[#FFDFC9] pt-[calc(2rem+var(--safe-top,env(safe-area-inset-top,0px)))] pb-16 px-6 overflow-hidden">
         {/* Background Stylized Curvy Ribbon / Bus Track Graphic */}
         <div className="absolute right-0 top-0 bottom-0 w-44 pointer-events-none opacity-45 overflow-hidden">
           <svg

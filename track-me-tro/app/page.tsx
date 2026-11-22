@@ -61,7 +61,7 @@ export default function LoginPage() {
     <main className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(1.5rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">mark_chat_unread</span>
           <span>{toastMessage}</span>
         </div>
@@ -198,7 +198,7 @@ export default function LoginPage() {
       )}
 
       {/* ── Warm Peach Hero Section ── */}
-      <section className="relative w-full bg-[#FFDFC9] pt-10 pb-14 px-6 overflow-hidden">
+      <section className="relative w-full bg-[#FFDFC9] pt-[calc(2.5rem+var(--safe-top,env(safe-area-inset-top,0px)))] pb-14 px-6 overflow-hidden">
         {/* Background Stylized Curvy Ribbon / Bus Track Graphic */}
         <div className="absolute right-0 top-0 bottom-0 w-44 pointer-events-none opacity-45 overflow-hidden">
           <svg

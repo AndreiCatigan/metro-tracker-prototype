@@ -102,14 +102,14 @@ function ConductorMapContent() {
     <div className="relative w-full min-h-dvh h-dvh overflow-hidden bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans select-none">
       {/* ── Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1100] bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(1rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-[1100] bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">cell_tower</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ── Top Header (Light Orange matching Dashboard) ── */}
-      <header className="z-[1000] bg-[#FFDFC9] text-[#191C1E] px-4 py-3 shadow-xs border-b border-[#F5DECD] shrink-0">
+      <header className="z-[1000] bg-[#FFDFC9] text-[#191C1E] px-4 pt-header-safe pb-3 shadow-xs border-b border-[#F5DECD] shrink-0">
         <div className="max-w-[440px] md:max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button

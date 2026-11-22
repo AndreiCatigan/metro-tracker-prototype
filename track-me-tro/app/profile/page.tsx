@@ -110,13 +110,13 @@ export default function ProfilePage() {
     <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe overflow-x-hidden">
       {/* ── Toast notification ── */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(1.5rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
-      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-8 space-y-4">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-[calc(2rem+var(--safe-top,env(safe-area-inset-top,0px)))] space-y-4">
         {/* ── User Avatar & Identity ── */}
         <div className="text-center space-y-2">
           {/* Circular Line Avatar */}

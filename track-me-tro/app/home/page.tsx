@@ -160,7 +160,7 @@ export default function HomePage() {
       )}
 
       {/* ── Top Header Bar (Colored #FFDFC9 matching Header Brand Theme) ── */}
-      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 py-2.5 border-b border-[#F5DECD]/60 shadow-2xs">
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 pt-header-safe pb-2.5 border-b border-[#F5DECD]/60 shadow-2xs">
         <div className="max-w-[440px] md:max-w-2xl w-full mx-auto flex items-center justify-between">
           <Logo className="h-8 sm:h-9 w-auto" />
 

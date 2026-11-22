@@ -137,6 +137,9 @@
 }
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
   --background: #f7f9fb;
   --foreground: #191c1e;
 
@@ -249,20 +252,26 @@ body {
 
 /* Safe-area insets & dedicated scroll clearance utilities */
 .pb-safe {
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(0.75rem, var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }
 .pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: max(0.75rem, var(--safe-top, env(safe-area-inset-top, 0px)));
+}
+.pt-header-safe {
+  padding-top: calc(0.75rem + var(--safe-top, env(safe-area-inset-top, 0px)));
+}
+.top-safe {
+  top: calc(0.75rem + var(--safe-top, env(safe-area-inset-top, 0px)));
 }
 
 /* Dedicated clearance for pages with floating BottomNavigation pill (~60px pill + bottom offset + breathing room) */
 .pb-nav-safe {
-  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(7.5rem + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 /* Dedicated clearance for pages with fixed bottom CTA/summary bars (~80px bar + breathing room) */
 .pb-cta-safe {
-  padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(8.5rem + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 /* Mobile viewport and custom scrollbars */

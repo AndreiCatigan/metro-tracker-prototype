@@ -1,8 +1,8 @@
 # Engineering Journey & Milestones Log
 
 **Project:** `track-me-tro`  
-**Current Branch:** `develop`  
-**Latest Update:** November 22, 2026  
+**Current Branch:** `main`  
+**Latest Update:** November 23, 2026  
 
 ---
 
@@ -199,3 +199,30 @@
     - Tested all 14 active routes across Mobile Phone (`375x812`), Tablet (`768x1024`), and Short Viewport (`1280x680`).
     - Verified via `getBoundingClientRect()` at max scroll (`window.scrollTo(0, document.body.scrollHeight)`) that `contentBottom <= fixedBarTop - 16px` passed across 100% of routes.
     - `npm run lint` (0 errors) and `npm run build` (21/21 routes static prerendered) verified.
+- **iOS PWA Dynamic Island Status Bar & Top Safe-Area Header Clearance (Completed on `main`):**
+  - **Root Cause Eliminated:**
+    - On iPhone 14/15/16 Pro and notched iPhones running the standalone iOS PWA ("Add to Home Screen"), `appleWebApp.statusBarStyle: "black-translucent"` caused iOS to render white status bar icons (time, cellular, battery) which were completely invisible against the app's light `#F7F9FB` / `#FFFFFF` / peach `#FFDFC9` headers.
+    - Standard `sticky top-0` headers with `py-2.5` or `py-3` (10px–12px padding) positioned titles, back buttons, and logos between `y = 12px` and `y = 50px`—directly underneath the ~54px–59px iPhone Dynamic Island hardware cutout.
+    - On `/map`, the floating route status banner (`fixed top-3`) and action buttons (`top-16`) were blocked by the Dynamic Island.
+  - **iOS Viewport & PWA Manifest Configurations:**
+    - `app/layout.tsx`: Updated `appleWebApp.statusBarStyle` to `"default"` so iOS WebKit renders crisp, dark status bar text and icons against our light headers. Set `appleWebApp.title: "Track MeTro"`.
+    - `app/layout.tsx`: Updated `viewport.themeColor` to `"#F7F9FB"` and confirmed `viewportFit: "cover"` for edge-to-edge hardware integration.
+    - `app/manifest.ts`: Updated `theme_color` to `"#F7F9FB"` for manifest synchronization.
+  - **Dedicated Non-Colliding Top Safe-Area Utilities (`app/globals.css`):**
+    - Declared `--safe-top: env(safe-area-inset-top, 0px);` and `--safe-bottom: env(safe-area-inset-bottom, 0px);` in `:root`.
+    - `.pt-safe`: `padding-top: max(0.75rem, var(--safe-top, env(safe-area-inset-top, 0px)));`
+    - `.pt-header-safe`: `padding-top: calc(0.75rem + var(--safe-top, env(safe-area-inset-top, 0px)));` — preserves standard 12px top padding on non-notched screens / desktop / tablet, while smoothly expanding downward under the Dynamic Island on iOS.
+    - `.top-safe`: `top: calc(0.75rem + var(--safe-top, env(safe-area-inset-top, 0px)));` — floats banners and controls safely below hardware cutouts.
+  - **Universal Route Header & Floating Element Updates:**
+    - `components/shared/PageHeader.tsx`: Replaced conflicting `py-3` + `pt-safe` with `px-4 pb-3` and conditional `sticky ? "sticky top-0 z-30 pt-header-safe" : "pt-3"`.
+    - `/home`: Applied `pt-header-safe pb-2.5` to sticky peach header. Logo and notification controls clear the 54px Dynamic Island region with comfortable breathing room.
+    - `/booking`, `/checkout`, `/ticket`, `/schedule`, `/booking/pending`: Applied `pt-header-safe pb-3` to sticky headers and inner content wrapper with `px-4`.
+    - `/conductor`, `/conductor/pos`, `/conductor/matrix`, `/conductor/map`: Applied `pt-header-safe` to command headers, expanding dark navy and peach brand canvases seamlessly behind status bars.
+    - `/map`: Set route status banner to `.top-safe` (`top: calc(0.75rem + var(--safe-top)) = 66px` with Dynamic Island) and map action buttons to `top-[calc(4.25rem+var(--safe-top))] = 122px`, maintaining 56px relative vertical clearance without collision.
+    - `/profile`, `/page.tsx`, `/signup`: Applied `pt-[calc(2rem+var(--safe-top))]` and `pt-[calc(2.5rem+var(--safe-top))]` to heroes and toasts.
+    - `/conductor/scan`: Expanded top camera viewfinder with `h-[calc(280px+var(--safe-top))]` and `pt-[calc(1rem+var(--safe-top))]`.
+  - **Automated Viewport & Inset Verification:**
+    - Tested across mobile viewports (390x844).
+    - Verified with simulated `--safe-top: 54px`: `/home` header expanded to 112.8px (66px padding-top, elements at `y = 66px`–`68px`); `/map` banner shifted to `y = 66px` and action buttons shifted to `y = 122px` with zero overlap.
+    - `npm run lint`: 0 errors.
+    - `npm run build`: 21/21 routes compiled and static-prerendered with code 0.

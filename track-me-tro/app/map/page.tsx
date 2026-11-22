@@ -160,13 +160,13 @@ function MapContent() {
     <div className="relative min-h-dvh bg-[#EBF0F5] text-[#191C1E] flex flex-col font-sans overflow-hidden">
       {/* ── Toast Notification for Advance Hail / Alert ── */}
       {toastMessage && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in max-w-[92vw] text-center border border-white/10">
+        <div className="fixed top-[calc(3.5rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in max-w-[92vw] text-center border border-white/10">
           <span className="material-symbols-outlined text-[17px] text-[#F95700]">cell_tower</span>
           <span className="leading-tight">{toastMessage}</span>
         </div>
       )}
       {/* ── Top Floating Route Status Banner ── */}
-      <div className="fixed top-3 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+      <div className="fixed top-safe left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
         <div className="w-full max-w-[440px] md:max-w-lg bg-[#F95700] text-white rounded-full py-2 px-3.5 shadow-[0_6px_20px_rgba(249,87,0,0.35)] flex items-center justify-between pointer-events-auto border border-white/20">
           <button
             type="button"
@@ -199,7 +199,7 @@ function MapContent() {
       </div>
 
       {/* ── Floating Map Action Buttons (Right Side) ── */}
-      <div className="fixed top-16 right-4 z-30 flex flex-col gap-2.5">
+      <div className="fixed top-[calc(4.25rem+var(--safe-top,env(safe-area-inset-top,0px)))] right-4 z-30 flex flex-col gap-2.5">
         {/* Recenter on Selected Bus or User Location */}
         <button
           type="button"

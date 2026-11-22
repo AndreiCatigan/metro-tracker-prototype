@@ -30,14 +30,14 @@ export default function ConductorScanPage() {
     <div className="min-h-dvh bg-[#0A0E17] text-white flex flex-col font-sans select-none relative pb-12 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(3.5rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-emerald-400">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ── Camera Viewfinder Area (Top Section) ── */}
-      <div className="relative h-[280px] w-full flex flex-col justify-between p-4 bg-radial from-slate-800 via-slate-900 to-black overflow-hidden">
+      <div className="relative h-[calc(280px+var(--safe-top,env(safe-area-inset-top,0px)))] w-full flex flex-col justify-between p-4 pt-[calc(1rem+var(--safe-top,env(safe-area-inset-top,0px)))] bg-radial from-slate-800 via-slate-900 to-black overflow-hidden">
         {/* Subtle camera view background representation */}
         <div
           className="absolute inset-0 opacity-25 pointer-events-none bg-cover bg-center"

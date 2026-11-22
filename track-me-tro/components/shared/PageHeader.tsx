@@ -58,8 +58,8 @@ export default function PageHeader({
   return (
     <header
       className={cn(
-        "w-full bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between transition-all",
-        sticky ? "sticky top-0 z-30 pt-safe" : "",
+        "w-full bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 pb-3 flex items-center justify-between transition-all",
+        sticky ? "sticky top-0 z-30 pt-header-safe" : "pt-3",
         className
       )}
     >

@@ -130,14 +130,14 @@ export default function ConductorHomePage() {
     <div className="min-h-dvh bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans pb-24 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(1.25rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-[#F95700]">notifications_active</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ── Top Conductor Header (Light Orange matching Passenger Dashboard) ── */}
-      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-3.5 sm:px-4 md:px-6 py-3 shadow-xs border-b border-[#F5DECD]">
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-3.5 sm:px-4 md:px-6 pt-header-safe pb-3 shadow-xs border-b border-[#F5DECD]">
         <div className="max-w-[440px] md:max-w-4xl lg:max-w-5xl w-full mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Logo className="h-7 w-auto shrink-0" />

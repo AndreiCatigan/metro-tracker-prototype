@@ -189,14 +189,14 @@ function ConductorMatrixContent() {
     <div className="min-h-dvh bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-cta-safe overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
+        <div className="fixed top-[calc(1.25rem+var(--safe-top,env(safe-area-inset-top,0px)))] left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
           <span className="material-symbols-outlined text-[16px] text-emerald-400">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ── Top Dark Navy Telemetry Header ── */}
-      <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg">
+      <header className="bg-[#101A2C] text-white px-4 pt-header-safe pb-5 rounded-b-3xl shadow-lg">
         <div className="max-w-[440px] md:max-w-4xl lg:max-w-5xl mx-auto space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
