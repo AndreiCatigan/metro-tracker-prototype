@@ -10,35 +10,37 @@ export default function SchedulePage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.push("/home")}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back to Home"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back to Home"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
-            Bus Schedule
-          </h1>
-          <p className="text-[11px] font-semibold text-slate-500">
-            Daily Corridor Timetable
-          </p>
-        </div>
+          <div className="text-center">
+            <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
+              Bus Schedule
+            </h1>
+            <p className="text-[11px] font-semibold text-slate-500">
+              Daily Corridor Timetable
+            </p>
+          </div>
 
-        <div className="flex items-center gap-1 bg-[#FFE8D6] text-[#A53700] px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#A53700] animate-pulse" />
-          <span>LIVE SYNC</span>
+          <div className="flex items-center gap-1 bg-[#FFE8D6] text-[#A53700] px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#A53700] animate-pulse" />
+            <span>LIVE SYNC</span>
+          </div>
         </div>
       </header>
 
       {/* ── Main Schedule Content ── */}
-      <main className="max-w-[440px] w-full mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-4 space-y-4">
         {/* Real-time Dispatch Active Notice */}
         <div className="bg-[#FFE8D6]/60 border border-[#F5DECD] rounded-2xl p-3.5 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#F95700] text-white flex items-center justify-center flex-shrink-0 shadow-xs">

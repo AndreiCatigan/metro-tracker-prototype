@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
-import { POS_ROUTE_STOPS } from "@/lib/data";
+import { getPosRouteStops } from "@/lib/data";
 
 function PosContent() {
   const router = useRouter();
@@ -11,12 +11,7 @@ function PosContent() {
   const seatId = searchParams.get("seat") || "15";
   const { busDetails, recordWalkInSale, selectedDirection } = useAppContext();
 
-  const routeStops = POS_ROUTE_STOPS.filter((stop) => {
-    if (selectedDirection === "ormoc-to-sogod") {
-      return stop.id !== "ormoc";
-    }
-    return stop.id !== "sogod";
-  });
+  const routeStops = getPosRouteStops(selectedDirection);
 
   const [selectedStopId, setSelectedStopId] = useState(
     selectedDirection === "ormoc-to-sogod" ? "vsu" : "baybay"
@@ -48,40 +43,42 @@ function PosContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-16">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-24 overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.push("/conductor")}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back to Conductor Dashboard"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push("/conductor")}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back to Conductor Dashboard"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            CONDUCTOR TERMINAL
-          </p>
-          <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
-            Cash Ticketing
-          </h1>
-        </div>
+          <div className="text-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              CONDUCTOR TERMINAL
+            </p>
+            <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
+              Cash Ticketing
+            </h1>
+          </div>
 
-        <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 bg-[#FFE8D6] text-[#A53700] px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#A53700] animate-pulse" />
-            <span>LIVE POS</span>
-          </span>
-          <div className="w-8 h-8 rounded-full bg-[#812900] text-white flex items-center justify-center font-bold text-xs">
-            <span className="material-symbols-outlined text-[16px]">person</span>
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1 bg-[#FFE8D6] text-[#A53700] px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#A53700] animate-pulse" />
+              <span>LIVE POS</span>
+            </span>
+            <div className="w-8 h-8 rounded-full bg-[#812900] text-white flex items-center justify-center font-bold text-xs">
+              <span className="material-symbols-outlined text-[16px]">person</span>
+            </div>
           </div>
         </div>
       </header>
 
       {/* ── Mini Status Strip ── */}
-      <div className="max-w-[420px] w-full mx-auto px-4 pt-2.5">
+      <div className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 pt-2.5">
         <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 bg-white border border-[#ECEEF0] rounded-xl px-3 py-1.5 shadow-2xs">
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#A53700]" />
@@ -97,7 +94,7 @@ function PosContent() {
         </div>
       </div>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-3 space-y-3.5">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 pt-3 space-y-3.5">
         {/* ── Passenger Seat Badge ── */}
         <section className="bg-white rounded-2xl p-3.5 shadow-2xs border border-[#ECEEF0] flex items-center justify-between">
           <div className="flex items-center gap-3">

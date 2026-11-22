@@ -26,11 +26,17 @@ function ConductorMatrixContent() {
     removeBookingReservation,
   } = useAppContext();
 
-  // Target booking to assign a seat to (either from query param or pending booking)
-  const pendingBooking = bookings.find((b) => b.status === "pending_seat");
-  const targetBooking = assignBookingId
-    ? bookings.find((b) => b.id === assignBookingId) || pendingBooking
-    : pendingBooking;
+  // All paid bookings waiting for seat assignment
+  const pendingBookings = useMemo(() => bookings.filter((b) => b.status === "pending_seat"), [bookings]);
+  const [selectedPendingBookingId, setSelectedPendingBookingId] = useState<string>(assignBookingId || "");
+
+  const activeTargetBooking = useMemo(() => {
+    if (selectedPendingBookingId) {
+      const found = pendingBookings.find((b) => b.id === selectedPendingBookingId);
+      if (found) return found;
+    }
+    return pendingBookings[0] || null;
+  }, [pendingBookings, selectedPendingBookingId]);
 
   // Seat state representation: pre-select seat 15 only when in assignment mode
   const [selectedSeatId, setSelectedSeatId] = useState<string>(assignBookingId ? "15" : "");
@@ -168,20 +174,19 @@ function ConductorMatrixContent() {
   };
 
   const handleAssignToPassenger = () => {
-    if (!targetBooking || !selectedSeat) return;
+    if (!activeTargetBooking || !selectedSeat) return;
     if (selectedSeat.type !== "available") {
       showToast(`Seat ${selectedSeat.id} is not available. Please choose a vacant seat.`);
       return;
     }
-    assignSeatToBooking(targetBooking.id, selectedSeat.id);
-    showToast(`✓ Seat ${selectedSeat.id} assigned to ${targetBooking.passengerName}! Commuter notified.`);
-    setTimeout(() => {
-      router.push("/conductor");
-    }, 1200);
+    assignSeatToBooking(activeTargetBooking.id, selectedSeat.id);
+    showToast(`✓ Seat ${selectedSeat.id} assigned to ${activeTargetBooking.passengerName}! Passenger notified.`);
+    setSelectedSeatId("");
+    setSelectedPendingBookingId("");
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-dvh bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-cta-safe overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
@@ -191,87 +196,130 @@ function ConductorMatrixContent() {
       )}
 
       {/* ── Top Dark Navy Telemetry Header ── */}
-      <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push("/conductor")}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white cursor-pointer mr-0.5"
-              title="Back to Conductor Dashboard"
-              aria-label="Back to Conductor Dashboard"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            </button>
-            <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F95700]" />
-              BUS {busDetails.id}
-            </span>
-            <span className="text-[11px] text-slate-300 font-semibold">
-              Express • Aircon
-            </span>
+      <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg">
+        <div className="max-w-[440px] md:max-w-4xl lg:max-w-5xl mx-auto space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor")}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white cursor-pointer mr-0.5"
+                title="Back to Conductor Dashboard"
+                aria-label="Back to Conductor Dashboard"
+              >
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              </button>
+              <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F95700]" />
+                BUS {busDetails.id}
+              </span>
+              <span className="text-[11px] text-slate-300 font-semibold">
+                Express • Aircon
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>GPS Live</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            <span>GPS Live</span>
-          </div>
-        </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                ASSIGNED ROUTE
+              </p>
+              <h1 className="text-[18px] font-black tracking-tight text-white mt-0.5">
+                {selectedDirection === "sogod-to-ormoc" ? (
+                  <>Sogod <span className="text-slate-400">➔</span> Ormoc</>
+                ) : (
+                  <>Ormoc <span className="text-slate-400">➔</span> Sogod</>
+                )}
+              </h1>
+            </div>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              ASSIGNED ROUTE
-            </p>
-            <h1 className="text-[18px] font-black tracking-tight text-white mt-0.5">
-              {selectedDirection === "sogod-to-ormoc" ? (
-                <>Sogod <span className="text-slate-400">➔</span> Ormoc</>
-              ) : (
-                <>Ormoc <span className="text-slate-400">➔</span> Sogod</>
-              )}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shadow-2xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />
-            <span className="text-slate-300 font-bold text-[11px]">Marked Reserved:</span>
-            <span className="text-[15px] font-black text-white">{reservedCount}</span>
+            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />
+              <span className="text-slate-300 font-bold text-[11px]">Marked Reserved:</span>
+              <span className="text-[15px] font-black text-white">{reservedCount}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 -mt-2 space-y-3.5">
-        {/* ── Pending App Reservation Banner (Conductor Assigns Seat) ── */}
-        {targetBooking && (
-          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-2xl p-3.5 shadow-md space-y-2 animate-fade-in">
-            <div className="flex items-center justify-between">
+      <main className="max-w-[440px] md:max-w-4xl lg:max-w-5xl w-full mx-auto px-4 -mt-2 space-y-3.5">
+        {/* ── Paid Passengers Awaiting Seat Assignment Queue Card ── */}
+        {pendingBookings.length > 0 && (
+          <div className="bg-white rounded-3xl p-4 shadow-sm border-2 border-[#F95700] space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#F95700] animate-ping" />
-                <span className="text-[12px] font-black text-[#A53700] uppercase tracking-wider">
-                  Select Seat for Online Reservation
-                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-ping" />
+                <h3 className="text-[12.5px] font-black tracking-tight text-[#191C1E] uppercase">
+                  Paid Passengers Awaiting Seat Assignment ({pendingBookings.length})
+                </h3>
               </div>
-              <span className="text-[11px] font-bold bg-[#A53700] text-white px-2 py-0.5 rounded-full capitalize">
-                {targetBooking.passengerType}
+              <span className="text-[10px] font-bold bg-[#FFE8D6] text-[#A53700] px-2 py-0.5 rounded-full">
+                Action Required
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs">
-              <div>
-                <p className="font-extrabold text-[#191C1E]">{targetBooking.passengerName}</p>
-                <p className="text-[11px] text-slate-600">
-                  {targetBooking.busNumber} • {targetBooking.direction === "sogod-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-bold text-emerald-700">Paid ₱{targetBooking.totalFare.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-500">via {targetBooking.paymentMethod}</p>
-              </div>
-            </div>
+            <div className="space-y-2">
+              {pendingBookings.map((b) => {
+                const isSelected = activeTargetBooking?.id === b.id;
+                const segOrigin = b.origin || (b.direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City");
+                const segDest = b.destination || (b.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
 
-            <p className="text-[10px] font-bold text-[#A53700] bg-white/70 rounded-lg p-1.5 text-center">
-              👉 Tap a seat below to assign to {targetBooking.passengerName.split(" ")[0]}
-            </p>
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setSelectedPendingBookingId(b.id)}
+                    className={`w-full text-left p-3 rounded-2xl transition-all cursor-pointer border ${
+                      isSelected
+                        ? "bg-[#FFE8D6]/40 border-[#F95700] ring-1 ring-[#F95700]/30 shadow-xs"
+                        : "bg-[#F8FAFC] border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[13px] font-black text-[#191C1E]">
+                            {b.passengerName}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            • Bus {b.busNumber || busDetails.id}
+                          </span>
+                          {b.passengerType !== "regular" && (
+                            <span className="text-[9px] font-extrabold uppercase bg-[#FFE8D6] text-[#A53700] px-1.5 py-0.2 rounded">
+                              {b.passengerType} (20%)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-600 mt-0.5">
+                          {segOrigin} <span className="text-slate-400 font-normal">➔</span> {segDest}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full text-[10px] font-black">
+                          Paid ₱{b.totalFare.toFixed(2)}
+                        </span>
+                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                          via {b.paymentMethod}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <div className="mt-2 pt-2 border-t border-[#F95700]/20 flex items-center justify-between text-[11px] font-bold text-[#A53700]">
+                        <span>👉 Tap any vacant seat below to assign to {b.passengerName.split(" ")[0]}</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_downward</span>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -496,8 +544,8 @@ function ConductorMatrixContent() {
 
       {/* ── Fixed Bottom Floating Action Card (for Selected Seat) ── */}
       {selectedSeat && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 animate-slide-up">
-          <div className="max-w-[420px] mx-auto space-y-2.5">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 pb-safe animate-slide-up">
+          <div className="max-w-[440px] md:max-w-4xl mx-auto space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div
@@ -595,7 +643,7 @@ function ConductorMatrixContent() {
                   <span>Remove</span>
                 </button>
               </div>
-            ) : targetBooking ? (
+            ) : activeTargetBooking ? (
               <div className="pt-1">
                 <button
                   type="button"
@@ -604,7 +652,7 @@ function ConductorMatrixContent() {
                 >
                   <span className="material-symbols-outlined text-[17px]">event_seat</span>
                   <span>
-                    Confirm Seat {selectedSeat.id} for {targetBooking.passengerName.split(" ")[0]}
+                    Confirm Seat {selectedSeat.id} for {activeTargetBooking.passengerName.split(" ")[0]}
                   </span>
                 </button>
               </div>

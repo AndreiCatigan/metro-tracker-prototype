@@ -148,7 +148,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12">
+    <main className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12 overflow-x-hidden">
       {/* ── Simulated SMS Push Notification Banner (Demo Feature) ── */}
       {smsNotification && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[400px] bg-[#181C24]/95 text-white backdrop-blur-md p-3.5 rounded-2xl shadow-2xl border border-white/20 animate-fade-in">
@@ -209,7 +209,7 @@ export default function SignUpPage() {
           </svg>
         </div>
 
-        <div className="max-w-[420px] mx-auto relative z-10">
+        <div className="max-w-[440px] md:max-w-lg mx-auto relative z-10">
           {/* Header Row: Back / Logo */}
           <div className="flex items-center justify-between">
             <Link href="/" className="inline-block">
@@ -245,7 +245,7 @@ export default function SignUpPage() {
       </section>
 
       {/* ── Elevated Form Card (Overlapping Hero) ── */}
-      <div className="max-w-[420px] w-full mx-auto px-4 -mt-8 relative z-20 space-y-5">
+      <div className="max-w-[440px] md:max-w-lg w-full mx-auto px-4 -mt-8 relative z-20 space-y-5">
         {step === "form" ? (
           /* ════════ STEP 1: Registration Form ════════ */
           <form

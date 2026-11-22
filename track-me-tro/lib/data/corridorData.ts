@@ -36,6 +36,11 @@ export interface BookingRequest {
   totalFare: number;
   createdAt: string;
   pnr: string;
+  origin?: string;
+  destination?: string;
+  paymentStatus?: "paid" | "unpaid";
+  etaMinutes?: number;
+  etaText?: string;
 }
 
 // Available transit corridor stops (Geographical Order South to North)
@@ -92,26 +97,181 @@ export const TRAVEL_TIMES_FROM_ORMOC: Record<string, number> = {
   "Sogod Terminal": 165,
 };
 
+// Central ticketing & booking convenience fee across all web & app touchpoints
+export const CONVENIENCE_FEE = 20;
+
+// Single source of truth for the 9 Route 70 stops with their exact km distance from Sogod Terminal
+export const ROUTE_70_STOPS_KM: Record<string, number> = {
+  "Sogod Terminal": 0.0,
+  "Bato": 39.4,
+  "Hilongos": 52.0,
+  "Hindang": 64.5,
+  "Inopacan": 78.2,
+  "Baybay City": 96.8,
+  "VSU Main Campus": 105.0,
+  "Albuera": 135.7,
+  "Ormoc City": 155.0,
+};
+
+export const ROUTE_70_STOPS_SOGOD_TO_ORMOC = [
+  "Sogod Terminal",
+  "Bato",
+  "Hilongos",
+  "Hindang",
+  "Inopacan",
+  "Baybay City",
+  "VSU Main Campus",
+  "Albuera",
+  "Ormoc City",
+] as const;
+
+export const ROUTE_70_STOPS_ORMOC_TO_SOGOD = [
+  "Ormoc City",
+  "Albuera",
+  "VSU Main Campus",
+  "Baybay City",
+  "Inopacan",
+  "Hindang",
+  "Hilongos",
+  "Bato",
+  "Sogod Terminal",
+] as const;
+
+// Exact base fare schedules originating from Sogod Terminal (Outbound)
+export const SOGOD_TO_ORMOC_BASE_FARES: Record<string, number> = {
+  "Bato": 65,
+  "Hilongos": 90,
+  "Hindang": 110,
+  "Inopacan": 140,
+  "Baybay City": 180,
+  "VSU Main Campus": 215,
+  "Albuera": 245,
+  "Ormoc City": 275,
+};
+
+// Exact base fare schedules originating from Ormoc City (Inbound)
+export const ORMOC_TO_SOGOD_BASE_FARES: Record<string, number> = {
+  "Albuera": 35,
+  "VSU Main Campus": 90,
+  "Baybay City": 105,
+  "Inopacan": 140,
+  "Hindang": 160,
+  "Hilongos": 185,
+  "Bato": 205,
+  "Sogod Terminal": 275,
+};
+
+/**
+ * Normalizes stop name aliases (e.g., "Baybay City Terminal", "Sogod, Southern Leyte", "VSU Campus")
+ * to the exact canonical stop keys in ROUTE_70_STOPS_KM.
+ */
+export function normalizeStopName(name: string): string {
+  if (!name) return "Sogod Terminal";
+  const lower = name.toLowerCase().trim();
+  if (lower.includes("sogod")) return "Sogod Terminal";
+  if (lower.includes("bato")) return "Bato";
+  if (lower.includes("hilongos")) return "Hilongos";
+  if (lower.includes("hindang")) return "Hindang";
+  if (lower.includes("inopacan")) return "Inopacan";
+  if (lower.includes("vsu") || lower.includes("visca")) return "VSU Main Campus";
+  if (lower.includes("baybay")) return "Baybay City";
+  if (lower.includes("albuera")) return "Albuera";
+  if (lower.includes("ormoc")) return "Ormoc City";
+  return name;
+}
+
 export function getDiscountRate(passengerType: PassengerType): number {
   switch (passengerType) {
     case "student":
     case "pwd":
     case "senior":
-      return 0.2; // 20% discount
+      return 0.2; // 20% statutory discount
     case "regular":
     default:
       return 0;
   }
 }
 
-export function calculateFare(baseFare: number, convenienceFee: number, passengerType: PassengerType) {
-  const discount = getDiscountRate(passengerType);
-  const discountAmount = Math.round(baseFare * discount);
+export interface SegmentFareBreakdown {
+  baseFare: number;
+  discountRate: number;
+  discountAmount: number;
+  discountedBaseFare: number;
+  convenienceFee: number;
+  totalFare: number;
+  distanceKm: number;
+}
+
+/**
+ * Centralized segment fare engine for Route 70.
+ * Calculates exact terminal-to-stop fares and proportional intermediate segment fares
+ * with 20% concession discounts and a standardized convenience fee.
+ */
+export function calculateSegmentFare(
+  origin: string,
+  destination: string,
+  passengerType: PassengerType,
+  options?: { isPremium?: boolean; includeConvenienceFee?: boolean }
+): SegmentFareBreakdown {
+  const normOrigin = normalizeStopName(origin);
+  const normDest = normalizeStopName(destination);
+
+  const originKm = ROUTE_70_STOPS_KM[normOrigin] ?? 0.0;
+  const destKm = ROUTE_70_STOPS_KM[normDest] ?? 155.0;
+  const distanceKm = Math.abs(destKm - originKm);
+
+  let baseFare = 275;
+
+  // 1. Fixed LTFRB baseline if originating from Sogod Terminal
+  if (normOrigin === "Sogod Terminal" && SOGOD_TO_ORMOC_BASE_FARES[normDest] !== undefined) {
+    baseFare = SOGOD_TO_ORMOC_BASE_FARES[normDest];
+  }
+  // 2. Fixed LTFRB baseline if originating from Ormoc City
+  else if (normOrigin === "Ormoc City" && ORMOC_TO_SOGOD_BASE_FARES[normDest] !== undefined) {
+    baseFare = ORMOC_TO_SOGOD_BASE_FARES[normDest];
+  }
+  // 3. Intermediate stop-to-stop segment (e.g., VSU Main Campus ➔ Ormoc City, Baybay City ➔ Hilongos)
+  else {
+    const computed = distanceKm * (275 / 155);
+    baseFare = Math.max(25, Math.round(computed / 5) * 5);
+  }
+
+  // 20% Concession Discount
+  const discountRate = getDiscountRate(passengerType);
+  const discountAmount = Math.round(baseFare * discountRate);
+  const discountedBaseFare = baseFare - discountAmount;
+
+  // Convenience Fee (₱20 standard)
+  const includeFee = options?.includeConvenienceFee ?? true;
+  const convenienceFee = includeFee ? CONVENIENCE_FEE : 0;
+  const totalFare = discountedBaseFare + convenienceFee;
+
+  return {
+    baseFare,
+    discountRate,
+    discountAmount,
+    discountedBaseFare,
+    convenienceFee,
+    totalFare,
+    distanceKm: Number(distanceKm.toFixed(1)),
+  };
+}
+
+export function calculateFare(
+  baseFare: number,
+  convenienceFee: number = CONVENIENCE_FEE,
+  passengerType: PassengerType = "regular"
+) {
+  const discountRate = getDiscountRate(passengerType);
+  const discountAmount = Math.round(baseFare * discountRate);
   const discountedBase = baseFare - discountAmount;
   const total = discountedBase + convenienceFee;
   return {
     baseFare,
+    discountRate,
     discount: discountAmount,
+    discountAmount,
+    discountedBaseFare: discountedBase,
     convenienceFee,
     totalFare: total,
   };
@@ -127,7 +287,7 @@ export const busDetails: BusDetails = {
   routeTitle: "Sogod ➔ Ormoc",
   capacity: 40,
   baseFare: 275, // Regular full trip fare (₱220 with 20% student discount)
-  convenienceFee: 15,
+  convenienceFee: CONVENIENCE_FEE,
   isAircon: true,
 };
 
@@ -145,6 +305,10 @@ export interface ActiveBus {
   elapsedMinutes?: number;
   progressPercent?: number;
   currentStop?: string;
+  lastUpdatedMinsAgo?: number;
+  lastUpdatedAt?: number;
+  signalStatus?: "live" | "delayed";
+  isDesignatedDelayed?: boolean;
 }
 
 export type CoordinatePair = [number, number];
@@ -275,6 +439,7 @@ export function getLocationForElapsed(
  * 4 default mock buses (kept for fallback / backward compatibility)
  */
 export const activeBuses: ActiveBus[] = [
+  // ── Sogod to Ormoc (Outbound) ──
   {
     id: "DMS-054",
     direction: "sogod-to-ormoc",
@@ -287,6 +452,9 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 90,
     progressPercent: 55,
     currentStop: "Inopacan",
+    lastUpdatedMinsAgo: 0,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
   },
   {
     id: "DMS-055",
@@ -300,7 +468,44 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 60,
     progressPercent: 36,
     currentStop: "Hilongos",
+    lastUpdatedMinsAgo: 4,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
   },
+  {
+    id: "DMS-057",
+    direction: "sogod-to-ormoc",
+    currentLocation: "Departed Sogod • Approaching Bato",
+    eta: "150 mins away",
+    seatsLeft: 19,
+    lat: 10.3833,
+    lng: 124.8000,
+    departureTime: "9:00 AM",
+    elapsedMinutes: 20,
+    progressPercent: 12,
+    currentStop: "Bato",
+    lastUpdatedMinsAgo: 1,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
+  },
+  {
+    id: "DMS-059",
+    direction: "sogod-to-ormoc",
+    currentLocation: "Passing Baybay City Terminal",
+    eta: "45 mins away",
+    seatsLeft: 5,
+    lat: 10.6765,
+    lng: 124.7986,
+    departureTime: "7:00 AM",
+    elapsedMinutes: 120,
+    progressPercent: 73,
+    currentStop: "Baybay City Terminal",
+    lastUpdatedMinsAgo: 7,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
+  },
+
+  // ── Ormoc to Sogod (Inbound) ──
   {
     id: "DMS-053",
     direction: "ormoc-to-sogod",
@@ -313,6 +518,9 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 90,
     progressPercent: 55,
     currentStop: "Inopacan",
+    lastUpdatedMinsAgo: 0,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
   },
   {
     id: "DMS-056",
@@ -326,6 +534,41 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 30,
     progressPercent: 18,
     currentStop: "Albuera",
+    lastUpdatedMinsAgo: 5,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
+  },
+  {
+    id: "DMS-058",
+    direction: "ormoc-to-sogod",
+    currentLocation: "Approaching Hindang",
+    eta: "65 mins away",
+    seatsLeft: 16,
+    lat: 10.4350,
+    lng: 124.7280,
+    departureTime: "8:00 AM",
+    elapsedMinutes: 100,
+    progressPercent: 61,
+    currentStop: "Hindang",
+    lastUpdatedMinsAgo: 1,
+    signalStatus: "live",
+    isDesignatedDelayed: false,
+  },
+  {
+    id: "DMS-060",
+    direction: "ormoc-to-sogod",
+    currentLocation: "Passing VSU Main Campus",
+    eta: "115 mins away",
+    seatsLeft: 7,
+    lat: 10.7450,
+    lng: 124.7920,
+    departureTime: "8:45 AM",
+    elapsedMinutes: 50,
+    progressPercent: 30,
+    currentStop: "VSU Main Campus",
+    lastUpdatedMinsAgo: 8,
+    signalStatus: "delayed",
+    isDesignatedDelayed: true,
   },
 ];
 

@@ -9,8 +9,11 @@ import Logo from "@/components/Logo";
 
 export default function TicketPage() {
   const router = useRouter();
-  const { activeTicket, passengerName } = useAppContext();
+  const { activeTicket, passengerName, bookings } = useAppContext();
   const [copied, setCopied] = useState(false);
+
+  const latestBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null;
+  const isPendingAssignment = latestBooking && latestBooking.status === "pending_seat";
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -25,33 +28,35 @@ export default function TicketPage() {
     : "Regular";
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/home" className="flex items-center">
-            <Logo className="h-7 w-auto" />
-          </Link>
-          <span className="text-slate-300">•</span>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/home" className="flex items-center">
+              <Logo className="h-7 w-auto" />
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link
+              href="/map"
+              className="text-[12px] font-bold text-slate-600 hover:text-[#F95700] transition"
+            >
+              Live Map
+            </Link>
+          </div>
+
           <Link
-            href="/map"
-            className="text-[12px] font-bold text-slate-600 hover:text-[#F95700] transition"
+            href="/profile"
+            className="w-8 h-8 rounded-full bg-[#A53700] text-white flex items-center justify-center shadow-xs"
+            aria-label="Profile"
           >
-            Live Map
+            <span className="material-symbols-outlined text-[18px]">person</span>
           </Link>
         </div>
-
-        <Link
-          href="/profile"
-          className="w-8 h-8 rounded-full bg-[#A53700] text-white flex items-center justify-center shadow-xs"
-          aria-label="Profile"
-        >
-          <span className="material-symbols-outlined text-[18px]">person</span>
-        </Link>
       </header>
 
       {/* ── Sub Navigation Controls ── */}
-      <div className="max-w-[420px] w-full mx-auto px-4 pt-3 flex items-center justify-between">
+      <div className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.push("/home")}
@@ -88,7 +93,34 @@ export default function TicketPage() {
         </div>
       </div>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-2 space-y-4">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-2 space-y-4">
+        {/* ── Pending Seat Assignment Banner ── */}
+        {isPendingAssignment && latestBooking && (
+          <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-3xl p-4.5 space-y-3 shadow-md text-center animate-fade-in">
+            <div className="w-10 h-10 rounded-full bg-white text-[#F95700] flex items-center justify-center mx-auto shadow-2xs">
+              <span className="material-symbols-outlined text-[22px] animate-spin">
+                progress_activity
+              </span>
+            </div>
+            <div>
+              <h2 className="text-[15px] font-black text-[#191C1E]">
+                Pending Conductor Seat Assignment
+              </h2>
+              <p className="text-[12px] text-slate-700 font-medium mt-1 leading-relaxed">
+                Your payment of ₱{latestBooking.totalFare.toFixed(2)} is confirmed, but your seat has not been assigned by the conductor yet.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/booking/pending?id=${latestBooking.id}`)}
+              className="w-full py-2.5 px-4 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-extrabold text-[13px] shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>View Live Assignment Screen</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+        )}
+
         {/* ── Status Header ── */}
         <div className="text-center pt-1 pb-1">
           <div
@@ -293,6 +325,18 @@ export default function TicketPage() {
                 </p>
               </div>
             </div>
+
+            {/* Concession Discount Row */}
+            {activeTicket.passengerType && activeTicket.passengerType !== "regular" && (
+              <div className="mt-3.5 pt-3 border-t border-dashed border-[#ECEEF0] flex items-center justify-between text-[13px]">
+                <span className="font-semibold text-slate-600">
+                  {passengerTypeLabel} Discount (20%)
+                </span>
+                <span className="font-bold text-emerald-700">
+                  -₱{Math.round(activeTicket.baseFare * 0.2).toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

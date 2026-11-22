@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext, PassengerHail } from "@/lib/AppContext";
@@ -51,31 +51,26 @@ function ConductorMapContent() {
     return passengerHails.filter((h) => h.status !== "boarded");
   }, [passengerHails]);
 
-  // Selected Hail state: defaults to query param or first active hail
-  const [selectedHailId, setSelectedHailId] = useState<string | null>(() => {
+  // User explicitly selected hail ID in UI (or null for default selection)
+  const [explicitHailId, setExplicitHailId] = useState<string | null>(null);
+
+  // Derive the active hail ID during render without cascading useEffect renders
+  const selectedHailId = useMemo(() => {
     if (queryHailId && activeHails.some((h) => h.id === queryHailId)) {
       return queryHailId;
     }
-    return activeHails[0]?.id || null;
-  });
-
-  // Keep selectedHailId valid if hails change
-  useEffect(() => {
-    if (queryHailId && activeHails.some((h) => h.id === queryHailId)) {
-      setSelectedHailId(queryHailId);
-    } else if (selectedHailId && !activeHails.some((h) => h.id === selectedHailId)) {
-      setSelectedHailId(activeHails[0]?.id || null);
-    } else if (!selectedHailId && activeHails.length > 0) {
-      setSelectedHailId(activeHails[0].id);
+    if (explicitHailId && activeHails.some((h) => h.id === explicitHailId)) {
+      return explicitHailId;
     }
-  }, [queryHailId, activeHails, selectedHailId]);
+    return activeHails[0]?.id || null;
+  }, [queryHailId, explicitHailId, activeHails]);
 
   const selectedHail = useMemo(() => {
     return activeHails.find((h) => h.id === selectedHailId) || null;
   }, [activeHails, selectedHailId]);
 
   const handleSelectHail = (hail: PassengerHail) => {
-    setSelectedHailId(hail.id);
+    setExplicitHailId(hail.id);
     setRecenterTrigger((prev) => prev + 1);
   };
 
@@ -98,13 +93,13 @@ function ConductorMapContent() {
     ];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const newHail = hailBus(busDetails.id, randomStop, "Approaching in 15 min");
-    setSelectedHailId(newHail.id);
+    setExplicitHailId(newHail.id);
     setRecenterTrigger((prev) => prev + 1);
     showToast(`📍 New location ping: ${randomName} is waiting at ${randomStop}!`);
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans select-none">
+    <div className="relative w-full min-h-dvh h-dvh overflow-hidden bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans select-none">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1100] bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
@@ -115,7 +110,7 @@ function ConductorMapContent() {
 
       {/* ── Top Header (Light Orange matching Dashboard) ── */}
       <header className="z-[1000] bg-[#FFDFC9] text-[#191C1E] px-4 py-3 shadow-xs border-b border-[#F5DECD] shrink-0">
-        <div className="max-w-[480px] mx-auto flex items-center justify-between">
+        <div className="max-w-[440px] md:max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -174,7 +169,7 @@ function ConductorMapContent() {
         />
 
         {/* ── Floating Route & Stats Strip ── */}
-        <div className="absolute top-3 left-4 right-4 z-[1000] max-w-[440px] mx-auto pointer-events-none flex items-center justify-between gap-2">
+        <div className="absolute top-3 left-4 right-4 z-[1000] max-w-[440px] md:max-w-xl mx-auto pointer-events-none flex items-center justify-between gap-2">
           <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl p-2 px-3 shadow-md border border-slate-200/90 flex items-center gap-2 text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-pulse" />
             <span className="font-extrabold text-[#191C1E] text-[11px]">
@@ -210,7 +205,7 @@ function ConductorMapContent() {
             <button
               type="button"
               onClick={() => {
-                setSelectedHailId(null);
+                setExplicitHailId(null);
                 setRecenterTrigger((prev) => prev + 1);
               }}
               className="w-8 h-8 rounded-2xl bg-[#101A2C] text-white hover:bg-black active:scale-95 shadow-md flex items-center justify-center cursor-pointer"
@@ -223,7 +218,7 @@ function ConductorMapContent() {
         </div>
 
         {/* ── Floating Bottom Drawer: Passenger Hail Details & Actions ── */}
-        <div className="absolute bottom-4 left-3 right-3 z-[1000] max-w-[440px] mx-auto space-y-2 pointer-events-auto">
+        <div className="absolute bottom-4 left-3 right-3 z-[1000] max-w-[440px] md:max-w-xl mx-auto space-y-2 pointer-events-auto">
           {/* Active Hails Selector Chips (if multiple hails exist) */}
           {activeHails.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">

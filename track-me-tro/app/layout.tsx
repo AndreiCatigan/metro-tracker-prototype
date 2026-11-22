@@ -44,7 +44,7 @@ export default function RootLayout({
         />
         <link rel="stylesheet" href="/leaflet.css" />
       </head>
-      <body className="min-h-full flex flex-col bg-surface text-on-surface pb-safe">
+      <body className="min-h-full flex flex-col bg-surface text-on-surface">
         <AppProvider>
           <SplashScreen>
             {children}

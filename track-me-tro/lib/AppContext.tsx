@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { useLocalStorageState } from "./hooks/useLocalStorageState";
 import {
   Seat,
   SeatStatus,
@@ -10,7 +11,9 @@ import {
   BookingRequest,
   BookingStatus,
   PassengerType,
-  calculateFare,
+  CONVENIENCE_FEE,
+  calculateSegmentFare,
+  normalizeStopName,
   CORRIDOR_STOPS,
 } from "./mockData";
 
@@ -67,6 +70,8 @@ interface AppContextType {
   setConductorName: (name: string) => void;
   busStatus: BusDispatchStatus;
   setBusStatus: (status: BusDispatchStatus) => void;
+  busLastUpdatedAt: number;
+  touchBusLastUpdated: () => void;
   registerConductorShift: (params: {
     name: string;
     busNumber: string;
@@ -113,12 +118,17 @@ interface AppContextType {
   // Booking flow
   bookings: BookingRequest[];
   createBooking: (params: {
-    tripId: string;
-    busNumber: string;
-    departureTime: string;
-    direction: "sogod-ormoc" | "ormoc-sogod";
-    passengerType: PassengerType;
+    tripId?: string;
+    busNumber?: string;
+    departureTime?: string;
+    direction?: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod";
+    passengerType?: PassengerType;
     paymentMethod: "GCash" | "Maya";
+    origin?: string;
+    destination?: string;
+    paymentStatus?: "paid" | "unpaid";
+    etaMinutes?: number;
+    etaText?: string;
   }) => BookingRequest;
   assignSeatToBooking: (bookingId: string, seatNumber: string) => void;
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
@@ -152,8 +162,8 @@ const DEFAULT_TICKET: TicketDetails = {
   pnr: "ER902624726",
   busId: "DMS-048",
   routeTitle: "Sogod ➔ Ormoc City",
-  origin: "Sogod, Southern Leyte",
-  destination: "Ormoc City, Leyte",
+  origin: "Sogod Terminal",
+  destination: "Ormoc City",
   departureTime: "08:00",
   arrivalTime: "10:23",
   date: "24 Nov 2026",
@@ -161,8 +171,8 @@ const DEFAULT_TICKET: TicketDetails = {
   seatNumber: "12",
   passengerName: "Juana de la Cruz",
   baseFare: 275,
-  convenienceFee: 15,
-  totalFare: 290,
+  convenienceFee: CONVENIENCE_FEE,
+  totalFare: 295,
   paymentMethod: "GCash",
   passengerType: "regular",
 };
@@ -181,9 +191,9 @@ const DEFAULT_INITIAL_BOOKINGS: BookingRequest[] = [
     passengerName: "Juana de la Cruz",
     baseFare: 275,
     discount: 0,
-    convenienceFee: 15,
-    totalFare: 290,
-    createdAt: new Date().toISOString(),
+    convenienceFee: CONVENIENCE_FEE,
+    totalFare: 295,
+    createdAt: "2026-11-24T08:00:00.000Z",
     pnr: "ER902624726",
   },
 ];
@@ -224,255 +234,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return initialSeats.map((s) => (s.id === "12" ? { ...s, status: "available" } : s));
   });
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string>("12");
-  const [passengerName, setPassengerName] = useState<string>("Juana de la Cruz");
-  const [userLocation, setUserLocation] = useState<string>("VSU Main Campus");
-  const [simulatedTime, setSimulatedTime] = useState<SimulatedTime>("9:00 AM");
-  const [boardingAlertMinutes, setBoardingAlertMinutes] = useState<number>(10);
-  const [isAlertActive, setIsAlertActive] = useState<boolean>(false);
-  const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [passengerName, setPassengerName] = useLocalStorageState<string>("trackmetro_passenger_name", "Juana de la Cruz");
+  const [userLocation, setUserLocation] = useLocalStorageState<string>("trackmetro_user_location", "VSU Main Campus");
+  const [simulatedTime, setSimulatedTime] = useLocalStorageState<SimulatedTime>("trackmetro_simulated_time", "9:00 AM");
+  const [boardingAlertMinutes, setBoardingAlertMinutes] = useLocalStorageState<number>("trackmetro_boarding_alert_minutes", 10);
+  const [isAlertActive, setIsAlertActive] = useLocalStorageState<boolean>("trackmetro_is_alert_active", false);
+  const [isPremium, setIsPremium] = useLocalStorageState<boolean>("trackmetro_is_premium", false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedDirection, setSelectedDirectionState] = useState<"sogod-to-ormoc" | "ormoc-to-sogod">("sogod-to-ormoc");
-  const [origin, setOriginState] = useState<string>("Sogod, Southern Leyte");
-  const [destination, setDestinationState] = useState<string>("Ormoc City, Leyte");
-  const [activeTicket, setActiveTicket] = useState<TicketDetails>(DEFAULT_TICKET);
-  const [bookings, setBookings] = useState<BookingRequest[]>(DEFAULT_INITIAL_BOOKINGS);
-  const [passengerHails, setPassengerHails] = useState<PassengerHail[]>(DEFAULT_INITIAL_HAILS);
-  const [walkInSales, setWalkInSales] = useState<WalkInSale[]>([]);
-  const [currentBusStop, setCurrentBusStop] = useState<string>("Baybay City Terminal");
-  const [passengersOnBoard, setPassengersOnBoard] = useState<number>(INITIAL_PASSENGERS_ON_BOARD);
-  const [conductorName, setConductorName] = useState<string>("Kuya Rolly B.");
-  const [busDetailsState, setBusDetailsState] = useState<BusDetails>(busDetails);
-  const [busStatus, setBusStatusState] = useState<BusDispatchStatus>("in_queue");
-  const [verifiedDiscount, setVerifiedDiscountState] = useState<PassengerType>("regular");
-  const [discountIdNumber, setDiscountIdNumberState] = useState<string>("");
-  const [discountSchoolOrAgency, setDiscountSchoolOrAgencyState] = useState<string>("");
+  const [selectedDirection, setSelectedDirectionState] = useLocalStorageState<"sogod-to-ormoc" | "ormoc-to-sogod">("trackmetro_selected_direction", "sogod-to-ormoc");
+  const [origin, setOriginState] = useLocalStorageState<string>("trackmetro_origin", "Sogod Terminal");
+  const [destination, setDestinationState] = useLocalStorageState<string>("trackmetro_destination", "Ormoc City");
+  const [activeTicket, setActiveTicket] = useLocalStorageState<TicketDetails>("trackmetro_active_ticket", DEFAULT_TICKET);
+  const [bookings, setBookings] = useLocalStorageState<BookingRequest[]>("trackmetro_bookings", DEFAULT_INITIAL_BOOKINGS);
+  const [passengerHails, setPassengerHails] = useLocalStorageState<PassengerHail[]>("trackmetro_hails", DEFAULT_INITIAL_HAILS);
+  const [walkInSales, setWalkInSales] = useLocalStorageState<WalkInSale[]>("trackmetro_walkin_sales", []);
+  const [currentBusStop, setCurrentBusStop] = useLocalStorageState<string>("trackmetro_current_stop", "Baybay City Terminal");
+  const [passengersOnBoard, setPassengersOnBoard] = useLocalStorageState<number>("trackmetro_passengers_on_board", INITIAL_PASSENGERS_ON_BOARD);
+  const [conductorName, setConductorName] = useLocalStorageState<string>("trackmetro_conductor_name", "Kuya Rolly B.");
+  const [busDetailsState, setBusDetailsState] = useLocalStorageState<BusDetails>("trackmetro_bus_details", busDetails);
+  const [busStatus, setBusStatusState] = useLocalStorageState<BusDispatchStatus>("trackmetro_bus_status", "in_queue");
+  const [busLastUpdatedAt, setBusLastUpdatedAtState] = useLocalStorageState<number>("trackmetro_bus_last_updated_at", 0);
 
-  const setVerifiedDiscount = (type: PassengerType) => {
-    setVerifiedDiscountState(type);
-    try {
-      localStorage.setItem("trackmetro_verified_discount", type);
-    } catch (e) {}
-  };
+  const touchBusLastUpdated = useCallback(() => {
+    setBusLastUpdatedAtState(Date.now());
+  }, [setBusLastUpdatedAtState]);
 
-  const setDiscountIdNumber = (id: string) => {
-    setDiscountIdNumberState(id);
-    try {
-      localStorage.setItem("trackmetro_discount_id", id);
-    } catch (e) {}
-  };
+  const [verifiedDiscount, setVerifiedDiscount] = useLocalStorageState<PassengerType>("trackmetro_verified_discount", "regular");
+  const [discountIdNumber, setDiscountIdNumber] = useLocalStorageState<string>("trackmetro_discount_id", "");
+  const [discountSchoolOrAgency, setDiscountSchoolOrAgency] = useLocalStorageState<string>("trackmetro_discount_agency", "");
 
-  const setDiscountSchoolOrAgency = (agency: string) => {
-    setDiscountSchoolOrAgencyState(agency);
-    try {
-      localStorage.setItem("trackmetro_discount_agency", agency);
-    } catch (e) {}
-  };
-
-  const verifyDiscount = (type: PassengerType, idNumber?: string, schoolOrAgency?: string) => {
-    setVerifiedDiscountState(type);
+  const verifyDiscount = useCallback((type: PassengerType, idNumber?: string, schoolOrAgency?: string) => {
+    setVerifiedDiscount(type);
     const id = idNumber || (type === "student" ? "2024-88421" : type === "senior" ? "OSCA-2024-0918" : type === "pwd" ? "PWD-0864-10492" : "");
     const agency = schoolOrAgency || (type === "student" ? "Southern Leyte State University (SLSU)" : type === "senior" ? "Sogod Municipal OSCA" : type === "pwd" ? "Baybay City PDAO" : "");
-    setDiscountIdNumberState(id);
-    setDiscountSchoolOrAgencyState(agency);
-    try {
-      localStorage.setItem("trackmetro_verified_discount", type);
-      localStorage.setItem("trackmetro_discount_id", id);
-      localStorage.setItem("trackmetro_discount_agency", agency);
-    } catch (e) {}
-  };
+    setDiscountIdNumber(id);
+    setDiscountSchoolOrAgency(agency);
+  }, [setVerifiedDiscount, setDiscountIdNumber, setDiscountSchoolOrAgency]);
 
-  const removeDiscount = () => {
-    setVerifiedDiscountState("regular");
-    setDiscountIdNumberState("");
-    setDiscountSchoolOrAgencyState("");
-    try {
-      localStorage.setItem("trackmetro_verified_discount", "regular");
-      localStorage.removeItem("trackmetro_discount_id");
-      localStorage.removeItem("trackmetro_discount_agency");
-    } catch (e) {}
-  };
-
-  // Hydrate from localStorage for multi-tab and reload sync between Conductor and Passenger apps
-  useEffect(() => {
-    try {
-      const savedTicket = localStorage.getItem("trackmetro_active_ticket");
-      if (savedTicket) setActiveTicket(JSON.parse(savedTicket));
-
-      const savedHails = localStorage.getItem("trackmetro_hails");
-      if (savedHails) {
-        const parsed = JSON.parse(savedHails);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setPassengerHails(parsed);
-        } else {
-          setPassengerHails(DEFAULT_INITIAL_HAILS);
-        }
-      } else {
-        setPassengerHails(DEFAULT_INITIAL_HAILS);
-      }
-
-      const savedSales = localStorage.getItem("trackmetro_walkin_sales");
-      if (savedSales) setWalkInSales(JSON.parse(savedSales));
-
-      const savedStop = localStorage.getItem("trackmetro_current_stop");
-      if (savedStop) setCurrentBusStop(savedStop);
-
-      const savedCount = localStorage.getItem("trackmetro_passengers_on_board");
-      if (savedCount !== null) {
-        const parsed = parseInt(savedCount, 10);
-        if (!isNaN(parsed)) setPassengersOnBoard(parsed);
-      }
-
-      const savedConductor = localStorage.getItem("trackmetro_conductor_name");
-      if (savedConductor) setConductorName(savedConductor);
-
-      const savedBusDetails = localStorage.getItem("trackmetro_bus_details");
-      if (savedBusDetails) {
-        try {
-          setBusDetailsState(JSON.parse(savedBusDetails));
-        } catch (e) {}
-      }
-
-      const savedBusStatus = localStorage.getItem("trackmetro_bus_status");
-      if (savedBusStatus === "in_queue" || savedBusStatus === "boarding" || savedBusStatus === "depart") {
-        setBusStatusState(savedBusStatus as BusDispatchStatus);
-      }
-
-      const savedBookings = localStorage.getItem("trackmetro_bookings");
-      if (savedBookings) {
-        try {
-          const parsed = JSON.parse(savedBookings);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setBookings(parsed);
-          }
-        } catch (e) {}
-      }
-
-      const savedDiscount = localStorage.getItem("trackmetro_verified_discount") as PassengerType | null;
-      if (savedDiscount && (savedDiscount === "student" || savedDiscount === "senior" || savedDiscount === "pwd" || savedDiscount === "regular")) {
-        setVerifiedDiscountState(savedDiscount);
-      }
-      const savedDiscountId = localStorage.getItem("trackmetro_discount_id");
-      if (savedDiscountId) setDiscountIdNumberState(savedDiscountId);
-      const savedDiscountAgency = localStorage.getItem("trackmetro_discount_agency");
-      if (savedDiscountAgency) setDiscountSchoolOrAgencyState(savedDiscountAgency);
-    } catch (e) {
-      // ignore
-    }
-  }, []);
-
-  // Listen for storage events from other tabs (e.g. Passenger hailing/booking in tab 1, Conductor seeing in tab 2)
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      try {
-        if (e.key === "trackmetro_active_ticket" && e.newValue) {
-          setActiveTicket(JSON.parse(e.newValue));
-        } else if (e.key === "trackmetro_hails" && e.newValue) {
-          setPassengerHails(JSON.parse(e.newValue));
-        } else if (e.key === "trackmetro_walkin_sales" && e.newValue) {
-          setWalkInSales(JSON.parse(e.newValue));
-        } else if (e.key === "trackmetro_current_stop" && e.newValue) {
-          setCurrentBusStop(e.newValue);
-        } else if (e.key === "trackmetro_passengers_on_board" && e.newValue) {
-          const parsed = parseInt(e.newValue, 10);
-          if (!isNaN(parsed)) setPassengersOnBoard(parsed);
-        } else if (e.key === "trackmetro_conductor_name" && e.newValue) {
-          setConductorName(e.newValue);
-        } else if (e.key === "trackmetro_bus_details" && e.newValue) {
-          try {
-            setBusDetailsState(JSON.parse(e.newValue));
-          } catch (e) {}
-        } else if (e.key === "trackmetro_bus_status" && e.newValue) {
-          if (e.newValue === "in_queue" || e.newValue === "boarding" || e.newValue === "depart") {
-            setBusStatusState(e.newValue as BusDispatchStatus);
-          }
-        } else if (e.key === "trackmetro_bookings" && e.newValue) {
-          try {
-            setBookings(JSON.parse(e.newValue));
-          } catch (e) {}
-        } else if (e.key === "trackmetro_verified_discount" && e.newValue) {
-          setVerifiedDiscountState(e.newValue as PassengerType);
-        } else if (e.key === "trackmetro_discount_id") {
-          setDiscountIdNumberState(e.newValue || "");
-        } else if (e.key === "trackmetro_discount_agency") {
-          setDiscountSchoolOrAgencyState(e.newValue || "");
-        }
-      } catch (err) {
-        // ignore
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  // Persist state updates to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_active_ticket", JSON.stringify(activeTicket));
-    } catch (e) {}
-  }, [activeTicket]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_hails", JSON.stringify(passengerHails));
-    } catch (e) {}
-  }, [passengerHails]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_walkin_sales", JSON.stringify(walkInSales));
-    } catch (e) {}
-  }, [walkInSales]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_current_stop", currentBusStop);
-    } catch (e) {}
-  }, [currentBusStop]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_passengers_on_board", passengersOnBoard.toString());
-    } catch (e) {}
-  }, [passengersOnBoard]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_conductor_name", conductorName);
-    } catch (e) {}
-  }, [conductorName]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_bus_details", JSON.stringify(busDetailsState));
-    } catch (e) {}
-  }, [busDetailsState]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_bus_status", busStatus);
-    } catch (e) {}
-  }, [busStatus]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("trackmetro_bookings", JSON.stringify(bookings));
-    } catch (e) {}
-  }, [bookings]);
+  const removeDiscount = useCallback(() => {
+    setVerifiedDiscount("regular");
+    setDiscountIdNumber("");
+    setDiscountSchoolOrAgency("");
+  }, [setVerifiedDiscount, setDiscountIdNumber, setDiscountSchoolOrAgency]);
 
   const setBusStatus = useCallback((status: BusDispatchStatus) => {
     setBusStatusState(status);
-  }, []);
+    touchBusLastUpdated();
+  }, [setBusStatusState, touchBusLastUpdated]);
 
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
     if (dir === "sogod-to-ormoc") {
-      setOriginState("Sogod, Southern Leyte");
-      setDestinationState("Ormoc City, Leyte");
+      setOriginState("Sogod Terminal");
+      setDestinationState("Ormoc City");
     } else {
-      setOriginState("Ormoc City, Leyte");
-      setDestinationState("Sogod, Southern Leyte");
+      setOriginState("Ormoc City");
+      setDestinationState("Sogod Terminal");
     }
-  }, []);
+  }, [setSelectedDirectionState, setOriginState, setDestinationState]);
 
   const registerConductorShift = useCallback((params: {
     name: string;
@@ -497,7 +316,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSelectedDirection(params.direction);
     // Automatically set the bus status to in queue after registering
     setBusStatusState("in_queue");
-  }, [setSelectedDirection]);
+    touchBusLastUpdated();
+  }, [setConductorName, setBusDetailsState, setActiveTicket, setSelectedDirection, setBusStatusState, touchBusLastUpdated]);
 
   const setOrigin = useCallback((newOrigin: string) => {
     setOriginState(newOrigin);
@@ -506,7 +326,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else if (newOrigin.toLowerCase().includes("sogod")) {
       setSelectedDirectionState("sogod-to-ormoc");
     }
-  }, []);
+  }, [setOriginState, setSelectedDirectionState]);
 
   const setDestination = useCallback((newDest: string) => {
     setDestinationState(newDest);
@@ -515,7 +335,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else if (newDest.toLowerCase().includes("ormoc")) {
       setSelectedDirectionState("sogod-to-ormoc");
     }
-  }, []);
+  }, [setDestinationState, setSelectedDirectionState]);
 
   const swapOriginDestination = useCallback(() => {
     setOriginState((prevOrigin) => {
@@ -524,86 +344,107 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSelectedDirectionState(isOriginNowOrmoc ? "ormoc-to-sogod" : "sogod-to-ormoc");
       return destination;
     });
-  }, [destination]);
+  }, [destination, setOriginState, setDestinationState, setSelectedDirectionState]);
 
-  const updateSeatStatus = (seatId: string, newStatus: SeatStatus) => {
+  const updateSeatStatus = useCallback((seatId: string, newStatus: SeatStatus) => {
     setSeats((prevSeats) =>
       prevSeats.map((seat) =>
         seat.id === seatId ? { ...seat, status: newStatus } : seat
       )
     );
-  };
+  }, [setSeats]);
 
   const confirmBooking = (seatNum: string = selectedSeatNumber, payment: "GCash" | "Maya" = "GCash") => {
     updateSeatStatus(seatNum, "app_reserved");
+    const fareBreakdown = calculateSegmentFare(origin, destination, verifiedDiscount, {
+      isPremium,
+      includeConvenienceFee: true,
+    });
     setActiveTicket((prev) => ({
       ...prev,
       seatNumber: seatNum,
       paymentMethod: payment,
+      passengerType: verifiedDiscount,
+      passengerName,
+      origin: normalizeStopName(origin),
+      destination: normalizeStopName(destination),
+      routeTitle: `${normalizeStopName(origin)} ➔ ${normalizeStopName(destination)}`,
+      baseFare: fareBreakdown.baseFare,
+      convenienceFee: fareBreakdown.convenienceFee,
+      totalFare: fareBreakdown.totalFare,
       pnr: generatePNR(),
     }));
   };
 
   const createBooking = useCallback((params: {
-    tripId: string;
-    busNumber: string;
-    departureTime: string;
-    direction: "sogod-ormoc" | "ormoc-sogod";
-    passengerType: PassengerType;
+    tripId?: string;
+    busNumber?: string;
+    departureTime?: string;
+    direction?: "sogod-ormoc" | "ormoc-sogod" | "sogod-to-ormoc" | "ormoc-to-sogod";
+    passengerType?: PassengerType;
     paymentMethod: "GCash" | "Maya";
+    origin?: string;
+    destination?: string;
+    paymentStatus?: "paid" | "unpaid";
+    etaMinutes?: number;
+    etaText?: string;
   }): BookingRequest => {
-    const fare = calculateFare(busDetails.baseFare, busDetails.convenienceFee, params.passengerType);
+    const bookingOrigin = params.origin || origin;
+    const bookingDestination = params.destination || destination;
+    const bookingPassengerType = params.passengerType || verifiedDiscount;
+    const fare = calculateSegmentFare(bookingOrigin, bookingDestination, bookingPassengerType, {
+      isPremium,
+      includeConvenienceFee: true,
+    });
+    const normDir: "sogod-ormoc" | "ormoc-sogod" =
+      params.direction === "ormoc-sogod" || params.direction === "ormoc-to-sogod"
+        ? "ormoc-sogod"
+        : "sogod-ormoc";
+
     const newBooking: BookingRequest = {
       id: `BK-${Date.now()}`,
-      tripId: params.tripId,
-      busNumber: params.busNumber,
-      departureTime: params.departureTime,
-      direction: params.direction,
-      passengerType: params.passengerType,
+      tripId: params.tripId || `TRIP-${Date.now()}`,
+      busNumber: params.busNumber || busDetailsState.id,
+      departureTime: params.departureTime || "08:00 AM",
+      direction: normDir,
+      passengerType: bookingPassengerType,
       paymentMethod: params.paymentMethod,
       status: "pending_seat",
+      paymentStatus: params.paymentStatus || "paid",
       assignedSeat: null,
-      passengerName,
+      passengerName: passengerName || "Juana de la Cruz",
       baseFare: fare.baseFare,
-      discount: fare.discount,
+      discount: fare.discountAmount,
       convenienceFee: fare.convenienceFee,
       totalFare: fare.totalFare,
       createdAt: new Date().toISOString(),
       pnr: generatePNR(),
+      origin: bookingOrigin,
+      destination: bookingDestination,
+      etaMinutes: params.etaMinutes ?? 12,
+      etaText: params.etaText ?? "Arriving in ~12 mins",
     };
     setBookings((prev) => [...prev, newBooking]);
     return newBooking;
-  }, [passengerName]);
+  }, [passengerName, origin, destination, isPremium, busDetailsState.id, verifiedDiscount, setBookings]);
 
   const assignSeatToBooking = useCallback((bookingId: string, seatNumber: string) => {
-    setBookings((prev) =>
-      prev.map((b) =>
+    setBookings((prev) => {
+      const updated = prev.map((b) =>
         b.id === bookingId
           ? { ...b, assignedSeat: seatNumber, status: "confirmed" as const }
           : b
-      )
-    );
-    updateSeatStatus(seatNumber, "app_reserved");
-    // Also update active ticket for the ticket page
-    setBookings((prev) => {
-      const booking = prev.find((b) => b.id === bookingId);
+      );
+      const booking = updated.find((b) => b.id === bookingId);
       if (booking) {
-        const routeTitle = booking.direction === "sogod-ormoc"
-          ? "Sogod ➔ Ormoc City"
-          : "Ormoc City ➔ Sogod";
-        const origin = booking.direction === "sogod-ormoc"
-          ? "Sogod, Southern Leyte"
-          : "Ormoc City, Leyte";
-        const destination = booking.direction === "sogod-ormoc"
-          ? "Ormoc City, Leyte"
-          : "Sogod, Southern Leyte";
-
-        setActiveTicket({
+        const segOrigin = booking.origin || (booking.direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City");
+        const segDest = booking.destination || (booking.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
+        const newTicket: TicketDetails = {
           pnr: booking.pnr,
           busId: booking.busNumber,
-          routeTitle,
-          origin,
-          destination,
+          routeTitle: `${segOrigin} ➔ ${segDest}`,
+          origin: segOrigin,
+          destination: segDest,
           departureTime: booking.departureTime,
           arrivalTime: "—",
           date: "24 Nov 2026",
@@ -615,20 +456,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
           totalFare: booking.totalFare,
           paymentMethod: booking.paymentMethod,
           passengerType: booking.passengerType,
-        });
+        };
+        setActiveTicket(newTicket);
       }
-      return prev;
+      return updated;
     });
-  }, []);
+    updateSeatStatus(seatNumber, "app_reserved");
+  }, [updateSeatStatus, setActiveTicket, setBookings]);
 
   const updateBookingStatus = useCallback((bookingId: string, status: BookingStatus) => {
     setBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
     );
-  }, []);
+  }, [setBookings]);
 
   const getActiveBooking = useCallback((): BookingRequest | undefined => {
-    return bookings.find((b) => b.status === "pending_seat" || b.status === "confirmed");
+    return [...bookings].reverse().find((b) => b.status === "pending_seat" || b.status === "confirmed");
   }, [bookings]);
 
   // Passenger Advance Hail Operations
@@ -645,34 +488,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setPassengerHails((prev) => [newHail, ...prev.filter((h) => h.busId !== busId)]);
     return newHail;
-  }, [passengerName, isPremium]);
+  }, [passengerName, isPremium, setPassengerHails]);
 
   const cancelHail = useCallback((busId: string) => {
     setPassengerHails((prev) => prev.filter((h) => h.busId !== busId));
-  }, []);
+  }, [setPassengerHails]);
 
   const acknowledgeHail = useCallback((hailId: string) => {
     setPassengerHails((prev) =>
       prev.map((h) => (h.id === hailId ? { ...h, status: "acknowledged" as const } : h))
     );
-  }, []);
+  }, [setPassengerHails]);
 
   const boardHail = useCallback((hailId: string) => {
     setPassengerHails((prev) =>
       prev.map((h) => (h.id === hailId ? { ...h, status: "boarded" as const } : h))
     );
     setPassengersOnBoard((prev) => Math.min(45, prev + 1));
-  }, []);
+  }, [setPassengerHails, setPassengersOnBoard]);
 
   // Pick up passenger in pinged area: removes hail, does NOT increment headcount
   const pickupHail = useCallback((hailId: string) => {
     setPassengerHails((prev) => prev.filter((h) => h.id !== hailId));
-  }, []);
+  }, [setPassengerHails]);
 
   // No passenger in pinged area: removes hail, does NOT increment headcount
   const removeHail = useCallback((hailId: string) => {
     setPassengerHails((prev) => prev.filter((h) => h.id !== hailId));
-  }, []);
+  }, [setPassengerHails]);
 
   const getActiveHailForBus = useCallback((busId: string): PassengerHail | undefined => {
     return passengerHails.find((h) => h.busId === busId && h.status !== "boarded");
@@ -681,14 +524,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Headcount controls for conductor
   const incrementPassengersOnBoard = useCallback((amount: number = 1) => {
     setPassengersOnBoard((prev) => Math.min(45, prev + amount));
-  }, []);
+  }, [setPassengersOnBoard]);
 
   const decrementPassengersOnBoard = useCallback((amount: number = 1) => {
     setPassengersOnBoard((prev) => Math.max(0, prev - amount));
-  }, []);
+  }, [setPassengersOnBoard]);
 
   // Simulate an incoming online seat reservation request
   const requestSeatReservation = useCallback((name: string = "Mark Villamor", direction: "sogod-ormoc" | "ormoc-sogod" = "sogod-ormoc"): BookingRequest => {
+    const origin = direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City";
+    const destination = direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal";
     const newBooking: BookingRequest = {
       id: `BK-${Date.now()}`,
       tripId: "trip-sogod-1",
@@ -698,18 +543,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       passengerType: "regular",
       paymentMethod: "GCash",
       status: "pending_seat",
+      paymentStatus: "paid",
       assignedSeat: null,
       passengerName: name,
       baseFare: 275,
       discount: 0,
-      convenienceFee: 15,
-      totalFare: 290,
+      convenienceFee: CONVENIENCE_FEE,
+      totalFare: 275 + CONVENIENCE_FEE,
       createdAt: new Date().toISOString(),
       pnr: generatePNR(),
+      origin,
+      destination,
+      etaMinutes: 12,
+      etaText: "Arriving in ~12 mins",
     };
     setBookings((prev) => [newBooking, ...prev]);
     return newBooking;
-  }, []);
+  }, [setBookings]);
 
   // Record a POS Walk-in cash ticket sale & automatically sync seat occupancy and headcount
   const recordWalkInSale = useCallback(
@@ -726,7 +576,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPassengersOnBoard((prev) => Math.min(45, prev + 1));
       return newSale;
     },
-    []
+    [setWalkInSales, updateSeatStatus, setPassengersOnBoard]
   );
 
   // Validate passenger E-ticket during conductor QR scan & automatically increment headcount
@@ -764,7 +614,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     return matched;
-  }, []);
+  }, [setActiveTicket, setBookings, setPassengersOnBoard]);
 
   // Mark seat as no-show or drop-off and free it up
   const removeBookingReservation = useCallback((seatNumber: string) => {
@@ -792,7 +642,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? { ...prev, isBoarded: false }
         : prev
     );
-  }, [updateSeatStatus]);
+  }, [updateSeatStatus, setBookings, setActiveTicket]);
 
   const markNoShow = removeBookingReservation;
 
@@ -812,11 +662,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return stopsList[currentIndex + 1];
     });
-  }, [selectedDirection]);
+    touchBusLastUpdated();
+  }, [selectedDirection, touchBusLastUpdated, setCurrentBusStop]);
 
   const stopAlert = useCallback(() => {
     setIsAlertActive(false);
-  }, []);
+  }, [setIsAlertActive]);
 
   return (
     <AppContext.Provider
@@ -828,6 +679,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setConductorName,
         busStatus,
         setBusStatus,
+        busLastUpdatedAt,
+        touchBusLastUpdated,
         registerConductorShift,
         selectedSeatNumber,
         setSelectedSeatNumber,

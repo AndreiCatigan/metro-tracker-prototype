@@ -1,246 +1,328 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { useIsHydrated } from "@/lib/hooks/useLocalStorageState";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 function PendingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { bookings, assignSeatToBooking } = useAppContext();
+  const { bookings, assignSeatToBooking, seats, busDetails } = useAppContext();
 
   const bookingId = searchParams.get("id");
-  const booking = bookings.find((b) => b.id === bookingId);
+  const currentBooking = useMemo(() => {
+    if (bookingId) {
+      const found = bookings.find((b) => b.id === bookingId);
+      if (found) return found;
+    }
+    return bookings.length > 0 ? bookings[bookings.length - 1] : undefined;
+  }, [bookings, bookingId]);
 
-  const [conductorAssigning, setConductorAssigning] = useState(false);
-  const [seatAssigned, setSeatAssigned] = useState(false);
-  const [assignedSeatNum, setAssignedSeatNum] = useState<string | null>(null);
+  // Live countdown ticker adhering to React 19 lint rules
+  const [etaMinutes, setEtaMinutes] = useState(12);
 
-  // Auto-progress dots animation
-  const [dots, setDots] = useState("");
   useEffect(() => {
-    if (seatAssigned) return;
     const interval = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
-    }, 500);
+      setEtaMinutes((prev) => (prev > 1 ? prev - 1 : 1));
+    }, 60000);
     return () => clearInterval(interval);
-  }, [seatAssigned]);
+  }, []);
+
+  const isHydrated = useIsHydrated();
+  const estimatedClockTime = useMemo(() => {
+    if (!isHydrated) return "08:12 AM";
+    const target = new Date();
+    target.setMinutes(target.getMinutes() + etaMinutes);
+    return target.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
+  }, [etaMinutes, isHydrated]);
+
+  const [simulating, setSimulating] = useState(false);
 
   const handleSimulateAssignment = () => {
-    if (!bookingId) return;
-    setConductorAssigning(true);
-
-    // Simulate conductor assigning seat after a brief delay
+    if (!currentBooking) return;
+    setSimulating(true);
     setTimeout(() => {
-      const randomSeat = Math.floor(Math.random() * 24 + 1).toString();
-      assignSeatToBooking(bookingId, randomSeat);
-      setAssignedSeatNum(randomSeat);
-      setSeatAssigned(true);
-      setConductorAssigning(false);
-    }, 1500);
+      // Find an available seat or fallback to Seat 14
+      const nextSeat = seats.find((s) => s.status === "available")?.id || "14";
+      assignSeatToBooking(currentBooking.id, nextSeat);
+      setSimulating(false);
+    }, 900);
   };
 
-  if (!booking) {
+  if (!currentBooking) {
     return (
       <div className="min-h-screen bg-[#F7F9FB] flex items-center justify-center font-sans">
-        <div className="text-center space-y-3 px-6">
-          <span className="material-symbols-outlined text-[40px] text-slate-300">error</span>
-          <p className="text-sm font-bold text-slate-500">Booking not found</p>
-          <button
+        <div className="text-center space-y-3 px-6 max-w-sm">
+          <span className="material-symbols-outlined text-[42px] text-slate-300">error</span>
+          <p className="text-sm font-bold text-slate-600">No active booking found</p>
+          <Button
             type="button"
             onClick={() => router.push("/home")}
-            className="px-4 py-2 rounded-full bg-[#F95700] text-white font-bold text-sm cursor-pointer"
+            className="w-full rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-bold"
           >
-            Go Home
-          </button>
+            Return to Home
+          </Button>
         </div>
       </div>
     );
   }
 
-  const routeLabel = booking.direction === "sogod-ormoc"
-    ? "Sogod → Ormoc City"
-    : "Ormoc City → Sogod";
+  const isConfirmed = currentBooking.status === "confirmed" && Boolean(currentBooking.assignedSeat);
+  const busNumber = currentBooking.busNumber || busDetails.id;
+  const originStop = currentBooking.origin || (currentBooking.direction === "sogod-ormoc" ? "Sogod Terminal" : "Ormoc City");
+  const destStop = currentBooking.destination || (currentBooking.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.push("/home")}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back to Home"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-16 overflow-x-hidden">
+      {/* ── Top Header ── */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back to Home"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">Booking Status</h1>
-          <p className="text-[11px] font-semibold text-slate-500">
-            {seatAssigned ? "Seat Confirmed!" : "Pending Assignment"}
-          </p>
+          <div className="text-center">
+            <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
+              {isConfirmed ? "Seat Confirmed" : "Booking Status"}
+            </h1>
+            <p className="text-[11px] font-semibold text-slate-500">
+              {isConfirmed ? "Ready for Boarding" : "Awaiting Seat Assignment"}
+            </p>
+          </div>
+
+          <div className="w-10 h-10" />
         </div>
-
-        <div className="w-10 h-10" />
       </header>
 
-      <main className="max-w-[440px] w-full mx-auto px-4 pt-6 space-y-5">
-        {/* Status Icon */}
-        <div className="text-center space-y-2">
-          {seatAssigned ? (
-            <>
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-md">
-                <span className="material-symbols-outlined text-[32px]">check_circle</span>
-              </div>
-              <h2 className="text-[22px] font-black text-[#191C1E]">Seat Assigned!</h2>
-              <p className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider">
-                CONDUCTOR CONFIRMED • SEAT {assignedSeatNum}
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 rounded-full bg-[#FFE8D6] text-[#F95700] flex items-center justify-center mx-auto shadow-md animate-pulse">
-                <span className="material-symbols-outlined text-[32px]">hourglass_top</span>
-              </div>
-              <h2 className="text-[22px] font-black text-[#191C1E]">
-                Pending Seat Assignment{dots}
-              </h2>
-              <p className="text-[12px] font-bold text-[#A53700] uppercase tracking-wider">
-                WAITING FOR CONDUCTOR
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* Booking Reference Card */}
-        <section className="bg-white rounded-3xl p-5 shadow-sm border border-[#ECEEF0] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-1.5 bg-[#F5DECD]/70 text-[#812900] px-3.5 py-1 rounded-full text-[11px] font-extrabold tracking-wider">
-              <span className="material-symbols-outlined text-[14px]">confirmation_number</span>
-              <span>PNR: {booking.pnr}</span>
-            </div>
-
-            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-              seatAssigned
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${seatAssigned ? "bg-emerald-500" : "bg-amber-500"}`} />
-              {seatAssigned ? "Confirmed" : "Pending"}
-            </span>
-          </div>
-
-          {/* Trip Details */}
-          <div className="bg-[#F7F9FB] rounded-2xl p-3.5 border border-[#ECEEF0] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ROUTE</p>
-                <p className="text-[15px] font-black text-[#191C1E]">{routeLabel}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">BUS</p>
-                <p className="text-[14px] font-black text-[#A53700]">{booking.busNumber}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-[#ECEEF0]">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DEPARTURE</p>
-                <p className="text-[14px] font-extrabold text-[#191C1E]">{booking.departureTime}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TYPE</p>
-                <p className="text-[12px] font-bold text-[#191C1E] capitalize">{booking.passengerType}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Fare Info */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#ECEEF0]">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#E0E3E5] text-slate-700 font-bold text-[11px] flex items-center justify-center">
-                {booking.passengerName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-              </div>
-              <span className="text-[13px] font-bold text-[#191C1E]">{booking.passengerName}</span>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] text-slate-400 font-medium">PAID</p>
-              <p className="text-[15px] font-black text-[#A53700]">₱{booking.totalFare.toFixed(2)}</p>
-            </div>
-          </div>
-
-          {seatAssigned && assignedSeatNum && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-emerald-600">event_seat</span>
-                <span className="text-[14px] font-black text-emerald-800">Assigned Seat</span>
-              </div>
-              <div className="inline-flex w-9 h-9 rounded-full bg-emerald-600 text-white items-center justify-center font-black text-[15px] shadow-sm">
-                {assignedSeatNum}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Info / Action */}
-        {!seatAssigned ? (
+      <main className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 pt-6 space-y-5">
+        {!isConfirmed ? (
+          /* ══════════════════════════════════════════════════════════
+             STAGE A: Payment Successful & Pending Seat Assignment
+             ══════════════════════════════════════════════════════════ */
           <>
-            {/* Waiting Message */}
-            <div className="bg-[#FFE8D6]/40 border border-[#F5DECD] rounded-2xl p-4 text-center space-y-2">
-              <p className="text-[13px] font-bold text-[#A53700]">
-                The conductor will assign your seat shortly.
+            {/* ── Payment Confirmation Hero ── */}
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
+                <span className="material-symbols-outlined text-[34px]">check</span>
+              </div>
+              <h2 className="text-[24px] font-black tracking-tight text-[#191C1E]">
+                Payment Successful!
+              </h2>
+              <p className="text-[13px] font-bold text-emerald-800">
+                ₱{currentBooking.totalFare.toFixed(2)} paid via {currentBooking.paymentMethod}
               </p>
-              <p className="text-[11px] text-slate-600 font-medium">
-                You&apos;ll receive your ticket and QR code once a seat is confirmed. Your payment has been secured.
-              </p>
+              <div className="flex items-center justify-center gap-2 pt-0.5">
+                <span className="text-[12px] font-semibold text-slate-500">
+                  {originStop} <span className="text-slate-400 font-normal">➔</span> {destStop}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                  PNR: {currentBooking.pnr}
+                </span>
+              </div>
             </div>
 
-            {/* Demo: Simulate Conductor Assignment */}
-            <button
-              type="button"
-              disabled={conductorAssigning}
-              onClick={handleSimulateAssignment}
-              className="w-full py-3.5 rounded-full bg-[#181C24] hover:bg-black text-white font-black text-[14px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
-            >
-              {conductorAssigning ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Conductor Assigning Seat...</span>
+            {/* ── Pending Seat Card ── */}
+            <Card className="p-5 shadow-xs border-[#ECEEF0] space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge variant="peach" className="gap-1.5 font-extrabold text-[11px] py-1 px-3">
+                  <span className="w-2 h-2 rounded-full bg-[#F95700] animate-ping" />
+                  <span>PENDING SEAT ASSIGNMENT</span>
+                </Badge>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  BUS {busNumber}
                 </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px] text-[#F95700]">touch_app</span>
-                  <span>Simulate Conductor Assignment (Demo)</span>
-                </span>
-              )}
-            </button>
+              </div>
+
+              <div className="bg-[#FFE8D6]/40 border border-[#F5DECD] rounded-2xl p-4 text-center space-y-2">
+                <div className="w-10 h-10 rounded-full bg-[#FFE8D6] text-[#A53700] flex items-center justify-center mx-auto">
+                  <span className="material-symbols-outlined text-[22px] animate-spin">
+                    progress_activity
+                  </span>
+                </div>
+                <p className="text-[13px] font-black text-[#A53700]">
+                  Your payment is confirmed. Please wait while the conductor on Bus {busNumber} selects your seat.
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  This screen updates automatically in real-time once the conductor marks your seat on the bus matrix.
+                </p>
+              </div>
+
+              {/* Booking Reference Details */}
+              <div className="bg-[#F8FAFC] rounded-2xl p-3.5 border border-[#ECEEF0] space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Passenger</span>
+                  <span className="font-bold text-[#191C1E]">{currentBooking.passengerName}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Ticket Type</span>
+                  <span className="font-bold text-[#191C1E] capitalize">
+                    {currentBooking.passengerType === "regular" ? "Regular Fare" : `${currentBooking.passengerType} (20% Off)`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Scheduled Departure</span>
+                  <span className="font-bold text-[#191C1E]">{currentBooking.departureTime}</span>
+                </div>
+              </div>
+
+              {/* Presentation Demo Fallback Trigger */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  disabled={simulating}
+                  onClick={handleSimulateAssignment}
+                  className="w-full py-3.5 rounded-full bg-[#181C24] hover:bg-black active:scale-[0.98] text-white font-extrabold text-[14px] shadow-sm flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-75"
+                >
+                  {simulating ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Assigning Seat...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Next</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#F95700]">arrow_forward</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </Card>
           </>
         ) : (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => router.push("/ticket")}
-              className="w-full py-3.5 rounded-full bg-[#F95700] hover:bg-[#E04E00] text-white font-black text-[15px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-            >
-              <span className="material-symbols-outlined text-[18px]">confirmation_number</span>
-              <span>View Your Ticket</span>
-            </button>
+          /* ══════════════════════════════════════════════════════════
+             STAGE B: Seat Assigned & Bus Arrival Wait Screen
+             ══════════════════════════════════════════════════════════ */
+          <>
+            {/* ── Seat Number Callout Card ── */}
+            <Card className="p-6 shadow-md border-emerald-200 bg-white text-center space-y-3">
+              <div className="inline-flex justify-center">
+                <Badge variant="success" className="gap-1.5 font-black text-[12px] py-1 px-3.5 tracking-wider">
+                  <span className="material-symbols-outlined text-[15px]">verified</span>
+                  <span>SEAT CONFIRMED</span>
+                </Badge>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => router.push("/map")}
-              className="w-full py-3 rounded-full bg-[#181C24] hover:bg-black text-white font-bold text-[13px] shadow-xs transition flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-            >
-              <span className="material-symbols-outlined text-[16px] text-[#F95700]">near_me</span>
-              <span>Track Bus on Live Map</span>
-            </button>
-          </div>
+              <div className="space-y-1">
+                <p className="text-[13px] font-bold text-slate-500 uppercase tracking-widest">
+                  YOUR ASSIGNED SEAT
+                </p>
+                <h2 className="text-[32px] sm:text-[36px] font-black tracking-tight text-[#191C1E]">
+                  Your seat is number{" "}
+                  <span className="text-[#F95700] underline decoration-[#FFE8D6] decoration-4">
+                    {currentBooking.assignedSeat}
+                  </span>
+                </h2>
+                <p className="text-[12px] font-bold text-emerald-700">
+                  Conductor confirmed on Bus {busNumber}
+                </p>
+              </div>
+
+              <Separator className="my-3 bg-[#ECEEF0]" />
+
+              <div className="flex items-center justify-around text-xs pt-1">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PASSENGER</p>
+                  <p className="font-extrabold text-[#191C1E]">{currentBooking.passengerName}</p>
+                </div>
+                <div className="w-[1px] h-6 bg-slate-200" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PNR CODE</p>
+                  <p className="font-mono font-bold text-[#A53700]">{currentBooking.pnr}</p>
+                </div>
+                <div className="w-[1px] h-6 bg-slate-200" />
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">STATUS</p>
+                  <p className="font-bold text-emerald-700">Confirmed</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* ── Bus Arrival & ETA Card ── */}
+            <Card className="p-5 shadow-xs border-[#ECEEF0] space-y-3.5 bg-gradient-to-br from-white to-[#FFF9F5]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#FFE8D6] text-[#F95700] flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="material-symbols-outlined text-[22px]">directions_bus</span>
+                </div>
+                <div>
+                  <p className="text-[14px] font-black text-[#191C1E]">
+                    Please wait for Bus No. <span className="text-[#F95700]">{busNumber}</span> to arrive
+                  </p>
+                  <p className="text-[11.5px] font-bold text-slate-600">
+                    Boarding Stop: <span className="text-[#191C1E]">{originStop}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Estimated Arrival Block */}
+              <div className="bg-white rounded-2xl p-4 border border-[#ECEEF0] flex items-center justify-between shadow-2xs">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    ESTIMATED ARRIVAL
+                  </p>
+                  <p className="text-[20px] font-black text-[#A53700] tracking-tight">
+                    Arriving in ~{etaMinutes} mins
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium" suppressHydrationWarning>
+                    Est. arrival at {estimatedClockTime}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE GPS
+                  </span>
+                  <p className="text-[10px] text-slate-400 font-medium mt-1">
+                    Route 70 Corridor
+                  </p>
+                </div>
+              </div>
+
+              {/* Corridor segment summary */}
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                <span>Route: <strong>{originStop} ➔ {destStop}</strong></span>
+                <span className="font-bold text-[#191C1E]">Paid: ₱{currentBooking.totalFare.toFixed(2)}</span>
+              </div>
+            </Card>
+
+            {/* ── Next Actions ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              <Button
+                type="button"
+                onClick={() => router.push("/ticket")}
+                className="w-full py-4 rounded-full bg-[#F95700] hover:bg-[#E04E00] active:scale-[0.98] text-white font-extrabold text-[15px] shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[19px]">qr_code_2</span>
+                <span>View Boarding Pass (QR)</span>
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/map")}
+                className="w-full py-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-extrabold text-[14px] border border-slate-200 shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[17px] text-[#F95700]">near_me</span>
+                <span>Track Bus Live on Map</span>
+              </button>
+            </div>
+          </>
         )}
 
-        {/* Payment Method Tag */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500">
+        {/* Security / Verification Badge */}
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-slate-500 pt-2">
           <span className="material-symbols-outlined text-[15px] text-slate-400">verified_user</span>
-          <span>Paid via {booking.paymentMethod} • 256-bit Encrypted</span>
+          <span>Verified Transit Reservation • LTFRB Route 70</span>
         </div>
       </main>
     </div>
@@ -249,14 +331,16 @@ function PendingContent() {
 
 export default function PendingBookingPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#F7F9FB] flex items-center justify-center font-sans">
-        <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-3 border-[#F95700] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-bold text-slate-500">Loading booking status...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F9FB] flex items-center justify-center font-sans">
+          <div className="text-center space-y-2">
+            <div className="w-8 h-8 border-3 border-[#F95700] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-sm font-bold text-slate-500">Loading booking status...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <PendingContent />
     </Suspense>
   );

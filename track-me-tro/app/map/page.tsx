@@ -1,19 +1,23 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { useCurrentTimestamp } from "@/lib/hooks/useLocalStorageState";
 import {
   getActiveBuses,
   highwayWaypoints,
   ActiveBus,
   calculateBusETA,
+  formatLastUpdated,
+  computeBusSignalStatus,
 } from "@/lib/mockData";
 import BoardingAlertSheet from "@/components/BoardingAlertSheet";
 import BottomNavigation from "@/components/BottomNavigation";
 import MetroPlusModal from "@/components/MetroPlusModal";
 import CrownIcon from "@/components/CrownIcon";
+import { Badge } from "@/components/ui/badge";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
@@ -38,10 +42,13 @@ function MapContent() {
     selectedDirection,
     setSelectedDirection,
     isPremium,
-    setIsModalOpen,
     hailBus,
     cancelHail,
     getActiveHailForBus,
+    busLastUpdatedAt,
+    busDetails,
+    setOrigin,
+    setDestination,
   } = useAppContext();
   const directionParam = searchParams.get("direction");
 
@@ -56,13 +63,32 @@ function MapContent() {
   const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Reactive timestamp synchronized on 30s interval with deterministic SSR 0-snapshot
+  const currentTimestamp = useCurrentTimestamp();
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3800);
   };
 
-  // Dynamic active buses based on simulated time
-  const allActiveBuses = useMemo(() => getActiveBuses(simulatedTime), [simulatedTime]);
+  // Dynamic active buses based on simulated time, synchronized with conductor telemetry
+  const allActiveBuses = useMemo(() => {
+    const baseBuses = getActiveBuses(simulatedTime);
+    if (!currentTimestamp) return baseBuses;
+    return baseBuses.map((b) => {
+      // Presentation Safeguard: Do not overwrite designated delayed demo buses with conductor live sync
+      if (b.id === busDetails.id && !b.isDesignatedDelayed) {
+        const diffMs = Math.max(0, currentTimestamp - (busLastUpdatedAt || currentTimestamp));
+        const mins = Math.floor(diffMs / 60000);
+        return {
+          ...b,
+          lastUpdatedMinsAgo: mins,
+          signalStatus: computeBusSignalStatus(mins),
+        };
+      }
+      return b;
+    });
+  }, [simulatedTime, busDetails.id, busLastUpdatedAt, currentTimestamp]);
 
   // Filtered active buses matching current route
   const filteredBuses = useMemo(
@@ -78,6 +104,9 @@ function MapContent() {
     }
     return filteredBuses[0] || null;
   }, [isDismissed, filteredBuses, selectedBusId]);
+
+  const selectedBusMinsAgo = selectedBus?.lastUpdatedMinsAgo ?? 0;
+  const selectedBusSignalStatus = selectedBus?.signalStatus ?? computeBusSignalStatus(selectedBusMinsAgo);
 
   // Map control trigger counters
   const [recenterCount, setRecenterCount] = useState(0);
@@ -105,14 +134,22 @@ function MapContent() {
     setIsDismissed(true);
   }, []);
 
-  // Primary CTA action: navigate to checkout (locked on Free Tier)
+  // Primary CTA action: navigate to seat reservation with synchronized direction and stops
   const handleBookSeat = () => {
     if (!selectedBus) return;
     if (!isPremium) {
       setShowMetroPlusModal(true);
       return;
     }
-    router.push(`/checkout?busId=${selectedBus.id}&direction=${activeDirection}`);
+    setSelectedDirection(activeDirection);
+    if (activeDirection === "sogod-to-ormoc") {
+      setOrigin("Sogod Terminal");
+      setDestination("Ormoc City");
+    } else {
+      setOrigin("Ormoc City");
+      setDestination("Sogod Terminal");
+    }
+    router.push(`/booking?busId=${selectedBus.id}&direction=${activeDirection}`);
   };
 
   // Calculate dynamic ETA to commuter's simulated userLocation
@@ -120,7 +157,7 @@ function MapContent() {
   const activeHail = selectedBus ? getActiveHailForBus(selectedBus.id) : undefined;
 
   return (
-    <div className="relative min-h-screen bg-[#EBF0F5] text-[#191C1E] flex flex-col font-sans overflow-hidden">
+    <div className="relative min-h-dvh bg-[#EBF0F5] text-[#191C1E] flex flex-col font-sans overflow-hidden">
       {/* ── Toast Notification for Advance Hail / Alert ── */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in max-w-[92vw] text-center border border-white/10">
@@ -130,7 +167,7 @@ function MapContent() {
       )}
       {/* ── Top Floating Route Status Banner ── */}
       <div className="fixed top-3 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-        <div className="w-full max-w-[440px] bg-[#F95700] text-white rounded-full py-2 px-3.5 shadow-[0_6px_20px_rgba(249,87,0,0.35)] flex items-center justify-between pointer-events-auto border border-white/20">
+        <div className="w-full max-w-[440px] md:max-w-lg bg-[#F95700] text-white rounded-full py-2 px-3.5 shadow-[0_6px_20px_rgba(249,87,0,0.35)] flex items-center justify-between pointer-events-auto border border-white/20">
           <button
             type="button"
             onClick={handleToggleRoute}
@@ -187,7 +224,7 @@ function MapContent() {
       </div>
 
       {/* ── Interactive Leaflet Map Canvas ── */}
-      <div className="relative flex-1 w-full max-w-[480px] mx-auto min-h-[640px] h-[calc(100vh-70px)] overflow-hidden">
+      <div className="relative flex-1 w-full min-h-[640px] h-[calc(100dvh-70px)] overflow-hidden">
         <LiveMapLeaflet
           buses={filteredBuses}
           selectedBusId={selectedBus ? selectedBus.id : null}
@@ -201,36 +238,35 @@ function MapContent() {
         />
       </div>
 
-      {/* ── Bottom Floating Transit Card (Level 2 Elevation) or Tap-to-View Pill ── */}
-      <div className="fixed bottom-18 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
+      {/* ── Bottom Floating Transit Card (Level 2 Elevation) ── */}
+      <div className="fixed bottom-22 left-0 right-0 md:left-6 md:right-auto md:bottom-24 z-30 flex justify-center md:justify-start px-4 md:px-0 pointer-events-none">
         {selectedBus && etaData ? (
-          <div className="relative w-full max-w-[440px] bg-white rounded-3xl p-4 shadow-[0_10px_25px_-4px_rgba(24,28,36,0.14)] border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="relative w-full max-w-[440px] md:w-[400px] bg-white rounded-3xl p-4 shadow-elevation2 border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
             {/* Card Drag Indicator Bar */}
             <div className="w-10 h-1 bg-[#D8DADC] rounded-full mx-auto -mt-1 mb-1" />
 
-            {/* Route Destination & Bus Unit Header */}
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#F95700]">
-                  <span className="w-2 h-2 rounded-full bg-[#F95700]" />
-                  <span>
-                    {activeDirection === "sogod-to-ormoc"
-                      ? "Bound for Ormoc City"
-                      : "Bound for Sogod Terminal"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E]">
-                    {isPremium ? `Bus ${selectedBus.id}` : "Express Metro Bus"}
-                  </h2>
-                </div>
-                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                  Departed {selectedBus.departureTime || "Recently"} • {selectedBus.currentLocation}
-                </p>
-                {isPremium && (
-                  <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
-                    Driver: {selectedBus.driverName || "Noel Dagami"}
-                  </p>
+            {/* GPS Signal Freshness Header Row */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
+              <div className="flex items-center">
+                {selectedBusSignalStatus === "live" ? (
+                  <Badge
+                    variant="success"
+                    className="h-6 px-2.5 text-[10px] font-black tracking-wider flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10B981]"></span>
+                    </span>
+                    <span>LIVE</span>
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="h-6 px-2.5 text-[10px] font-bold tracking-normal bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                    <span>{formatLastUpdated(Math.max(2, selectedBusMinsAgo))}</span>
+                  </Badge>
                 )}
               </div>
 
@@ -249,6 +285,31 @@ function MapContent() {
                   <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
               </div>
+            </div>
+
+            {/* Route Destination & Bus Unit Header */}
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#F95700]">
+                <span className="w-2 h-2 rounded-full bg-[#F95700]" />
+                <span>
+                  {activeDirection === "sogod-to-ormoc"
+                    ? "Bound for Ormoc City"
+                    : "Bound for Sogod Terminal"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E]">
+                  {isPremium ? `Bus ${selectedBus.id}` : "Express Metro Bus"}
+                </h2>
+              </div>
+              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                Departed {selectedBus.departureTime || "Recently"} • {selectedBus.currentLocation}
+              </p>
+              {isPremium && (
+                <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+                  Driver: {selectedBus.driverName || "Noel Dagami"}
+                </p>
+              )}
             </div>
 
             {/* Dynamic Real-time ETA to Simulated Commuter Location */}
