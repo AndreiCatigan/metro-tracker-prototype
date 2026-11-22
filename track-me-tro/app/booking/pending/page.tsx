@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { useIsHydrated } from "@/lib/hooks/useLocalStorageState";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,11 +33,13 @@ function PendingContent() {
     return () => clearInterval(interval);
   }, []);
 
+  const isHydrated = useIsHydrated();
   const estimatedClockTime = useMemo(() => {
+    if (!isHydrated) return "08:12 AM";
     const target = new Date();
     target.setMinutes(target.getMinutes() + etaMinutes);
     return target.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
-  }, [etaMinutes]);
+  }, [etaMinutes, isHydrated]);
 
   const [simulating, setSimulating] = useState(false);
 
@@ -270,7 +273,7 @@ function PendingContent() {
                   <p className="text-[20px] font-black text-[#A53700] tracking-tight">
                     Arriving in ~{etaMinutes} mins
                   </p>
-                  <p className="text-[11px] text-slate-500 font-medium">
+                  <p className="text-[11px] text-slate-500 font-medium" suppressHydrationWarning>
                     Est. arrival at {estimatedClockTime}
                   </p>
                 </div>

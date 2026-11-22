@@ -156,3 +156,26 @@
     - Fixed bottom bars and modal drawers constrained with matching max-widths and `pb-safe`.
     - Stage B dual action buttons stack full-width on mobile phones (`grid-cols-1`) and sit side-by-side on tablets (`md:grid-cols-2`).
     - Added global viewport guardrail in `app/globals.css`: `html, body { overflow-x: clip; max-width: 100vw; min-height: 100dvh; }`.
+- **React 19 / Next.js 16 Hydration Mismatch Resolution & `useLocalStorageState` Store:**
+  - **Root Cause Eliminated:**
+    - Eradicated lazy `useState(() => typeof window !== "undefined" ? localStorage.getItem(...) : defaultValue)` anti-patterns across `lib/AppContext.tsx` which caused initial hydration divergence between server HTML pre-rendering (`"regular"` -> `<button>`) and client hydration (`"student"` -> `<span>`) at `app/booking/page.tsx:293`.
+    - Eliminated dynamic SSR clock/timestamp divergences across `app/booking/pending/page.tsx` and `app/map/page.tsx`.
+  - **Reactive State Store (`lib/hooks/useLocalStorageState.ts`):**
+    - Built a robust `useLocalStorageState<T>(key, defaultValue)` hook using React 19's `useSyncExternalStore`.
+    - `getServerSnapshot`: Deterministically returns `defaultValue` for SSR and initial hydration passes.
+    - `getSnapshot`: Retrieves cached parsed JSON keyed by raw `localStorage` string (`snapshotCache.get(key)`), guaranteeing referential stability and preventing infinite render loops.
+    - `subscribe`: Listens to both native `window.addEventListener("storage", ...)` (cross-tab sync) and `window.addEventListener("trackmetro-storage", ...)` (instant intra-tab synchronization).
+    - `setValue`: Serializes values, populates the snapshot cache, and dispatches custom storage events across tabs and windows.
+    - Exported `useIsHydrated()` and `useCurrentTimestamp()` hooks for clean client-only gating without synchronous `setState` in effect cascades (`react-hooks/set-state-in-effect`).
+  - **AppContext Refactoring (`lib/AppContext.tsx`):**
+    - Migrated all persisted state variables to `useLocalStorageState`: `verifiedDiscount`, `discountIdNumber`, `discountSchoolOrAgency`, `passengerName`, `userLocation`, `simulatedTime`, `boardingAlertMinutes`, `isAlertActive`, `isPremium`, `selectedDirection`, `origin`, `destination`, `activeTicket`, `bookings`, `passengerHails`, `walkInSales`, `currentBusStop`, `passengersOnBoard`, `conductorName`, `busDetailsState`, `busStatus`, and `busLastUpdatedAt`.
+    - Removed manual hydration `useEffect` (lines 339-411), manual `storage` event listener `useEffect` (lines 413-462), and 9 redundant write-sync `useEffect` watchers (lines 463-517).
+    - Fixed static timestamp in `DEFAULT_INITIAL_BOOKINGS` (`"2026-11-24T08:00:00.000Z"`).
+    - Resolved 23 `useCallback` dependency array warnings across dispatchers and actions.
+  - **Secondary Hydration Trap Hardening:**
+    - `app/booking/pending/page.tsx`: Gated `estimatedClockTime` with `useIsHydrated()` and added `suppressHydrationWarning`.
+    - `app/map/page.tsx`: Replaced dynamic `Date.now()` `useState` with `useCurrentTimestamp()` external store ticking every 30 seconds.
+  - **Verification:**
+    - Zero Next.js hydration errors or warnings across hard reloads on `/booking`, `/checkout`, `/booking/pending`, `/ticket`, `/map`, and `/home`.
+    - Production build (`npm run build`) statically prerenders 21/21 routes with 0 errors.
+    - Full ESLint check (`npm run lint`) clean with 0 errors.

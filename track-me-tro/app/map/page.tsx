@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useMemo, useCallback, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { useCurrentTimestamp } from "@/lib/hooks/useLocalStorageState";
 import {
   getActiveBuses,
   highwayWaypoints,
@@ -62,17 +63,8 @@ function MapContent() {
   const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Client timestamp state initialized once and updated every 30 seconds
-  const [currentTimestamp, setCurrentTimestamp] = useState<number>(() => {
-    return typeof window !== "undefined" ? Date.now() : 0;
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTimestamp(Date.now());
-    }, 30000);
-    return () => clearInterval(timer);
-  }, []);
+  // Reactive timestamp synchronized on 30s interval with deterministic SSR 0-snapshot
+  const currentTimestamp = useCurrentTimestamp();
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
