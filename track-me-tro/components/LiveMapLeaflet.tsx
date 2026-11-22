@@ -214,13 +214,21 @@ export default function LiveMapLeaflet({
 
     buses.forEach((bus) => {
       const isSelected = bus.id === selectedBusId;
+      const isLive = (bus.signalStatus ?? "live") === "live" && (bus.lastUpdatedMinsAgo ?? 0) <= 2;
 
       // Calculate dynamic ETA from this bus to the user's location
       const etaResult = calculateBusETA(bus, userLocation);
       const etaLabel = etaResult.etaText;
       const isHailedByMe = passengerHails?.some((h) => h.busId === bus.id && h.status !== "boarded");
-      // Free Tier: only ETA. Premium Tier: Bus ID and ETA
-      const baseTag = isPremium ? `${bus.id} • ${etaLabel}` : etaLabel;
+
+      const statusTag = isLive
+        ? "LIVE"
+        : `${bus.lastUpdatedMinsAgo ?? 3}m ago`;
+
+      // Free Tier: only ETA & status. Premium Tier: Bus ID, ETA & status
+      const baseTag = isPremium
+        ? `${bus.id} • ${etaLabel} • ${statusTag}`
+        : `${etaLabel} • ${statusTag}`;
       const tagText = isHailedByMe ? `${baseTag} • 📡 Notified` : baseTag;
 
       const busDivIcon = L.divIcon({
@@ -229,14 +237,22 @@ export default function LiveMapLeaflet({
         iconAnchor: [0, 0],
         html: `
           <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; transform: translate(-50%, -50%);">
-            <!-- Pulsing Ring -->
-            <span style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background: rgba(249, 87, 0, 0.28); animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+            <!-- Pulsing Ring: Active ping for live GPS, subtle ring for delayed/weak signal -->
+            ${
+              isLive
+                ? '<span style="position: absolute; width: 44px; height: 44px; border-radius: 9999px; background: rgba(249, 87, 0, 0.28); animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>'
+                : '<span style="position: absolute; width: 38px; height: 38px; border-radius: 9999px; background: rgba(255, 232, 214, 0.5); border: 1.5px dashed rgba(249, 87, 0, 0.55);"></span>'
+            }
             <span style="position: absolute; width: 34px; height: 34px; border-radius: 9999px; background: ${
-              isSelected ? "rgba(249, 87, 0, 0.4)" : "rgba(249, 87, 0, 0.2)"
+              isSelected ? "rgba(249, 87, 0, 0.4)" : isLive ? "rgba(249, 87, 0, 0.2)" : "rgba(203, 213, 225, 0.35)"
             };"></span>
 
             <!-- Main Bus Button -->
-            <div style="position: relative; width: 34px; height: 34px; border-radius: 9999px; background: #F95700; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(249, 87, 0, 0.55); border: 2.5px solid #ffffff; transition: transform 0.2s; ${
+            <div style="position: relative; width: 34px; height: 34px; border-radius: 9999px; background: ${
+              isLive ? "#F95700" : "#D97706"
+            }; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px ${
+              isLive ? "rgba(249, 87, 0, 0.55)" : "rgba(217, 119, 6, 0.4)"
+            }; border: 2.5px solid #ffffff; transition: transform 0.2s; ${
               isSelected ? "transform: scale(1.18); box-shadow: 0 0 0 3px #181C24, 0 6px 18px rgba(0,0,0,0.35);" : ""
             }">
               <svg style="width: 18px; height: 18px; fill: currentColor;" viewBox="0 0 24 24">
@@ -245,8 +261,13 @@ export default function LiveMapLeaflet({
             </div>
 
             <!-- Bus Tag: Free Tier is only ETA, Premium is Bus number and ETA -->
-            <div style="position: absolute; bottom: -20px; white-space: nowrap; background: #ffffff; color: #181C24; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1px solid #CBD5E1; pointer-events: none;">
-              ${tagText}
+            <div style="position: absolute; bottom: -22px; white-space: nowrap; background: #ffffff; color: #181C24; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 9999px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1.5px solid ${
+              isLive ? "#CBD5E1" : "#FDE68A"
+            }; pointer-events: none; display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: ${
+                isLive ? "#10B981" : "#D97706"
+              };"></span>
+              <span>${tagText}</span>
             </div>
           </div>
         `,

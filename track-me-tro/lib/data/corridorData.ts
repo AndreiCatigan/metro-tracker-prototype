@@ -145,6 +145,9 @@ export interface ActiveBus {
   elapsedMinutes?: number;
   progressPercent?: number;
   currentStop?: string;
+  lastUpdatedMinsAgo?: number;
+  lastUpdatedAt?: number;
+  signalStatus?: "live" | "delayed";
 }
 
 export type CoordinatePair = [number, number];
@@ -287,6 +290,8 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 90,
     progressPercent: 55,
     currentStop: "Inopacan",
+    lastUpdatedMinsAgo: 1,
+    signalStatus: "live",
   },
   {
     id: "DMS-055",
@@ -300,6 +305,8 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 60,
     progressPercent: 36,
     currentStop: "Hilongos",
+    lastUpdatedMinsAgo: 4,
+    signalStatus: "delayed",
   },
   {
     id: "DMS-053",
@@ -313,6 +320,8 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 90,
     progressPercent: 55,
     currentStop: "Inopacan",
+    lastUpdatedMinsAgo: 0,
+    signalStatus: "live",
   },
   {
     id: "DMS-056",
@@ -326,6 +335,8 @@ export const activeBuses: ActiveBus[] = [
     elapsedMinutes: 30,
     progressPercent: 18,
     currentStop: "Albuera",
+    lastUpdatedMinsAgo: 5,
+    signalStatus: "delayed",
   },
 ];
 

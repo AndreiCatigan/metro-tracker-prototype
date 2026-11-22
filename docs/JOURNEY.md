@@ -69,3 +69,11 @@
   - Created `app/manifest.ts` returning valid Next.js `MetadataRoute.Manifest` for standalone PWA support.
   - Fixed React 19 `setState` cascading render warning in `app/conductor/map/page.tsx` by deriving `selectedHailId` during render.
   - Verified `npm run build` compiles with zero errors across all 21 routes.
+- **GPS Telemetry & Freshness Indicators (`/map`):**
+  - Extended `ActiveBus` model in `lib/data/corridorData.ts` and `lib/data/fleetData.ts` with `lastUpdatedMinsAgo`, `lastUpdatedAt`, and `signalStatus` (`"live"` | `"delayed"`).
+  - Added pure formatting utilities `formatLastUpdated` and `computeBusSignalStatus` in `lib/data/fleetData.ts`.
+  - Added `busLastUpdatedAt` timestamp tracking in `lib/AppContext.tsx` with multi-tab `localStorage` synchronization (`trackmetro_bus_last_updated_at`) automatically reset whenever conductors update dispatch status, shift, or stop progression.
+  - Upgraded the selected bus inspection card in `app/map/page.tsx` using `Badge` (`LIVE` with green pulsing dot or `LAST SEEN` with warm amber dot), radio signal icon, and relative timestamp.
+  - Added a 30-second client interval in `app/map/page.tsx` compliant with React 19 component purity rules.
+  - Added subtle visual ring differentiation in `components/LiveMapLeaflet.tsx` (toning down outer pulse on delayed pins).
+  - Enhanced responsive layout: anchored bottom card on phones, floating side card on tablets (`md:left-6 md:bottom-24 md:w-[380px]`).

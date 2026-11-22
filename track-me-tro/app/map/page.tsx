@@ -9,11 +9,15 @@ import {
   highwayWaypoints,
   ActiveBus,
   calculateBusETA,
+  formatLastUpdated,
+  computeBusSignalStatus,
 } from "@/lib/mockData";
 import BoardingAlertSheet from "@/components/BoardingAlertSheet";
 import BottomNavigation from "@/components/BottomNavigation";
 import MetroPlusModal from "@/components/MetroPlusModal";
 import CrownIcon from "@/components/CrownIcon";
+import { Badge } from "@/components/ui/badge";
+import { Radio } from "lucide-react";
 
 // Dynamically import Leaflet map component with ssr: false to prevent Next.js SSR window errors
 const LiveMapLeaflet = dynamic(() => import("@/components/LiveMapLeaflet"), {
@@ -38,10 +42,11 @@ function MapContent() {
     selectedDirection,
     setSelectedDirection,
     isPremium,
-    setIsModalOpen,
     hailBus,
     cancelHail,
     getActiveHailForBus,
+    busLastUpdatedAt,
+    busDetails,
   } = useAppContext();
   const directionParam = searchParams.get("direction");
 
@@ -56,13 +61,40 @@ function MapContent() {
   const [showMetroPlusModal, setShowMetroPlusModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Client timestamp state initialized once and updated every 30 seconds
+  const [currentTimestamp, setCurrentTimestamp] = useState<number>(() => {
+    return typeof window !== "undefined" ? Date.now() : 0;
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3800);
   };
 
-  // Dynamic active buses based on simulated time
-  const allActiveBuses = useMemo(() => getActiveBuses(simulatedTime), [simulatedTime]);
+  // Dynamic active buses based on simulated time, synchronized with conductor telemetry
+  const allActiveBuses = useMemo(() => {
+    const baseBuses = getActiveBuses(simulatedTime);
+    if (!currentTimestamp) return baseBuses;
+    return baseBuses.map((b) => {
+      if (b.id === busDetails.id) {
+        const diffMs = Math.max(0, currentTimestamp - (busLastUpdatedAt || currentTimestamp));
+        const mins = Math.floor(diffMs / 60000);
+        return {
+          ...b,
+          lastUpdatedMinsAgo: mins,
+          signalStatus: computeBusSignalStatus(mins),
+        };
+      }
+      return b;
+    });
+  }, [simulatedTime, busDetails.id, busLastUpdatedAt, currentTimestamp]);
 
   // Filtered active buses matching current route
   const filteredBuses = useMemo(
@@ -78,6 +110,9 @@ function MapContent() {
     }
     return filteredBuses[0] || null;
   }, [isDismissed, filteredBuses, selectedBusId]);
+
+  const selectedBusMinsAgo = selectedBus?.lastUpdatedMinsAgo ?? 0;
+  const selectedBusSignalStatus = selectedBus?.signalStatus ?? computeBusSignalStatus(selectedBusMinsAgo);
 
   // Map control trigger counters
   const [recenterCount, setRecenterCount] = useState(0);
@@ -201,37 +236,41 @@ function MapContent() {
         />
       </div>
 
-      {/* ── Bottom Floating Transit Card (Level 2 Elevation) or Tap-to-View Pill ── */}
-      <div className="fixed bottom-18 left-0 right-0 z-30 flex justify-center px-4 pointer-events-none">
+      {/* ── Bottom Floating Transit Card (Level 2 Elevation) ── */}
+      <div className="fixed bottom-20 left-0 right-0 md:left-6 md:right-auto md:bottom-24 z-30 flex justify-center md:justify-start px-4 md:px-0 pointer-events-none">
         {selectedBus && etaData ? (
-          <div className="relative w-full max-w-[440px] bg-white rounded-3xl p-4 shadow-[0_10px_25px_-4px_rgba(24,28,36,0.14)] border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="relative w-full max-w-[440px] md:w-[380px] bg-white rounded-3xl p-4 shadow-elevation2 border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
             {/* Card Drag Indicator Bar */}
             <div className="w-10 h-1 bg-[#D8DADC] rounded-full mx-auto -mt-1 mb-1" />
 
-            {/* Route Destination & Bus Unit Header */}
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#F95700]">
-                  <span className="w-2 h-2 rounded-full bg-[#F95700]" />
-                  <span>
-                    {activeDirection === "sogod-to-ormoc"
-                      ? "Bound for Ormoc City"
-                      : "Bound for Sogod Terminal"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E]">
-                    {isPremium ? `Bus ${selectedBus.id}` : "Express Metro Bus"}
-                  </h2>
-                </div>
-                <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                  Departed {selectedBus.departureTime || "Recently"} • {selectedBus.currentLocation}
-                </p>
-                {isPremium && (
-                  <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
-                    Driver: {selectedBus.driverName || "Noel Dagami"}
-                  </p>
+            {/* GPS Signal Freshness Header Row */}
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
+              <div className="flex items-center gap-2">
+                {selectedBusSignalStatus === "live" ? (
+                  <Badge
+                    variant="success"
+                    className="h-6 px-2.5 text-[10px] font-black tracking-wider flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10B981]"></span>
+                    </span>
+                    <span>LIVE</span>
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="peach"
+                    className="h-6 px-2.5 text-[10px] font-black tracking-wider flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#A53700]" />
+                    <span>LAST SEEN</span>
+                  </Badge>
                 )}
+
+                <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                  <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{formatLastUpdated(selectedBusMinsAgo)}</span>
+                </div>
               </div>
 
               {/* Close Button & Direction Chip */}
@@ -249,6 +288,31 @@ function MapContent() {
                   <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
               </div>
+            </div>
+
+            {/* Route Destination & Bus Unit Header */}
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#F95700]">
+                <span className="w-2 h-2 rounded-full bg-[#F95700]" />
+                <span>
+                  {activeDirection === "sogod-to-ormoc"
+                    ? "Bound for Ormoc City"
+                    : "Bound for Sogod Terminal"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <h2 className="font-headline-lg text-[22px] font-black text-[#191C1E]">
+                  {isPremium ? `Bus ${selectedBus.id}` : "Express Metro Bus"}
+                </h2>
+              </div>
+              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
+                Departed {selectedBus.departureTime || "Recently"} • {selectedBus.currentLocation}
+              </p>
+              {isPremium && (
+                <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+                  Driver: {selectedBus.driverName || "Noel Dagami"}
+                </p>
+              )}
             </div>
 
             {/* Dynamic Real-time ETA to Simulated Commuter Location */}

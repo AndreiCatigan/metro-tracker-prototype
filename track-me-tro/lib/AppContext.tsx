@@ -67,6 +67,8 @@ interface AppContextType {
   setConductorName: (name: string) => void;
   busStatus: BusDispatchStatus;
   setBusStatus: (status: BusDispatchStatus) => void;
+  busLastUpdatedAt: number;
+  touchBusLastUpdated: () => void;
   registerConductorShift: (params: {
     name: string;
     busNumber: string;
@@ -243,6 +245,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [conductorName, setConductorName] = useState<string>("Kuya Rolly B.");
   const [busDetailsState, setBusDetailsState] = useState<BusDetails>(busDetails);
   const [busStatus, setBusStatusState] = useState<BusDispatchStatus>("in_queue");
+  const [busLastUpdatedAt, setBusLastUpdatedAtState] = useState<number>(() => Date.now());
+
+  const touchBusLastUpdated = useCallback(() => {
+    const now = Date.now();
+    setBusLastUpdatedAtState(now);
+    try {
+      localStorage.setItem("trackmetro_bus_last_updated_at", String(now));
+    } catch (e) {}
+  }, []);
   const [verifiedDiscount, setVerifiedDiscountState] = useState<PassengerType>("regular");
   const [discountIdNumber, setDiscountIdNumberState] = useState<string>("");
   const [discountSchoolOrAgency, setDiscountSchoolOrAgencyState] = useState<string>("");
@@ -337,6 +348,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setBusStatusState(savedBusStatus as BusDispatchStatus);
       }
 
+      const savedBusLastUpdated = localStorage.getItem("trackmetro_bus_last_updated_at");
+      if (savedBusLastUpdated) {
+        const parsed = parseInt(savedBusLastUpdated, 10);
+        if (!isNaN(parsed)) setBusLastUpdatedAtState(parsed);
+      }
+
       const savedBookings = localStorage.getItem("trackmetro_bookings");
       if (savedBookings) {
         try {
@@ -385,6 +402,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (e.newValue === "in_queue" || e.newValue === "boarding" || e.newValue === "depart") {
             setBusStatusState(e.newValue as BusDispatchStatus);
           }
+        } else if (e.key === "trackmetro_bus_last_updated_at" && e.newValue) {
+          const parsed = parseInt(e.newValue, 10);
+          if (!isNaN(parsed)) setBusLastUpdatedAtState(parsed);
         } else if (e.key === "trackmetro_bookings" && e.newValue) {
           try {
             setBookings(JSON.parse(e.newValue));
@@ -461,7 +481,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setBusStatus = useCallback((status: BusDispatchStatus) => {
     setBusStatusState(status);
-  }, []);
+    touchBusLastUpdated();
+  }, [touchBusLastUpdated]);
 
   const setSelectedDirection = useCallback((dir: "sogod-to-ormoc" | "ormoc-to-sogod") => {
     setSelectedDirectionState(dir);
@@ -497,7 +518,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSelectedDirection(params.direction);
     // Automatically set the bus status to in queue after registering
     setBusStatusState("in_queue");
-  }, [setSelectedDirection]);
+    touchBusLastUpdated();
+  }, [setSelectedDirection, touchBusLastUpdated]);
 
   const setOrigin = useCallback((newOrigin: string) => {
     setOriginState(newOrigin);
@@ -812,7 +834,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return stopsList[currentIndex + 1];
     });
-  }, [selectedDirection]);
+    touchBusLastUpdated();
+  }, [selectedDirection, touchBusLastUpdated]);
 
   const stopAlert = useCallback(() => {
     setIsAlertActive(false);
@@ -828,6 +851,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setConductorName,
         busStatus,
         setBusStatus,
+        busLastUpdatedAt,
+        touchBusLastUpdated,
         registerConductorShift,
         selectedSeatNumber,
         setSelectedSeatNumber,
