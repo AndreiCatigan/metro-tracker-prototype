@@ -12,7 +12,6 @@ import {
   ActiveBus,
 } from "@/lib/data";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
@@ -137,29 +136,31 @@ function BookingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe md:pb-24 overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">Reserve a Seat</h1>
-          <p className="text-[11px] font-semibold text-slate-500">Trip &amp; Destination Selection</p>
-        </div>
+          <div className="text-center">
+            <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">Reserve a Seat</h1>
+            <p className="text-[11px] font-semibold text-slate-500">Trip &amp; Destination Selection</p>
+          </div>
 
-        <div className="w-10 h-10 rounded-full bg-[#FFE8D6] text-[#A53700] flex items-center justify-center">
-          <span className="material-symbols-outlined text-[19px]">confirmation_number</span>
+          <div className="w-10 h-10 rounded-full bg-[#FFE8D6] text-[#A53700] flex items-center justify-center">
+            <span className="material-symbols-outlined text-[19px]">confirmation_number</span>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl w-full mx-auto px-4 pt-4 space-y-4">
+      <main className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 pt-4 space-y-4">
         {/* ── Trip Segment Card ── */}
         <Card className="p-4 sm:p-5 shadow-xs border-[#ECEEF0] space-y-4">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -265,23 +266,6 @@ function BookingContent() {
               <p className="text-[10px] text-slate-400 font-medium">at {origin}</p>
             </div>
           </div>
-
-          {/* Concession Status & Savings Notice */}
-          {fareBreakdown.discountAmount > 0 && (
-            <div className="bg-[#FFE8D6]/60 border border-[#F5DECD] rounded-2xl p-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <Badge variant="peach" className="gap-1 font-bold text-[10px] py-0.5 px-2.5">
-                  <span className="material-symbols-outlined text-[12px]">discount</span>
-                  <span>20% {discountLabel} Discount Applied</span>
-                </Badge>
-              </div>
-              <div className="text-right">
-                <span className="text-[11px] font-extrabold text-[#A53700]">
-                  Saved ₱{fareBreakdown.discountAmount.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          )}
         </Card>
 
         {/* ── Conductor-Assigned Seating Informational Note ── */}
@@ -362,12 +346,11 @@ function BookingContent() {
 
             {fareBreakdown.discountAmount > 0 && (
               <>
-                <div className="flex items-center justify-between text-emerald-700">
-                  <span className="font-semibold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px]">discount</span>
-                    <span>20% {discountLabel} Discount</span>
+                <div className="flex items-center justify-between text-[#191C1E]">
+                  <span className="font-semibold text-slate-600">
+                    {discountLabel || "Concession"} Discount (20%)
                   </span>
-                  <span className="font-bold">-₱{fareBreakdown.discountAmount.toFixed(2)}</span>
+                  <span className="font-bold text-emerald-700">-₱{fareBreakdown.discountAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-[#191C1E]">
                   <span className="font-semibold text-slate-600">Discounted Base Fare</span>
@@ -377,12 +360,7 @@ function BookingContent() {
             )}
 
             <div className="flex items-center justify-between text-[#191C1E]">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-slate-600">Convenience Fee</span>
-                <span className="bg-[#ECEEF0] text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  Digital Ticketing
-                </span>
-              </div>
+              <span className="font-semibold text-slate-600">Convenience Fee</span>
               <span className="font-bold">₱{fareBreakdown.convenienceFee.toFixed(2)}</span>
             </div>
           </div>
@@ -409,8 +387,8 @@ function BookingContent() {
       </main>
 
       {/* ── Fixed Bottom Sticky Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5 pb-safe">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
               Total Amount

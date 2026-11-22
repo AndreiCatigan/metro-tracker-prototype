@@ -61,33 +61,35 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe md:pb-24 overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <h1 className="text-[17px] font-extrabold tracking-tight text-[#191C1E]">
-            Checkout &amp; Payment
-          </h1>
-          <p className="text-[11px] font-medium text-slate-500">
-            Secure Digital Fare Payment
-          </p>
-        </div>
+          <div className="text-center">
+            <h1 className="text-[17px] font-extrabold tracking-tight text-[#191C1E]">
+              Checkout &amp; Payment
+            </h1>
+            <p className="text-[11px] font-medium text-slate-500">
+              Secure Digital Fare Payment
+            </p>
+          </div>
 
-        <div className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-600 flex items-center justify-center">
-          <span className="material-symbols-outlined text-[19px]">lock</span>
+          <div className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-600 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[19px]">lock</span>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl w-full mx-auto px-4 pt-4 space-y-4">
+      <main className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 pt-4 space-y-4">
         {/* ── Card 1: Booking Details ── */}
         <Card className="p-5 shadow-xs border-[#ECEEF0] space-y-4">
           <div className="flex items-center justify-between">
@@ -154,9 +156,9 @@ export default function CheckoutPage() {
               </span>
             </div>
             {verifiedDiscount !== "regular" ? (
-              <Badge variant="peach" className="text-[10px] py-0.5 px-2.5 font-bold">
-                20% {discountLabel} Discount Applied
-              </Badge>
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                {discountLabel} (20%)
+              </span>
             ) : (
               <span className="text-[11px] font-medium text-slate-400">
                 Regular Ticket
@@ -178,18 +180,17 @@ export default function CheckoutPage() {
 
           <div className="space-y-2 text-[13px]">
             <div className="flex items-center justify-between text-[#191C1E]">
-              <span className="font-semibold text-slate-600">Base Fare</span>
+              <span className="font-semibold text-slate-600">Base Segment Fare</span>
               <span className="font-bold">₱{fare.baseFare.toFixed(2)}</span>
             </div>
 
             {fare.discountAmount > 0 && (
               <>
-                <div className="flex items-center justify-between text-emerald-700">
-                  <span className="font-semibold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px]">discount</span>
-                    <span>Verified {discountLabel} Discount (20%)</span>
+                <div className="flex items-center justify-between text-[#191C1E]">
+                  <span className="font-semibold text-slate-600">
+                    {discountLabel || "Concession"} Discount (20%)
                   </span>
-                  <span className="font-bold">-₱{fare.discountAmount.toFixed(2)}</span>
+                  <span className="font-bold text-emerald-700">-₱{fare.discountAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-[#191C1E]">
                   <span className="font-semibold text-slate-600">Discounted Base Fare</span>
@@ -199,12 +200,7 @@ export default function CheckoutPage() {
             )}
 
             <div className="flex items-center justify-between text-[#191C1E]">
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-slate-600">Convenience Fee</span>
-                <span className="bg-[#ECEEF0] text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                  Digital Ticketing
-                </span>
-              </div>
+              <span className="font-semibold text-slate-600">Convenience Fee</span>
               <span className="font-bold">₱{fare.convenienceFee.toFixed(2)}</span>
             </div>
           </div>
@@ -313,8 +309,8 @@ export default function CheckoutPage() {
       </main>
 
       {/* ── Fixed Bottom Sticky Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5 pb-safe">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto flex items-center justify-between gap-4">
           <div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
               Final Payment Due

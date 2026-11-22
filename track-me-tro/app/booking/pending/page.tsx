@@ -75,31 +75,33 @@ function PendingContent() {
   const destStop = currentBooking.destination || (currentBooking.direction === "sogod-ormoc" ? "Ormoc City" : "Sogod Terminal");
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-24 pb-safe overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => router.push("/home")}
-          className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
-          aria-label="Back to Home"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => router.push("/home")}
+            className="w-10 h-10 rounded-full bg-[#F2F4F6] text-slate-700 flex items-center justify-center hover:bg-[#E6E8EA] transition active:scale-95 cursor-pointer"
+            aria-label="Back to Home"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
 
-        <div className="text-center">
-          <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
-            {isConfirmed ? "Seat Confirmed" : "Booking Status"}
-          </h1>
-          <p className="text-[11px] font-semibold text-slate-500">
-            {isConfirmed ? "Ready for Boarding" : "Awaiting Seat Assignment"}
-          </p>
+          <div className="text-center">
+            <h1 className="text-[17px] font-black tracking-tight text-[#191C1E]">
+              {isConfirmed ? "Seat Confirmed" : "Booking Status"}
+            </h1>
+            <p className="text-[11px] font-semibold text-slate-500">
+              {isConfirmed ? "Ready for Boarding" : "Awaiting Seat Assignment"}
+            </p>
+          </div>
+
+          <div className="w-10 h-10" />
         </div>
-
-        <div className="w-10 h-10" />
       </header>
 
-      <main className="max-w-2xl w-full mx-auto px-4 pt-6 space-y-5">
+      <main className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 pt-6 space-y-5">
         {!isConfirmed ? (
           /* ══════════════════════════════════════════════════════════
              STAGE A: Payment Successful & Pending Seat Assignment
@@ -177,17 +179,17 @@ function PendingContent() {
                   type="button"
                   disabled={simulating}
                   onClick={handleSimulateAssignment}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-75"
+                  className="w-full py-3.5 rounded-full bg-[#181C24] hover:bg-black active:scale-[0.98] text-white font-extrabold text-[14px] shadow-sm flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-75"
                 >
                   {simulating ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
-                      <span>Simulating Conductor Assignment...</span>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Assigning Seat...</span>
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[15px] text-[#F95700]">touch_app</span>
-                      <span>Demo: Simulate Conductor Assigning Seat</span>
+                      <span>Next</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#F95700]">arrow_forward</span>
                     </>
                   )}
                 </button>
@@ -292,7 +294,7 @@ function PendingContent() {
             </Card>
 
             {/* ── Next Actions ── */}
-            <div className="space-y-3 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
               <Button
                 type="button"
                 onClick={() => router.push("/ticket")}
@@ -305,7 +307,7 @@ function PendingContent() {
               <button
                 type="button"
                 onClick={() => router.push("/map")}
-                className="w-full py-3.5 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-extrabold text-[14px] border border-slate-200 shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-4 rounded-full bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-extrabold text-[14px] border border-slate-200 shadow-2xs transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[17px] text-[#F95700]">near_me</span>
                 <span>Track Bus Live on Map</span>

@@ -165,7 +165,7 @@ function MapContent() {
   const activeHail = selectedBus ? getActiveHailForBus(selectedBus.id) : undefined;
 
   return (
-    <div className="relative min-h-screen bg-[#EBF0F5] text-[#191C1E] flex flex-col font-sans overflow-hidden">
+    <div className="relative min-h-dvh bg-[#EBF0F5] text-[#191C1E] flex flex-col font-sans overflow-hidden">
       {/* ── Toast Notification for Advance Hail / Alert ── */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in max-w-[92vw] text-center border border-white/10">
@@ -175,7 +175,7 @@ function MapContent() {
       )}
       {/* ── Top Floating Route Status Banner ── */}
       <div className="fixed top-3 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-        <div className="w-full max-w-[440px] bg-[#F95700] text-white rounded-full py-2 px-3.5 shadow-[0_6px_20px_rgba(249,87,0,0.35)] flex items-center justify-between pointer-events-auto border border-white/20">
+        <div className="w-full max-w-[440px] md:max-w-lg bg-[#F95700] text-white rounded-full py-2 px-3.5 shadow-[0_6px_20px_rgba(249,87,0,0.35)] flex items-center justify-between pointer-events-auto border border-white/20">
           <button
             type="button"
             onClick={handleToggleRoute}
@@ -232,7 +232,7 @@ function MapContent() {
       </div>
 
       {/* ── Interactive Leaflet Map Canvas ── */}
-      <div className="relative flex-1 w-full max-w-[480px] mx-auto min-h-[640px] h-[calc(100vh-70px)] overflow-hidden">
+      <div className="relative flex-1 w-full min-h-[640px] h-[calc(100dvh-70px)] overflow-hidden">
         <LiveMapLeaflet
           buses={filteredBuses}
           selectedBusId={selectedBus ? selectedBus.id : null}
@@ -249,7 +249,7 @@ function MapContent() {
       {/* ── Bottom Floating Transit Card (Level 2 Elevation) ── */}
       <div className="fixed bottom-20 left-0 right-0 md:left-6 md:right-auto md:bottom-24 z-30 flex justify-center md:justify-start px-4 md:px-0 pointer-events-none">
         {selectedBus && etaData ? (
-          <div className="relative w-full max-w-[440px] md:w-[380px] bg-white rounded-3xl p-4 shadow-elevation2 border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="relative w-full max-w-[440px] md:w-[400px] bg-white rounded-3xl p-4 shadow-elevation2 border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
             {/* Card Drag Indicator Bar */}
             <div className="w-10 h-1 bg-[#D8DADC] rounded-full mx-auto -mt-1 mb-1" />
 

@@ -99,7 +99,7 @@ function ConductorMapContent() {
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans select-none">
+    <div className="relative w-full min-h-dvh h-dvh overflow-hidden bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans select-none">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[1100] bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
@@ -110,7 +110,7 @@ function ConductorMapContent() {
 
       {/* ── Top Header (Light Orange matching Dashboard) ── */}
       <header className="z-[1000] bg-[#FFDFC9] text-[#191C1E] px-4 py-3 shadow-xs border-b border-[#F5DECD] shrink-0">
-        <div className="max-w-[480px] mx-auto flex items-center justify-between">
+        <div className="max-w-[440px] md:max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -169,7 +169,7 @@ function ConductorMapContent() {
         />
 
         {/* ── Floating Route & Stats Strip ── */}
-        <div className="absolute top-3 left-4 right-4 z-[1000] max-w-[440px] mx-auto pointer-events-none flex items-center justify-between gap-2">
+        <div className="absolute top-3 left-4 right-4 z-[1000] max-w-[440px] md:max-w-xl mx-auto pointer-events-none flex items-center justify-between gap-2">
           <div className="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl p-2 px-3 shadow-md border border-slate-200/90 flex items-center gap-2 text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-pulse" />
             <span className="font-extrabold text-[#191C1E] text-[11px]">
@@ -218,7 +218,7 @@ function ConductorMapContent() {
         </div>
 
         {/* ── Floating Bottom Drawer: Passenger Hail Details & Actions ── */}
-        <div className="absolute bottom-4 left-3 right-3 z-[1000] max-w-[440px] mx-auto space-y-2 pointer-events-auto">
+        <div className="absolute bottom-4 left-3 right-3 z-[1000] max-w-[440px] md:max-w-xl mx-auto space-y-2 pointer-events-auto">
           {/* Active Hails Selector Chips (if multiple hails exist) */}
           {activeHails.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">

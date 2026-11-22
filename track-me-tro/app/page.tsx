@@ -58,7 +58,7 @@ export default function LoginPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12">
+    <main className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans select-none pb-12 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
@@ -70,7 +70,7 @@ export default function LoginPage() {
       {/* ── Why Use Premium Modal (Post-Login Suggestion) ── */}
       {showPremiumModal && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] max-w-[410px] w-full p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative overflow-hidden text-left">
+          <div className="bg-white rounded-[32px] max-w-[420px] md:max-w-md w-full p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative overflow-hidden text-left max-h-[90dvh] overflow-y-auto">
             {/* Subtle background glow decoration */}
             <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-[#FFE8D6] blur-2xl pointer-events-none" />
 
@@ -217,7 +217,7 @@ export default function LoginPage() {
           </svg>
         </div>
 
-        <div className="max-w-[420px] mx-auto relative z-10 flex flex-col items-center justify-center text-center">
+        <div className="max-w-[440px] md:max-w-lg mx-auto relative z-10 flex flex-col items-center justify-center text-center">
           {/* Centered Logo in the middle on top of the input fields section */}
           <div className="flex items-center justify-center">
             <Logo className="h-16 w-auto" />
@@ -229,7 +229,7 @@ export default function LoginPage() {
       </section>
 
       {/* ── Elevated Form Card (Overlapping Hero) ── */}
-      <div className="max-w-[420px] w-full mx-auto px-4 -mt-8 relative z-20 space-y-5">
+      <div className="max-w-[440px] md:max-w-lg w-full mx-auto px-4 -mt-8 relative z-20 space-y-5">
         <form
           onSubmit={handleLogin}
           className="bg-white rounded-[32px] p-6 shadow-[0_12px_36px_rgba(0,0,0,0.06)] border border-[#ECEEF0] space-y-4"

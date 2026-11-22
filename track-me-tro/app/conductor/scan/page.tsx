@@ -27,7 +27,7 @@ export default function ConductorScanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0E17] text-white flex flex-col font-sans select-none relative overflow-x-hidden">
+    <div className="min-h-dvh bg-[#0A0E17] text-white flex flex-col font-sans select-none relative overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
@@ -48,7 +48,7 @@ export default function ConductorScanPage() {
         />
 
         {/* Top Viewfinder Controls */}
-        <div className="relative z-10 flex items-center justify-between">
+        <div className="relative z-10 w-full max-w-[440px] md:max-w-2xl mx-auto flex items-center justify-between">
           <button
             type="button"
             onClick={() => router.push("/conductor")}
@@ -117,7 +117,7 @@ export default function ConductorScanPage() {
       </div>
 
       {/* ── Ticket Verified Bottom Sheet Card ── */}
-      <div className="relative z-20 flex-1 bg-white text-[#191C1E] rounded-t-3xl p-5 shadow-2xl -mt-6 space-y-4">
+      <div className="relative z-20 flex-1 w-full max-w-[440px] md:max-w-2xl mx-auto bg-white text-[#191C1E] rounded-t-3xl p-5 shadow-2xl -mt-6 space-y-4">
         {/* Verification Check Badge */}
         <div className="text-center pt-1">
           <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-2 shadow-md">

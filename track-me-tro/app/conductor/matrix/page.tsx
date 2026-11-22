@@ -186,7 +186,7 @@ function ConductorMatrixContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-dvh bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-36 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
@@ -196,56 +196,58 @@ function ConductorMatrixContent() {
       )}
 
       {/* ── Top Dark Navy Telemetry Header ── */}
-      <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push("/conductor")}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white cursor-pointer mr-0.5"
-              title="Back to Conductor Dashboard"
-              aria-label="Back to Conductor Dashboard"
-            >
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            </button>
-            <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F95700]" />
-              BUS {busDetails.id}
-            </span>
-            <span className="text-[11px] text-slate-300 font-semibold">
-              Express • Aircon
-            </span>
+      <header className="bg-[#101A2C] text-white p-4 pb-5 rounded-b-3xl shadow-lg">
+        <div className="max-w-[440px] md:max-w-4xl lg:max-w-5xl mx-auto space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push("/conductor")}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition flex items-center justify-center text-white cursor-pointer mr-0.5"
+                title="Back to Conductor Dashboard"
+                aria-label="Back to Conductor Dashboard"
+              >
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              </button>
+              <span className="flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full text-[11px] font-black tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F95700]" />
+                BUS {busDetails.id}
+              </span>
+              <span className="text-[11px] text-slate-300 font-semibold">
+                Express • Aircon
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>GPS Live</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            <span>GPS Live</span>
-          </div>
-        </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                ASSIGNED ROUTE
+              </p>
+              <h1 className="text-[18px] font-black tracking-tight text-white mt-0.5">
+                {selectedDirection === "sogod-to-ormoc" ? (
+                  <>Sogod <span className="text-slate-400">➔</span> Ormoc</>
+                ) : (
+                  <>Ormoc <span className="text-slate-400">➔</span> Sogod</>
+                )}
+              </h1>
+            </div>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              ASSIGNED ROUTE
-            </p>
-            <h1 className="text-[18px] font-black tracking-tight text-white mt-0.5">
-              {selectedDirection === "sogod-to-ormoc" ? (
-                <>Sogod <span className="text-slate-400">➔</span> Ormoc</>
-              ) : (
-                <>Ormoc <span className="text-slate-400">➔</span> Sogod</>
-              )}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shadow-2xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />
-            <span className="text-slate-300 font-bold text-[11px]">Marked Reserved:</span>
-            <span className="text-[15px] font-black text-white">{reservedCount}</span>
+            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 shadow-2xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F95700]" />
+              <span className="text-slate-300 font-bold text-[11px]">Marked Reserved:</span>
+              <span className="text-[15px] font-black text-white">{reservedCount}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 -mt-2 space-y-3.5">
+      <main className="max-w-[440px] md:max-w-4xl lg:max-w-5xl w-full mx-auto px-4 -mt-2 space-y-3.5">
         {/* ── Paid Passengers Awaiting Seat Assignment Queue Card ── */}
         {pendingBookings.length > 0 && (
           <div className="bg-white rounded-3xl p-4 shadow-sm border-2 border-[#F95700] space-y-3 animate-fade-in">
@@ -543,7 +545,7 @@ function ConductorMatrixContent() {
       {/* ── Fixed Bottom Floating Action Card (for Selected Seat) ── */}
       {selectedSeat && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 animate-slide-up">
-          <div className="max-w-[420px] mx-auto space-y-2.5">
+          <div className="max-w-[440px] md:max-w-4xl mx-auto space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div

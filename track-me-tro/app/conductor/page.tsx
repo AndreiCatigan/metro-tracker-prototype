@@ -127,7 +127,7 @@ export default function ConductorHomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans pb-16">
+    <div className="min-h-dvh bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans pb-16 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">
@@ -137,8 +137,8 @@ export default function ConductorHomePage() {
       )}
 
       {/* ── Top Conductor Header (Light Orange matching Passenger Dashboard) ── */}
-      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-3.5 sm:px-4 py-3 shadow-xs border-b border-[#F5DECD]">
-        <div className="max-w-[440px] w-full mx-auto flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-3.5 sm:px-4 md:px-6 py-3 shadow-xs border-b border-[#F5DECD]">
+        <div className="max-w-[440px] md:max-w-4xl lg:max-w-5xl w-full mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Logo className="h-7 w-auto shrink-0" />
             <div className="flex flex-col min-w-0">
@@ -461,7 +461,7 @@ export default function ConductorHomePage() {
       </header>
 
       {/* ── Main Content Container ── */}
-      <main className="max-w-[440px] w-full mx-auto px-3.5 sm:px-4 pt-3.5 space-y-3.5">
+      <main className="max-w-[440px] md:max-w-4xl lg:max-w-5xl w-full mx-auto px-3.5 sm:px-4 md:px-6 pt-3.5 space-y-3.5">
         {/* ── High-Priority Pending Seat Assignment Alert Banner ── */}
         {pendingSeatBookings.length > 0 && (
           <button
@@ -940,7 +940,7 @@ export default function ConductorHomePage() {
       {/* ── Conductor & Bus Registration Modal ── */}
       {showRegisterModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-[420px] w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 border border-[#ECEEF0] text-[#191C1E] my-auto">
+          <div className="bg-white rounded-3xl max-w-[440px] md:max-w-md w-full max-h-[90dvh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 border border-[#ECEEF0] text-[#191C1E] my-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

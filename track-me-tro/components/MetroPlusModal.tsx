@@ -30,7 +30,7 @@ export default function MetroPlusModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-[32px] max-w-[420px] w-full p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative overflow-hidden text-left">
+      <div className="bg-white rounded-[32px] max-w-[420px] md:max-w-md w-full p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative overflow-hidden text-left max-h-[90dvh] overflow-y-auto">
         {/* Warm peach subtle radial glow */}
         <div className="absolute -top-14 -right-14 w-40 h-40 rounded-full bg-[#FFE8D6] blur-2xl pointer-events-none" />
 

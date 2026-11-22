@@ -136,3 +136,23 @@
   - **Digital Boarding Pass Sync (`app/ticket/page.tsx`):**
     - Displays a `"Pending Conductor Seat Assignment"` banner with a direct link back to `/booking/pending` if visited prior to seat assignment.
     - Displays conductor-assigned seat number, Bus No., route segment, and verified discount badge once confirmed.
+- **Discount Display Simplification, Pending Screen CTA Renaming & Phone/Tablet Responsive Audit:**
+  - **Simplified Discount Display (`/booking`, `/checkout`, `/ticket`):**
+    - Removed the loud/prominent `"DISCOUNT"` sign, banner, and oversized concession callout box (`bg-[#FFE8D6]/60`) from `/booking`.
+    - Formatted the 20% concession discount as a plain, simple itemized row matching the exact font size (`text-[13px]`), weight (`font-semibold text-slate-600`), and alignment of `"Base Segment Fare"` and `"Discounted Base Fare"`:
+      - `Base Segment Fare` .................... `₱180.00`
+      - `Student Discount (20%)` ............ `-₱36.00`
+      - `Discounted Base Fare` ............... `₱144.00`
+      - `Convenience Fee` ........................ `₱20.00`
+      - *(Separator)*
+      - `Total Fare` .................................. `₱164.00`
+    - In `/checkout` and `/ticket`, replaced oversized badges with minimal, clean inline labels and matching plain itemized breakdown rows.
+  - **Renamed Pending Screen Button (`/booking/pending`):**
+    - On Stage A (**Payment Successful / Booking Status**), replaced `"Demo: Simulate Conductor Assigning Seat"` with a sleek charcoal pill button labeled **`Next →`** (`#181C24` pill with `ArrowRight` icon).
+    - Preserved the identical underlying handler (`assignSeatToBooking`) that transitions smoothly into Stage B (**Seat Confirmed**).
+  - **Phone & Tablet Responsiveness Audit & Standardization:**
+    - Standardized root containers across all passenger and auth routes with `w-full max-w-[440px] md:max-w-2xl mx-auto px-4 md:px-6 min-h-dvh overflow-x-hidden`.
+    - Standardized conductor routes with `w-full max-w-[440px] md:max-w-4xl lg:max-w-5xl mx-auto px-3.5 sm:px-4 md:px-6 min-h-dvh overflow-x-hidden`.
+    - Fixed bottom bars and modal drawers constrained with matching max-widths and `pb-safe`.
+    - Stage B dual action buttons stack full-width on mobile phones (`grid-cols-1`) and sit side-by-side on tablets (`md:grid-cols-2`).
+    - Added global viewport guardrail in `app/globals.css`: `html, body { overflow-x: clip; max-width: 100vw; min-height: 100dvh; }`.

@@ -31,20 +31,20 @@ export default function AppShell({
   withBottomNav = false,
 }: AppShellProps) {
   const containerMaxWidth =
-    variant === "conductor" ? "md:max-w-6xl" : "md:max-w-3xl";
+    variant === "conductor" ? "max-w-[440px] md:max-w-4xl lg:max-w-5xl" : "max-w-[440px] md:max-w-2xl";
 
   return (
     <div
       className={cn(
-        "min-h-screen w-full bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans antialiased",
+        "min-h-dvh w-full bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans antialiased overflow-x-hidden",
         className
       )}
     >
       <main
         className={cn(
-          "w-full mx-auto flex-1 flex flex-col transition-all duration-150",
+          "w-full mx-auto flex-1 flex flex-col transition-all duration-150 px-4 md:px-6",
           containerMaxWidth,
-          withBottomNav ? "pb-28 md:pb-12" : "pb-8",
+          withBottomNav ? "pb-32 pb-safe md:pb-16" : "pb-8",
           contentClassName
         )}
       >

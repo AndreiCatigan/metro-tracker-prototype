@@ -107,7 +107,7 @@ export default function ProfilePage() {
   const currentMins = TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115;
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36 overflow-x-hidden">
       {/* ── Toast notification ── */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-8 space-y-4">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-8 space-y-4">
         {/* ── User Avatar & Identity ── */}
         <div className="text-center space-y-2">
           {/* Circular Line Avatar */}
@@ -548,7 +548,7 @@ export default function ProfilePage() {
       {/* ── Discount Verification Modal ── */}
       {showDiscountModal && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] max-w-[410px] w-full p-5 sm:p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative text-left">
+          <div className="bg-white rounded-[32px] max-w-[420px] md:max-w-md w-full p-5 sm:p-6 shadow-2xl border border-[#ECEEF0] space-y-4 animate-scale-up relative text-left max-h-[90dvh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between pb-2 border-b border-[#ECEEF0]">
               <div className="flex items-center gap-2">

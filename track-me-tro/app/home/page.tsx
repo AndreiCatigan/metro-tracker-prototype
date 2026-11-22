@@ -97,7 +97,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 select-none overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe select-none overflow-x-hidden">
       {/* ── Notification Modal / Drawer ── */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -161,7 +161,7 @@ export default function HomePage() {
 
       {/* ── Top Header Bar (Colored #FFDFC9 matching Header Brand Theme) ── */}
       <header className="sticky top-0 z-30 bg-[#FFDFC9] text-[#191C1E] px-4 py-2.5 border-b border-[#F5DECD]/60 shadow-2xs">
-        <div className="max-w-[440px] w-full mx-auto flex items-center justify-between">
+        <div className="max-w-[440px] md:max-w-2xl w-full mx-auto flex items-center justify-between">
           <Logo className="h-8 sm:h-9 w-auto" />
 
           <button
@@ -196,7 +196,7 @@ export default function HomePage() {
           </svg>
         </div>
 
-        <div className="max-w-[440px] w-full mx-auto relative z-10">
+        <div className="max-w-[440px] md:max-w-2xl w-full mx-auto relative z-10">
           {/* Hero Headline */}
           <div className="space-y-1">
             <h1 className="text-[28px] sm:text-[32px] font-black tracking-tight text-[#191C1E] leading-[1.14]">
@@ -211,7 +211,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Main Content Container ── */}
-      <main className="max-w-[440px] w-full mx-auto px-3.5 sm:px-4 -mt-8 relative z-20 space-y-4 sm:space-y-5">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-3.5 sm:px-4 md:px-6 -mt-8 relative z-20 space-y-4 sm:space-y-5">
         {/* ── Elevated Route Input Card ── */}
         <section className="bg-white rounded-3xl p-4 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)] border border-[#ECEEF0] space-y-3.5">
           <div className="flex items-center gap-3">

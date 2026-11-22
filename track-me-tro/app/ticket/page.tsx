@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
-import { Badge } from "@/components/ui/badge";
 
 export default function TicketPage() {
   const router = useRouter();
@@ -29,33 +28,35 @@ export default function TicketPage() {
     : "Regular";
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe md:pb-24 overflow-x-hidden">
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/home" className="flex items-center">
-            <Logo className="h-7 w-auto" />
-          </Link>
-          <span className="text-slate-300">•</span>
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
+        <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/home" className="flex items-center">
+              <Logo className="h-7 w-auto" />
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link
+              href="/map"
+              className="text-[12px] font-bold text-slate-600 hover:text-[#F95700] transition"
+            >
+              Live Map
+            </Link>
+          </div>
+
           <Link
-            href="/map"
-            className="text-[12px] font-bold text-slate-600 hover:text-[#F95700] transition"
+            href="/profile"
+            className="w-8 h-8 rounded-full bg-[#A53700] text-white flex items-center justify-center shadow-xs"
+            aria-label="Profile"
           >
-            Live Map
+            <span className="material-symbols-outlined text-[18px]">person</span>
           </Link>
         </div>
-
-        <Link
-          href="/profile"
-          className="w-8 h-8 rounded-full bg-[#A53700] text-white flex items-center justify-center shadow-xs"
-          aria-label="Profile"
-        >
-          <span className="material-symbols-outlined text-[18px]">person</span>
-        </Link>
       </header>
 
       {/* ── Sub Navigation Controls ── */}
-      <div className="max-w-[420px] w-full mx-auto px-4 pt-3 flex items-center justify-between">
+      <div className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() => router.push("/home")}
@@ -92,7 +93,7 @@ export default function TicketPage() {
         </div>
       </div>
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-2 space-y-4">
+      <main className="max-w-[440px] md:max-w-2xl w-full mx-auto px-4 md:px-6 pt-2 space-y-4">
         {/* ── Pending Seat Assignment Banner ── */}
         {isPendingAssignment && latestBooking && (
           <div className="bg-[#FFE8D6] border-2 border-[#F95700] rounded-3xl p-4.5 space-y-3 shadow-md text-center animate-fade-in">
@@ -325,21 +326,15 @@ export default function TicketPage() {
               </div>
             </div>
 
-            {/* Concession Discount Callout */}
+            {/* Concession Discount Row */}
             {activeTicket.passengerType && activeTicket.passengerType !== "regular" && (
-              <div className="mt-3.5 pt-3 border-t border-dashed border-[#ECEEF0] flex items-center justify-between">
-                <Badge variant="peach" className="gap-1 font-bold text-[10px] py-0.5 px-2.5 shadow-2xs">
-                  <span className="material-symbols-outlined text-[13px]">discount</span>
-                  <span>20% {passengerTypeLabel} Discount Applied</span>
-                </Badge>
-                <div className="text-right text-[11px]">
-                  <span className="line-through text-slate-400 font-bold mr-1.5">
-                    ₱{activeTicket.baseFare.toFixed(2)}
-                  </span>
-                  <span className="text-emerald-700 font-extrabold">
-                    -₱{Math.round(activeTicket.baseFare * 0.2).toFixed(2)}
-                  </span>
-                </div>
+              <div className="mt-3.5 pt-3 border-t border-dashed border-[#ECEEF0] flex items-center justify-between text-[13px]">
+                <span className="font-semibold text-slate-600">
+                  {passengerTypeLabel} Discount (20%)
+                </span>
+                <span className="font-bold text-emerald-700">
+                  -₱{Math.round(activeTicket.baseFare * 0.2).toFixed(2)}
+                </span>
               </div>
             )}
           </div>
