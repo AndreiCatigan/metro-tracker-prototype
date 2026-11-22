@@ -107,7 +107,7 @@ export default function ProfilePage() {
   const currentMins = TRAVEL_TIMES_FROM_SOGOD[userLocation] ?? 115;
 
   return (
-    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36 overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe overflow-x-hidden">
       {/* ── Toast notification ── */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg animate-fade-in flex items-center gap-2">

@@ -27,7 +27,7 @@ export default function ConductorScanPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#0A0E17] text-white flex flex-col font-sans select-none relative overflow-x-hidden">
+    <div className="min-h-dvh bg-[#0A0E17] text-white flex flex-col font-sans select-none relative pb-12 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">

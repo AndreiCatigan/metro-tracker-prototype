@@ -180,21 +180,42 @@ export function useIsHydrated(): boolean {
   );
 }
 
+let currentTimestampSnapshot = typeof window !== "undefined" ? Date.now() : 0;
+const timestampListeners = new Set<() => void>();
+let timestampTimer: ReturnType<typeof setInterval> | null = null;
+
+function ensureTimestampTimer() {
+  if (typeof window === "undefined") return;
+  if (!timestampTimer) {
+    timestampTimer = setInterval(() => {
+      currentTimestampSnapshot = Date.now();
+      timestampListeners.forEach((l) => l());
+    }, 30000);
+  }
+}
+
 const timerSubscribe = (callback: () => void) => {
   if (typeof window === "undefined") return () => {};
-  const timer = setInterval(callback, 30000);
-  return () => clearInterval(timer);
+  timestampListeners.add(callback);
+  ensureTimestampTimer();
+  return () => {
+    timestampListeners.delete(callback);
+    if (timestampListeners.size === 0 && timestampTimer) {
+      clearInterval(timestampTimer);
+      timestampTimer = null;
+    }
+  };
 };
 
 /**
  * Returns 0 during SSR pre-render and initial client hydration,
- * then returns the current epoch timestamp (Date.now()) on the client,
+ * then returns a stable epoch timestamp on the client,
  * updated on a 30-second interval.
  */
 export function useCurrentTimestamp(): number {
   return useSyncExternalStore(
     timerSubscribe,
-    () => Date.now(),
+    () => currentTimestampSnapshot,
     () => 0
   );
 }

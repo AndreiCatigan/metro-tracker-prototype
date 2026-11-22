@@ -44,7 +44,7 @@ export default function AppShell({
         className={cn(
           "w-full mx-auto flex-1 flex flex-col transition-all duration-150 px-4 md:px-6",
           containerMaxWidth,
-          withBottomNav ? "pb-32 pb-safe md:pb-16" : "pb-8",
+          withBottomNav ? "pb-nav-safe" : "pb-8",
           contentClassName
         )}
       >

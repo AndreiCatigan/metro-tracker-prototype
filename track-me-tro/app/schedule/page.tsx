@@ -10,7 +10,7 @@ export default function SchedulePage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe md:pb-24 overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe overflow-x-hidden">
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0]">
         <div className="w-full max-w-[440px] md:max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">

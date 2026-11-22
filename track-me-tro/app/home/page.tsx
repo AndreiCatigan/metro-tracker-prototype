@@ -97,7 +97,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-32 pb-safe select-none overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-nav-safe select-none overflow-x-hidden">
       {/* ── Notification Modal / Drawer ── */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">

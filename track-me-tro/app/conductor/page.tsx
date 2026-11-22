@@ -127,7 +127,7 @@ export default function ConductorHomePage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans pb-16 overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F4F6F9] text-[#191C1E] flex flex-col font-sans pb-24 overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border border-white/20 animate-fade-in flex items-center gap-2">

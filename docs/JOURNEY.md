@@ -179,3 +179,23 @@
     - Zero Next.js hydration errors or warnings across hard reloads on `/booking`, `/checkout`, `/booking/pending`, `/ticket`, `/map`, and `/home`.
     - Production build (`npm run build`) statically prerenders 21/21 routes with 0 errors.
     - Full ESLint check (`npm run lint`) clean with 0 errors.
+- **Bottom Navigation & Fixed CTA Bar Clearance Audit & `.pb-safe` Conflict Resolution:**
+  - **Root Cause Eliminated:**
+    - `.pb-safe` defined in `app/globals.css` applied `padding-bottom: env(safe-area-inset-bottom, 0px)`. Because `.pb-safe` was declared after Tailwind utilities, it clobbered and overrode Tailwind scroll clearance utilities (`pb-24`, `pb-32`, `md:pb-24`) down to `0px` on desktop, laptop, and non-notched screens.
+    - On `/booking` and `/checkout`, the fixed bottom summary/CTA bar overlapped and sliced the Fare Breakdown card.
+    - On `/ticket`, the floating charcoal `BottomNavigation` pill sat directly on top of the "Save to Wallet" and "Track Bus" action buttons.
+    - Fixed infinite loop in `useCurrentTimestamp` store by using a stable in-memory variable updated exclusively by listener notifications, preventing cascading re-renders.
+  - **Dedicated Safe-Clearance Utilities (`app/globals.css`):**
+    - `.pb-nav-safe`: `padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));` — provides at least 29px to 48px of clear breathing space for all pages rendering the floating `BottomNavigation` dock.
+    - `.pb-cta-safe`: `padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));` — provides 72px to 118px of clear breathing space for all pages with fixed bottom action/CTA bars.
+    - `.pb-safe`: `padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));` — reserved strictly for fixed bars and bottom sheets themselves. Removed from `<body>` in `app/layout.tsx`.
+  - **Route Updates Across the App:**
+    - `/booking` & `/checkout`: Migrated container padding to `pb-cta-safe`. Fare Breakdown card and checkout action summaries sit completely above fixed CTA bars at max scroll.
+    - `/ticket`, `/home`, `/schedule`, `/profile`, and `AppShell`: Migrated container padding to `pb-nav-safe`. Bottom-most action buttons, timetable cards, and settings scroll cleanly above the `BottomNavigation` pill.
+    - `/conductor/matrix`: Migrated to `pb-cta-safe` and added `pb-safe` to the bottom seat inspection card. Row 10 (5-seat rear bench) sits strictly 74px to 120px above the fixed action card.
+    - `/map`: Set mobile bus drawer offset to `bottom-22` (88px), floating cleanly 16px+ above `BottomNavigation` (72px).
+    - `/booking/pending`, `/conductor`, `/conductor/pos`, `/conductor/scan`, `/`, `/signup`: Applied non-colliding `pb-12` to `pb-24` padding.
+  - **Automated Viewport & Bounding-Box Verification:**
+    - Tested all 14 active routes across Mobile Phone (`375x812`), Tablet (`768x1024`), and Short Viewport (`1280x680`).
+    - Verified via `getBoundingClientRect()` at max scroll (`window.scrollTo(0, document.body.scrollHeight)`) that `contentBottom <= fixedBarTop - 16px` passed across 100% of routes.
+    - `npm run lint` (0 errors) and `npm run build` (21/21 routes static prerendered) verified.

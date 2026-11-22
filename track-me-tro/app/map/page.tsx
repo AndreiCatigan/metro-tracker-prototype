@@ -239,7 +239,7 @@ function MapContent() {
       </div>
 
       {/* ── Bottom Floating Transit Card (Level 2 Elevation) ── */}
-      <div className="fixed bottom-20 left-0 right-0 md:left-6 md:right-auto md:bottom-24 z-30 flex justify-center md:justify-start px-4 md:px-0 pointer-events-none">
+      <div className="fixed bottom-22 left-0 right-0 md:left-6 md:right-auto md:bottom-24 z-30 flex justify-center md:justify-start px-4 md:px-0 pointer-events-none">
         {selectedBus && etaData ? (
           <div className="relative w-full max-w-[440px] md:w-[400px] bg-white rounded-3xl p-4 shadow-elevation2 border border-[#ECEEF0] space-y-3 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
             {/* Card Drag Indicator Bar */}

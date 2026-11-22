@@ -186,7 +186,7 @@ function ConductorMatrixContent() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-36 overflow-x-hidden">
+    <div className="min-h-dvh bg-[#F0F3F7] text-[#191C1E] flex flex-col font-sans pb-cta-safe overflow-x-hidden">
       {/* ── Toast Notification ── */}
       {toastMessage && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#181C24] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center gap-2 animate-fade-in">
@@ -544,7 +544,7 @@ function ConductorMatrixContent() {
 
       {/* ── Fixed Bottom Floating Action Card (for Selected Seat) ── */}
       {selectedSeat && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 animate-slide-up">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.08)] px-4 py-3 pb-safe animate-slide-up">
           <div className="max-w-[440px] md:max-w-4xl mx-auto space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
