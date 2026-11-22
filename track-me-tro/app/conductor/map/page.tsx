@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext, PassengerHail } from "@/lib/AppContext";
@@ -51,31 +51,26 @@ function ConductorMapContent() {
     return passengerHails.filter((h) => h.status !== "boarded");
   }, [passengerHails]);
 
-  // Selected Hail state: defaults to query param or first active hail
-  const [selectedHailId, setSelectedHailId] = useState<string | null>(() => {
+  // User explicitly selected hail ID in UI (or null for default selection)
+  const [explicitHailId, setExplicitHailId] = useState<string | null>(null);
+
+  // Derive the active hail ID during render without cascading useEffect renders
+  const selectedHailId = useMemo(() => {
     if (queryHailId && activeHails.some((h) => h.id === queryHailId)) {
       return queryHailId;
     }
-    return activeHails[0]?.id || null;
-  });
-
-  // Keep selectedHailId valid if hails change
-  useEffect(() => {
-    if (queryHailId && activeHails.some((h) => h.id === queryHailId)) {
-      setSelectedHailId(queryHailId);
-    } else if (selectedHailId && !activeHails.some((h) => h.id === selectedHailId)) {
-      setSelectedHailId(activeHails[0]?.id || null);
-    } else if (!selectedHailId && activeHails.length > 0) {
-      setSelectedHailId(activeHails[0].id);
+    if (explicitHailId && activeHails.some((h) => h.id === explicitHailId)) {
+      return explicitHailId;
     }
-  }, [queryHailId, activeHails, selectedHailId]);
+    return activeHails[0]?.id || null;
+  }, [queryHailId, explicitHailId, activeHails]);
 
   const selectedHail = useMemo(() => {
     return activeHails.find((h) => h.id === selectedHailId) || null;
   }, [activeHails, selectedHailId]);
 
   const handleSelectHail = (hail: PassengerHail) => {
-    setSelectedHailId(hail.id);
+    setExplicitHailId(hail.id);
     setRecenterTrigger((prev) => prev + 1);
   };
 
@@ -98,7 +93,7 @@ function ConductorMapContent() {
     ];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const newHail = hailBus(busDetails.id, randomStop, "Approaching in 15 min");
-    setSelectedHailId(newHail.id);
+    setExplicitHailId(newHail.id);
     setRecenterTrigger((prev) => prev + 1);
     showToast(`📍 New location ping: ${randomName} is waiting at ${randomStop}!`);
   };
@@ -210,7 +205,7 @@ function ConductorMapContent() {
             <button
               type="button"
               onClick={() => {
-                setSelectedHailId(null);
+                setExplicitHailId(null);
                 setRecenterTrigger((prev) => prev + 1);
               }}
               className="w-8 h-8 rounded-2xl bg-[#101A2C] text-white hover:bg-black active:scale-95 shadow-md flex items-center justify-center cursor-pointer"

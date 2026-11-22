@@ -64,6 +64,21 @@
   --color-transit-muted: #64748b;
   --color-transit-border: #e2e8f0;
 
+  /* shadcn/ui semantic bridge tokens */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-display: "Plus Jakarta Sans", sans-serif;
 
@@ -124,6 +139,34 @@
 :root {
   --background: #f7f9fb;
   --foreground: #191c1e;
+
+  /* shadcn/ui Kinetic Transit theme tokens */
+  --card: #ffffff;
+  --card-foreground: #191c1e;
+
+  --popover: #ffffff;
+  --popover-foreground: #191c1e;
+
+  --primary: #f95700;
+  --primary-foreground: #ffffff;
+
+  --secondary: #181c24;
+  --secondary-foreground: #ffffff;
+
+  --muted: #f2f4f6;
+  --muted-foreground: #64748b;
+
+  --accent: #ffe8d6;
+  --accent-foreground: #a53700;
+
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #f95700;
+
+  --radius: 1rem;
 }
 
 body {
