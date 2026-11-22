@@ -8,6 +8,7 @@ import {
   generateAvailableBookingTrips,
   AvailableBookingTrip as AvailableTrip,
 } from "@/lib/data";
+import { Badge } from "@/components/ui/badge";
 
 function BookingContent() {
   const router = useRouter();
@@ -280,10 +281,10 @@ function BookingContent() {
             </div>
 
             {verifiedDiscount !== "regular" ? (
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-[11px] font-extrabold shadow-2xs">
-                <span className="material-symbols-outlined text-[15px] text-emerald-600">verified</span>
-                <span className="capitalize">{verifiedDiscount} (20% Off)</span>
-              </span>
+              <Badge variant="peach" className="gap-1 font-bold text-[11px] py-1 px-3 shadow-2xs">
+                <span className="material-symbols-outlined text-[14px]">discount</span>
+                <span className="capitalize">20% {verifiedDiscount} Discount Applied</span>
+              </Badge>
             ) : (
               <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[11px] font-bold">
                 <span>Regular Fare</span>

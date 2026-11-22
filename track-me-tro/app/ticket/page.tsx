@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
 import BottomNavigation from "@/components/BottomNavigation";
 import Logo from "@/components/Logo";
+import { Badge } from "@/components/ui/badge";
 
 export default function TicketPage() {
   const router = useRouter();
@@ -293,6 +294,24 @@ export default function TicketPage() {
                 </p>
               </div>
             </div>
+
+            {/* Concession Discount Callout */}
+            {activeTicket.passengerType && activeTicket.passengerType !== "regular" && (
+              <div className="mt-3.5 pt-3 border-t border-dashed border-[#ECEEF0] flex items-center justify-between">
+                <Badge variant="peach" className="gap-1 font-bold text-[10px] py-0.5 px-2.5 shadow-2xs">
+                  <span className="material-symbols-outlined text-[13px]">discount</span>
+                  <span>20% {passengerTypeLabel} Discount Applied</span>
+                </Badge>
+                <div className="text-right text-[11px]">
+                  <span className="line-through text-slate-400 font-bold mr-1.5">
+                    ₱{activeTicket.baseFare.toFixed(2)}
+                  </span>
+                  <span className="text-emerald-700 font-extrabold">
+                    -₱{Math.round(activeTicket.baseFare * 0.2).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

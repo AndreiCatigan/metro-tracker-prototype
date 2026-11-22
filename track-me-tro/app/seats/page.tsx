@@ -1,20 +1,127 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useMemo, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
-import { PASSENGER_SEAT_ROWS, DEFAULT_OCCUPIED_SEAT_IDS } from "@/lib/data";
+import {
+  PASSENGER_SEAT_ROWS,
+  DEFAULT_OCCUPIED_SEAT_IDS,
+  calculateSegmentFare,
+  normalizeStopName,
+  ROUTE_70_STOPS_SOGOD_TO_ORMOC,
+  ROUTE_70_STOPS_ORMOC_TO_SOGOD,
+} from "@/lib/data";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-export default function SelectSeatPage() {
+function SelectSeatContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     busDetails,
     selectedSeatNumber,
     setSelectedSeatNumber,
     passengerName,
+    selectedDirection,
+    setSelectedDirection,
+    origin,
+    setOrigin,
+    destination,
+    setDestination,
+    verifiedDiscount,
+    isPremium,
   } = useAppContext();
 
-  // Preset mock occupancy matching Image 4
+  // Sync direction from query params if specified
+  const directionParam = searchParams.get("direction");
+  useEffect(() => {
+    if (directionParam === "ormoc-to-sogod" || directionParam === "sogod-to-ormoc") {
+      if (directionParam !== selectedDirection) {
+        setSelectedDirection(directionParam);
+      }
+    }
+  }, [directionParam, selectedDirection, setSelectedDirection]);
+
+  // Stops list for the active direction of travel
+  const corridorStops = useMemo(
+    () =>
+      selectedDirection === "ormoc-to-sogod"
+        ? ROUTE_70_STOPS_ORMOC_TO_SOGOD
+        : ROUTE_70_STOPS_SOGOD_TO_ORMOC,
+    [selectedDirection]
+  );
+
+  const normalizedOrigin = normalizeStopName(origin);
+  const normalizedDestination = normalizeStopName(destination);
+
+  // Available boarding stops (all stops except the final destination terminus)
+  const availableOrigins = useMemo(
+    () => corridorStops.slice(0, corridorStops.length - 1),
+    [corridorStops]
+  );
+
+  // Active boarding stop, falling back to terminus
+  const currentOrigin = useMemo(() => {
+    if (availableOrigins.includes(normalizedOrigin as (typeof availableOrigins)[number])) {
+      return normalizedOrigin;
+    }
+    return availableOrigins[0];
+  }, [availableOrigins, normalizedOrigin]);
+
+  const originIndex = corridorStops.indexOf(currentOrigin as (typeof corridorStops)[number]);
+
+  // Available drop-off destinations: only stops strictly ahead of origin
+  const availableDestinations = useMemo(
+    () => corridorStops.slice(originIndex + 1),
+    [corridorStops, originIndex]
+  );
+
+  // Active drop-off destination, falling back to last destination
+  const currentDestination = useMemo(() => {
+    if (availableDestinations.includes(normalizedDestination as (typeof availableDestinations)[number])) {
+      return normalizedDestination;
+    }
+    return availableDestinations[availableDestinations.length - 1];
+  }, [availableDestinations, normalizedDestination]);
+
+  // Synchronize validated origin & destination to AppContext
+  useEffect(() => {
+    if (origin !== currentOrigin) {
+      setOrigin(currentOrigin);
+    }
+    if (destination !== currentDestination) {
+      setDestination(currentDestination);
+    }
+  }, [origin, destination, currentOrigin, currentDestination, setOrigin, setDestination]);
+
+  const handleOriginChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newOrigin = e.target.value;
+    setOrigin(newOrigin);
+    const newOriginIdx = corridorStops.indexOf(newOrigin as (typeof corridorStops)[number]);
+    const downstream = corridorStops.slice(newOriginIdx + 1);
+    if (!downstream.includes(destination as (typeof downstream)[number])) {
+      setDestination(downstream[downstream.length - 1] || downstream[0]);
+    }
+  };
+
+  const handleDestinationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDestination(e.target.value);
+  };
+
+  const handleToggleDirection = () => {
+    const nextDir = selectedDirection === "sogod-to-ormoc" ? "ormoc-to-sogod" : "sogod-to-ormoc";
+    setSelectedDirection(nextDir);
+  };
+
+  // Live segment fare calculation with 20% concession & standard ₱20 convenience fee
+  const fareBreakdown = useMemo(() => {
+    return calculateSegmentFare(currentOrigin, currentDestination, verifiedDiscount, {
+      isPremium,
+      includeConvenienceFee: true,
+    });
+  }, [currentOrigin, currentDestination, verifiedDiscount, isPremium]);
+
+  // Preset mock occupancy matching design specs
   const occupiedSeatIds = new Set(DEFAULT_OCCUPIED_SEAT_IDS);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -37,11 +144,19 @@ export default function SelectSeatPage() {
     return num % 4 === 1 || num % 4 === 0;
   };
 
-  // 6 rows of 4 seats (24 seats total matching Image 4)
   const seatRows = PASSENGER_SEAT_ROWS;
 
+  const discountLabel =
+    verifiedDiscount === "student"
+      ? "Student"
+      : verifiedDiscount === "senior"
+      ? "Senior Citizen"
+      : verifiedDiscount === "pwd"
+      ? "PWD"
+      : "";
+
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-36">
+    <div className="min-h-screen bg-[#F7F9FB] text-[#191C1E] flex flex-col font-sans pb-40">
       {/* ── Top Header ── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-[#ECEEF0] px-4 py-3 flex items-center justify-between">
         <button
@@ -55,7 +170,7 @@ export default function SelectSeatPage() {
 
         <div className="text-center">
           <h1 className="text-[17px] font-extrabold tracking-tight text-[#191C1E]">
-            Select Your Seat
+            Reserve Your Seat
           </h1>
           <p className="text-[11px] font-medium text-slate-500">
             Bus {busDetails.id} • Aircon Express
@@ -80,23 +195,103 @@ export default function SelectSeatPage() {
         </div>
       )}
 
-      <main className="max-w-[420px] w-full mx-auto px-4 pt-4 space-y-3.5">
-        {/* ── Route Indicator Card ── */}
-        <div className="bg-white rounded-2xl p-3.5 shadow-2xs border border-[#ECEEF0] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="w-3.5 h-3.5 rounded-full border-2 border-[#A53700] flex-shrink-0" />
-            <span className="text-[14px] font-extrabold text-[#191C1E] tracking-tight">
-              Sogod <span className="text-slate-400 font-normal">➔</span> Ormoc City
-            </span>
+      <main className="max-w-[440px] w-full mx-auto px-4 pt-3.5 space-y-3.5">
+        {/* ── Trip Segment Card (Destination & Boarding Stop Selector) ── */}
+        <Card className="p-4 bg-white border border-[#ECEEF0] rounded-3xl shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F95700] animate-pulse" />
+              <span className="text-[12px] font-black uppercase tracking-wider text-slate-700">
+                Route 70 Segment
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleDirection}
+              className="flex items-center gap-1.5 bg-[#FFE8D6] text-[#A53700] hover:bg-[#FFDFC9] px-2.5 py-1 rounded-full text-[11px] font-bold transition active:scale-95 cursor-pointer"
+              title="Tap to switch corridor direction"
+            >
+              <span>{selectedDirection === "sogod-to-ormoc" ? "Sogod ➔ Ormoc" : "Ormoc ➔ Sogod"}</span>
+              <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
+            </button>
           </div>
-          <div className="flex items-center gap-1 bg-[#F5DECD]/60 text-[#812900] px-2.5 py-1 rounded-full text-[11px] font-bold">
-            <span className="material-symbols-outlined text-[14px]">ac_unit</span>
-            <span>Aircon</span>
+
+          {/* Segment Pickers */}
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            {/* Origin (Boarding Stop) */}
+            <div className="space-y-1">
+              <label htmlFor="origin-stop-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Boarding Stop
+              </label>
+              <div className="relative">
+                <select
+                  id="origin-stop-select"
+                  value={currentOrigin}
+                  onChange={handleOriginChange}
+                  aria-label="Boarding Stop"
+                  className="w-full h-10 pl-2.5 pr-7 text-[12px] font-extrabold text-[#191C1E] bg-[#F7F9FB] border border-[#ECEEF0] rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-[#F95700]/30 focus:border-[#F95700] cursor-pointer"
+                >
+                  {availableOrigins.map((stop) => (
+                    <option key={`origin-${stop}`} value={stop}>
+                      {stop}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined text-[16px] text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  arrow_drop_down
+                </span>
+              </div>
+            </div>
+
+            {/* Destination Stop */}
+            <div className="space-y-1">
+              <label htmlFor="destination-stop-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Destination
+              </label>
+              <div className="relative">
+                <select
+                  id="destination-stop-select"
+                  value={currentDestination}
+                  onChange={handleDestinationChange}
+                  aria-label="Destination"
+                  className="w-full h-10 pl-2.5 pr-7 text-[12px] font-extrabold text-[#191C1E] bg-[#F7F9FB] border border-[#ECEEF0] rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-[#F95700]/30 focus:border-[#F95700] cursor-pointer"
+                >
+                  {availableDestinations.map((stop) => (
+                    <option key={`dest-${stop}`} value={stop}>
+                      {stop}
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined text-[16px] text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  arrow_drop_down
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Segment Distance & Concession Banner */}
+          <div className="flex items-center justify-between pt-2 border-t border-[#ECEEF0] text-[11px]">
+            <div className="flex items-center gap-1.5 text-slate-500 font-semibold">
+              <span className="material-symbols-outlined text-[15px] text-slate-400">straighten</span>
+              <span>{fareBreakdown.distanceKm} km ride</span>
+            </div>
+
+            {verifiedDiscount !== "regular" ? (
+              <Badge variant="peach" className="gap-1 font-bold text-[10px] py-0.5 px-2.5">
+                <span className="material-symbols-outlined text-[13px]">discount</span>
+                <span>20% {discountLabel} Discount Applied</span>
+              </Badge>
+            ) : (
+              <span className="text-[10px] font-bold text-slate-400">
+                LTFRB Segment Fare
+              </span>
+            )}
+          </div>
+        </Card>
 
         {/* ── Legend Row ── */}
-        <div className="flex items-center justify-center gap-6 py-1 text-[12px] font-semibold text-slate-600">
+        <div className="flex items-center justify-center gap-6 py-0.5 text-[12px] font-semibold text-slate-600">
           <div className="flex items-center gap-1.5">
             <span className="w-4 h-4 rounded-md bg-white border border-[#E4BEB2]/80 shadow-2xs inline-block" />
             <span>Available</span>
@@ -220,7 +415,7 @@ export default function SelectSeatPage() {
 
       {/* ── Fixed Bottom Floating Action Card ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#ECEEF0] shadow-[0_-6px_24px_rgba(0,0,0,0.06)] px-4 py-3.5">
-        <div className="max-w-[420px] mx-auto space-y-3">
+        <div className="max-w-[440px] mx-auto space-y-3">
           {/* Passenger & Fare Info Row */}
           <div className="flex items-center justify-between">
             <div>
@@ -233,16 +428,29 @@ export default function SelectSeatPage() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
-                {passengerName} • Regular
+                {passengerName} • {verifiedDiscount !== "regular" ? `${discountLabel} (20% Off)` : "Regular"}
               </p>
             </div>
 
             <div className="text-right">
-              <div className="text-[20px] font-black text-[#A53700] tracking-tight leading-none">
-                ₱80.00
+              <div className="flex items-baseline justify-end gap-1.5">
+                {fareBreakdown.discountAmount > 0 && (
+                  <span className="text-[13px] font-bold text-slate-400 line-through">
+                    ₱{fareBreakdown.baseFare.toFixed(2)}
+                  </span>
+                )}
+                <div className="text-[20px] font-black text-[#A53700] tracking-tight leading-none">
+                  ₱{fareBreakdown.totalFare.toFixed(2)}
+                </div>
               </div>
               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">
-                Total Base Fare
+                {fareBreakdown.discountAmount > 0 ? (
+                  <span className="text-emerald-700 font-bold">
+                    Saved ₱{fareBreakdown.discountAmount.toFixed(2)} • incl. ₱{fareBreakdown.convenienceFee} fee
+                  </span>
+                ) : (
+                  <span>Total Fare (incl. ₱{fareBreakdown.convenienceFee} fee)</span>
+                )}
               </p>
             </div>
           </div>
@@ -277,5 +485,19 @@ export default function SelectSeatPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SelectSeatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#F7F9FB] flex items-center justify-center">
+          <p className="text-sm font-bold text-slate-400">Loading seat map...</p>
+        </div>
+      }
+    >
+      <SelectSeatContent />
+    </Suspense>
   );
 }

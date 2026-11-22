@@ -46,6 +46,8 @@ function MapContent() {
     getActiveHailForBus,
     busLastUpdatedAt,
     busDetails,
+    setOrigin,
+    setDestination,
   } = useAppContext();
   const directionParam = searchParams.get("direction");
 
@@ -140,14 +142,22 @@ function MapContent() {
     setIsDismissed(true);
   }, []);
 
-  // Primary CTA action: navigate to checkout (locked on Free Tier)
+  // Primary CTA action: navigate to seat reservation with synchronized direction and stops
   const handleBookSeat = () => {
     if (!selectedBus) return;
     if (!isPremium) {
       setShowMetroPlusModal(true);
       return;
     }
-    router.push(`/checkout?busId=${selectedBus.id}&direction=${activeDirection}`);
+    setSelectedDirection(activeDirection);
+    if (activeDirection === "sogod-to-ormoc") {
+      setOrigin("Sogod Terminal");
+      setDestination("Ormoc City");
+    } else {
+      setOrigin("Ormoc City");
+      setDestination("Sogod Terminal");
+    }
+    router.push(`/seats?busId=${selectedBus.id}&direction=${activeDirection}`);
   };
 
   // Calculate dynamic ETA to commuter's simulated userLocation

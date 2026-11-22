@@ -137,7 +137,7 @@ flowchart TD
 | **Trip Booking** | `app/booking/page.tsx` | Corridor stop selector with swap button, available trip time picker, passenger discount indicator, direct proceed to seat selection. | `/home`, `/map`, `/schedule` | `/seats`, `/booking/pending`, `/home` |
 | **Pending Booking** | `app/booking/pending/page.tsx` | Simulated automated seat assignment queue for non-reserved bookings. | `/booking` | `/seats`, `/home` |
 | **Seat Selection** | `app/seats/page.tsx` | Visual 40-seat bus cabin layout (2x2 seating + 5-seat rear bench), occupied/reserved/selected states, live fare summary. | `/booking`, `/home` | `/checkout`, `/booking` |
-| **Checkout** | `app/checkout/page.tsx` | Fare itemization (Base Fare + ₱15 Convenience Fee − Concession Discount), payment method selector (GCash / Maya), booking confirmation. | `/seats` | `/ticket`, `/seats` |
+| **Checkout** | `app/checkout/page.tsx` | Fare itemization (Base Fare + ₱20 Convenience Fee − Concession Discount), payment method selector (GCash / Maya), booking confirmation. | `/seats` | `/ticket`, `/seats` |
 | **Digital Ticket** | `app/ticket/page.tsx` | Active boarding pass with generated PNR barcode/QR, travel itinerary, live departure countdown, trip cancellation modal. | `/checkout`, bottom nav | `/home`, bottom nav |
 | **Passenger Profile** | `app/profile/page.tsx` | Account details, discount verification modal (Student/Senior/PWD concession with ID number & agency), MEtro+ management, simulation controls (time, location, tier). | Bottom nav | `/`, bottom nav |
 | **Conductor Command** | `app/conductor/page.tsx` | Shift setup modal, bus dispatch status (In Queue / Boarding / Departed), passenger load counter, live incoming hail queue, notification drawer. | `/` (Conductor role) | `/conductor/map`, `/conductor/matrix`, `/` |
@@ -254,7 +254,7 @@ Located in `lib/AppContext.tsx`:
 - **GPS Coordinates & Waypoints:** Exact latitude/longitude mapping for each stop and a high-resolution highway polyline in `leyteHighwayCoords.json`.
 - **Fare Computation Formula (`corridorData.ts`):**
   $$\text{Discount} = \text{round}(\text{baseFare} \times 0.20) \quad \text{(for Student, Senior, PWD)}$$
-  $$\text{Total Fare} = \text{baseFare} - \text{Discount} + 15 \quad (\text{₱15 convenience fee})$$
+  $$\text{Total Fare} = \text{baseFare} - \text{Discount} + 20 \quad (\text{₱20 convenience fee})$$
 
 ### Multi-Tab & Cross-Device State Synchronization
 Synchronization does not use WebSockets or BroadcastChannel; it is powered by `localStorage` events:

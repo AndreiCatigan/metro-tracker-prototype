@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
-import { POS_ROUTE_STOPS } from "@/lib/data";
+import { getPosRouteStops } from "@/lib/data";
 
 function PosContent() {
   const router = useRouter();
@@ -11,12 +11,7 @@ function PosContent() {
   const seatId = searchParams.get("seat") || "15";
   const { busDetails, recordWalkInSale, selectedDirection } = useAppContext();
 
-  const routeStops = POS_ROUTE_STOPS.filter((stop) => {
-    if (selectedDirection === "ormoc-to-sogod") {
-      return stop.id !== "ormoc";
-    }
-    return stop.id !== "sogod";
-  });
+  const routeStops = getPosRouteStops(selectedDirection);
 
   const [selectedStopId, setSelectedStopId] = useState(
     selectedDirection === "ormoc-to-sogod" ? "vsu" : "baybay"

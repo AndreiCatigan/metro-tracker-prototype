@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/lib/AppContext";
+import { calculateSegmentFare } from "@/lib/data";
+import { Badge } from "@/components/ui/badge";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -11,12 +13,30 @@ export default function CheckoutPage() {
     selectedSeatNumber,
     passengerName,
     confirmBooking,
+    origin,
+    destination,
+    verifiedDiscount,
+    isPremium,
   } = useAppContext();
 
   const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Maya">("GCash");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const totalFare = busDetails.baseFare + busDetails.convenienceFee; // 80 + 15 = 95
+  const fare = useMemo(() => {
+    return calculateSegmentFare(origin, destination, verifiedDiscount, {
+      isPremium,
+      includeConvenienceFee: true,
+    });
+  }, [origin, destination, verifiedDiscount, isPremium]);
+
+  const discountLabel =
+    verifiedDiscount === "student"
+      ? "Student"
+      : verifiedDiscount === "senior"
+      ? "Senior Citizen"
+      : verifiedDiscount === "pwd"
+      ? "PWD"
+      : "";
 
   const handlePay = () => {
     setIsProcessing(true);
@@ -73,7 +93,7 @@ export default function CheckoutPage() {
               Route Corridor
             </div>
             <h2 className="text-[18px] font-black text-[#191C1E] tracking-tight">
-              Baybay City <span className="text-slate-400 font-normal">➔</span> Ormoc City
+              {origin} <span className="text-slate-400 font-normal">➔</span> {destination}
             </h2>
           </div>
 
@@ -83,7 +103,7 @@ export default function CheckoutPage() {
                 DEPARTURE DATE &amp; TIME
               </p>
               <p className="text-[13px] font-extrabold text-[#191C1E]">
-                Today • 4:00 AM
+                Today • 8:00 AM
               </p>
               <p className="text-[11px] text-slate-400 font-medium">Nov 24, 2026</p>
             </div>
@@ -111,9 +131,15 @@ export default function CheckoutPage() {
                 {passengerName}
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-400">
-              Regular Ticket
-            </span>
+            {verifiedDiscount !== "regular" ? (
+              <Badge variant="peach" className="text-[10px] py-0.5 px-2.5 font-bold">
+                20% {discountLabel} Discount Applied
+              </Badge>
+            ) : (
+              <span className="text-[11px] font-medium text-slate-400">
+                Regular Ticket
+              </span>
+            )}
           </div>
         </section>
 
@@ -131,8 +157,24 @@ export default function CheckoutPage() {
           <div className="space-y-2 text-[13px]">
             <div className="flex items-center justify-between text-[#191C1E]">
               <span className="font-semibold text-slate-600">Base Fare</span>
-              <span className="font-bold">₱{busDetails.baseFare.toFixed(2)}</span>
+              <span className="font-bold">₱{fare.baseFare.toFixed(2)}</span>
             </div>
+
+            {fare.discountAmount > 0 && (
+              <>
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span className="font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[15px]">discount</span>
+                    <span>Verified {discountLabel} Discount (20%)</span>
+                  </span>
+                  <span className="font-bold">-₱{fare.discountAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[#191C1E]">
+                  <span className="font-semibold text-slate-600">Discounted Base Fare</span>
+                  <span className="font-bold">₱{fare.discountedBaseFare.toFixed(2)}</span>
+                </div>
+              </>
+            )}
 
             <div className="flex items-center justify-between text-[#191C1E]">
               <div className="flex items-center gap-1.5">
@@ -141,7 +183,7 @@ export default function CheckoutPage() {
                   Digital Ticketing
                 </span>
               </div>
-              <span className="font-bold">₱{busDetails.convenienceFee.toFixed(2)}</span>
+              <span className="font-bold">₱{fare.convenienceFee.toFixed(2)}</span>
             </div>
           </div>
 
@@ -151,7 +193,7 @@ export default function CheckoutPage() {
               <p className="text-[10px] text-slate-400">Includes all taxes and fees</p>
             </div>
             <div className="text-[22px] font-black text-[#191C1E] tracking-tight">
-              ₱{totalFare.toFixed(2)}
+              ₱{fare.totalFare.toFixed(2)}
             </div>
           </div>
         </section>
@@ -256,7 +298,7 @@ export default function CheckoutPage() {
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-500 font-semibold">Final Payment Due</span>
             <span className="text-[17px] font-black text-[#F95700]">
-              ₱{totalFare.toFixed(2)}
+              ₱{fare.totalFare.toFixed(2)}
             </span>
           </div>
 
@@ -273,7 +315,7 @@ export default function CheckoutPage() {
               </span>
             ) : (
               <span className="flex items-center gap-1.5">
-                <span>Pay ₱{totalFare.toFixed(2)}</span>
+                <span>Pay ₱{fare.totalFare.toFixed(2)}</span>
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </span>
             )}

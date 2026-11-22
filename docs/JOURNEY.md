@@ -86,3 +86,25 @@
     - Added presentation safeguard ensuring conductor multi-tab updates do not overwrite designated delayed demo buses (`!b.isDesignatedDelayed`).
   - Map Marker Cohesion (`components/LiveMapLeaflet.tsx`):
     - Aligned delayed bus pins to render a slate dashed ring (`border: 1.5px dashed #94A3B8; background: rgba(241, 245, 249, 0.7);`), slate bus icon (`#64748B`), and a slate dot (`#94A3B8`) in the bottom ETA tag, visually distinguishing live units from delayed units across both route directions.
+- **Seat Reservation Pricing, Concession Discount & Universal ₱20 Convenience Fee:**
+  - **Single Source of Truth (`lib/data/corridorData.ts`):**
+    - Exported `CONVENIENCE_FEE = 20` and eliminated all hardcoded `15` / `₱15` references across the entire codebase.
+    - Defined official Route 70 km markers for all 9 stations (`ROUTE_70_STOPS_KM`).
+    - Implemented bidirectional full-route fare tables:
+      - `Sogod ➔ Ormoc`: Bato `₱65`, Hilongos `₱90`, Hindang `₱110`, Inopacan `₱140`, Baybay City `₱180`, VSU Main Campus `₱215`, Albuera `₱245`, Ormoc City `₱275`.
+      - `Ormoc ➔ Sogod`: Albuera (`₱35`), VSU Main Campus (`₱90`), Baybay City (`₱105`), Inopacan (`₱140`), Hindang (`₱160`), Hilongos (`₱185`), Bato (`₱205`), Sogod Terminal (`₱275`).
+    - Implemented intermediate stop distance fare calculation (`Math.abs(destKm - originKm) * (275 / 155)`, rounded to nearest ₱5 with ₱25 minimum).
+    - Concession discounts: 20% off base fare for Student, Senior, and PWD (`Math.round(baseFare * 0.20)`). Total: `discountedBaseFare + convenienceFee (20)`.
+  - **Discount Verification Integration (`lib/AppContext.tsx` & `app/profile/page.tsx`):**
+    - Added lazy client hydration for `verifiedDiscount`, `discountIdNumber`, and `discountSchoolOrAgency` to prevent flash of `"regular"`.
+    - Wired `calculateSegmentFare` into `confirmBooking`, `createBooking`, and `requestSeatReservation` so booked tickets preserve exact stop-to-stop segment fares and verified concession discounts.
+  - **Seat Reservation Redesign (`app/seats/page.tsx`):**
+    - Added an interactive Kinetic Transit **Trip Segment Card** using `Card` and `Badge`.
+    - Integrated a direction toggle between `Sogod ➔ Ormoc` and `Ormoc ➔ Sogod`.
+    - Dynamic destination stop filtering (only stops ahead of the selected boarding stop are available).
+    - Real-time fare display showing base fare, 20% concession badge (`Badge variant="peach"`), discount savings, and total fare including ₱20 convenience fee.
+  - **Checkout & Ticket Breakdown (`app/checkout/page.tsx` & `app/ticket/page.tsx`):**
+    - `app/checkout/page.tsx`: Displays corridor segment route, 20% concession discount badge, itemized breakdown (Base Fare, Verified Discount, Discounted Base Fare, ₱20 Convenience Fee, Total Amount), and dynamic checkout button.
+    - `app/ticket/page.tsx`: Displays corridor segment, 20% concession badge, crossed-out original base fare, and exact total amount.
+  - **Conductor POS Dynamic Route Alignment (`lib/data/conductorData.ts` & `app/conductor/pos/page.tsx`):**
+    - Added `getPosRouteStops(direction)` returning directional stops and base fares for conductor on-bus ticketing.
